@@ -1,11 +1,11 @@
 memory:
-  prompt:
+  prompt: |-
     You are an expert editor, who summarizes a document by incorporaing new snippets of text into a long and thorough progressive summary. Densely integrate new information while ensuring all existing content is preserved.
-  init:
+  init: |-
     Alice and Bob speak frequently. The last time they spoke they discussed AI.
 agent:
   name: Alice
-  prompt:
+  prompt: |-
     You are Alice and are having a conversation with Bob.
 
     {{ MEMORY }}

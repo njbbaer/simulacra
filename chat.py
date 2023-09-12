@@ -1,24 +1,27 @@
 import openai
-import yaml
 import readline
+
+from yaml_setup import yaml
+from ruamel.yaml.scalarstring import LiteralScalarString
 
 
 class Context:
     def __init__(self, config_file):
         with open(config_file, 'r') as file:
-            self.context = yaml.safe_load(file)
+            self.context = yaml.load(file)
             self.context.setdefault('messages', [])
+        self.save()
 
-    def render_prompt(self):
+    def render_chat_prompt(self):
         return self.context['agent']['prompt'].replace(
             '{{ MEMORY }}', self.context['memory']['init']
         )
 
-    def render_messages(self):
+    def render_chat_messages(self):
         messages = [
             {
                 'role': 'system',
-                'content': self.render_prompt()
+                'content': self.render_chat_prompt()
             },
         ]
         messages.extend(self.context['messages'])
@@ -27,8 +30,17 @@ class Context:
     def add_message(self, role, message):
         self.context['messages'].append({
             'role': role,
-            'content': message
+            'content': LiteralScalarString(message)
         })
+        self.save()
+
+    def save(self):
+        with open('context.yml', 'w') as file:
+            yaml.dump(self.context, file)
+
+    def reload(self):
+        with open('context.yml', 'r') as file:
+            self.context = yaml.load(file)
 
 
 def gpt_complete(messages):
@@ -43,8 +55,9 @@ if __name__ == '__main__':
     context = Context('config.yml')
     while True:
         user_input = input('You: ')
+        context.reload()
         context.add_message('user', user_input)
-        messages = context.render_messages()
+        messages = context.render_chat_messages()
         response = gpt_complete(messages)
         context.add_message('assistant', response)
         print(f'AI: {response}')

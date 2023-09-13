@@ -1,12 +1,11 @@
-from src import Context, Chat
+import argparse
 
-context = Context('config.yml')
-chat = Chat(context)
+from src.chat_interface import ChatInterface
 
-while True:
-    user_input = input('You: ')
-    if user_input == '/integrate':
-        response = chat.integrate_memory()
-    else:
-        response = chat.chat(user_input)
-        print(f'AI: {response}')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('context', type=str)
+    args = parser.parse_args()
+
+    interface = ChatInterface(args.context)
+    interface.run()

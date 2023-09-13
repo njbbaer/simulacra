@@ -11,7 +11,7 @@ class Chat:
         self.llm = OpenAI()
 
     def chat(self, user_input=None):
-        self.context.reload()
+        self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
         messages = self._render_chat_messages()
@@ -20,12 +20,15 @@ class Chat:
         return response
 
     def integrate_memory(self):
-        self.context.reload()
+        self.context.load()
         messages = self._render_memorizer_messages()
         response = self.llm.complete(messages, temperature=0.0)
         self.context.set_memory(response)
         self.context.clear_messages()
         return response
+
+    def clear_messages(self):
+        self.context.clear_messages()
 
     def _render_chat_messages(self):
         messages = [

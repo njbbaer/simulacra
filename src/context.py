@@ -5,13 +5,14 @@ from ruamel.yaml.scalarstring import LiteralScalarString
 class Context:
     def __init__(self, context_file):
         self.context_file = context_file
+        self.load()
         self.save()
 
     def save(self):
         with open(self.context_file, 'w') as file:
             yaml.dump(self.data, file)
 
-    def reload(self):
+    def load(self):
         with open(self.context_file, 'r') as file:
             self.data = yaml.load(file)
 
@@ -27,7 +28,8 @@ class Context:
         self.save()
 
     def clear_messages(self):
-        del self.data['messages']
+        if 'messages' in self.data:
+            del self.data['messages']
         self.save()
 
     @property

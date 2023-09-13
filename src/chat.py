@@ -1,24 +1,28 @@
 import openai
 import readline
+from ruamel.yaml.scalarstring import LiteralScalarString
+
+from src.llm import OpenAI
 
 
 class Chat:
     def __init__(self, context):
         self.context = context
+        self.llm = OpenAI()
 
     def chat(self, user_input=None):
         self.context.reload()
         if user_input:
             self.context.add_message('user', user_input)
         messages = self._render_chat_messages()
-        response = gpt_complete(messages)
+        response = self.llm.complete(messages)
         self.context.add_message('assistant', response)
         return response
 
-    def memorize(self):
+    def integrate_memory(self):
         self.context.reload()
         messages = self._render_memorizer_messages()
-        response = gpt_complete(messages)
+        response = self.llm.complete(messages, temperature=0.0)
         self.context.set_memory(response)
         return response
 
@@ -41,14 +45,6 @@ class Chat:
         return [
             {'role': 'system', 'content': self.context.memorizer_prompt},
             {'role': 'assistant', 'content': self.context.current_memory},
-            {'role': 'user', 'content': content},
+            {'role': 'user', 'content': LiteralScalarString(content)},
             {'role': 'system', 'content': self.context.memorizer_prompt},
         ]
-
-
-def gpt_complete(messages):
-    return openai.ChatCompletion.create(
-        model="gpt-4",
-        temperature=0.0,
-        messages=messages,
-    )['choices'][0]['message']['content']

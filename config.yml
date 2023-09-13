@@ -4,5 +4,3 @@ current_memory: |-
   Alice and Bob are friends who speak frequently about many topics.
 chat_prompt: |-
   You are Alice and are having a conversation with Bob.
-
-  {{ MEMORY }}

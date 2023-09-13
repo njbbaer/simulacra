@@ -1,4 +1,4 @@
-from src.yaml_init import yaml
+from src.yaml_config import yaml
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 
@@ -34,9 +34,7 @@ class Context:
 
     @property
     def chat_prompt(self):
-        return self.dict['chat_prompt'].replace(
-            '{{ MEMORY }}', self.current_memory
-        )
+        return LiteralScalarString(self.dict['chat_prompt'] + '\n\n' + self.current_memory)
 
     @property
     def memorizer_prompt(self):

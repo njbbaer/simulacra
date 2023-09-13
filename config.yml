@@ -1,10 +1,8 @@
-memory:
-  prompt: |-
-    Your job is to integrate new information into Alice's memory. Rewrite the entire progressive summary to contain all information from the latest conversation in a thorough yet concise manner.
-  current: |-
-    Alice and Bob are friends who speak frequently about many topics.
-agent:
-  prompt: |-
-    You are Alice and are having a conversation with Bob.
+memory_prompt: |-
+  Your job is to integrate new information into Alice's memory. Rewrite the entire progressive summary to contain all information from the latest conversation in a thorough yet concise manner.
+current_memory: |-
+  Alice and Bob are friends who speak frequently about many topics.
+chat_prompt: |-
+  You are Alice and are having a conversation with Bob.
 
-    {{ MEMORY }}
+  {{ MEMORY }}

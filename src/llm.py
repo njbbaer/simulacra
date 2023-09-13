@@ -9,23 +9,24 @@ class LLM:
         self.parameters = parameters
         self.logger = Logger('log.yml')
 
+    def merge_parameters(self, overrides={}):
+        return {
+            **self.DEFAULTS,
+            **self.parameters,
+            **overrides,
+        }
+
 
 class OpenAI(LLM):
-    DEFAULT_PARAMETERS = {
+    DEFAULTS = {
         'model': 'gpt-4',
     }
 
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
-    def complete(self, messages, **kwargs):
-        parameters = {
-            **self.DEFAULT_PARAMETERS,
-            **self.parameters,
-            **kwargs,
-        }
+    def fetch_completion(self, messages, **kwargs):
+        parameters = self.merge_parameters(kwargs)
         self.logger.record(messages, parameters)
-        response = openai.ChatCompletion.create(
-            **parameters,
-            messages=messages,
-        )['choices'][0]['message']['content']
-        self.logger.attach_response(response)
-        return response
+        response = openai.ChatCompletion.create(**parameters, messages=messages)
+        response_content = response['choices'][0]['message']['content']
+        self.logger.attach_response(response_content)
+        return response_content

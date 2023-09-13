@@ -15,14 +15,14 @@ class Chat:
         if user_input:
             self.context.add_message('user', user_input)
         messages = self._render_chat_messages()
-        response = self.llm.complete(messages)
+        response = self.llm.fetch_completion(messages)
         self.context.add_message('assistant', response)
         return response
 
     def integrate_memory(self):
         self.context.load()
         messages = self._render_memorizer_messages()
-        response = self.llm.complete(messages, temperature=0.0)
+        response = self.llm.fetch_completion(messages, temperature=0.0)
         self.context.set_memory(response)
         self.context.clear_messages()
         return response

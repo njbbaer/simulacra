@@ -6,7 +6,6 @@ class Context:
     def __init__(self, config_file):
         with open(config_file, 'r') as file:
             self.dict = yaml.load(file)
-            self.dict.setdefault('messages', [])
         self.save()
 
     def save(self):
@@ -18,7 +17,7 @@ class Context:
             self.dict = yaml.load(file)
 
     def add_message(self, role, message):
-        self.dict['messages'].append({
+        self.dict.setdefault('messages', []).append({
             'role': role,
             'content': LiteralScalarString(message)
         })
@@ -28,9 +27,13 @@ class Context:
         self.dict['current_memory'] = memory
         self.save()
 
+    def clear_messages(self):
+        del self.dict['messages']
+        self.save()
+
     @property
     def chat_messages(self):
-        return self.dict['messages']
+        return self.dict.get('messages') or []
 
     @property
     def chat_prompt(self):

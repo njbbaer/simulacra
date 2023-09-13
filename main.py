@@ -5,7 +5,7 @@ chat = Chat(context)
 
 while True:
     user_input = input('You: ')
-    if user_input == 'integrate':
+    if user_input == '/integrate':
         response = chat.integrate_memory()
     else:
         response = chat.chat(user_input)

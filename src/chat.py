@@ -24,6 +24,7 @@ class Chat:
         messages = self._render_memorizer_messages()
         response = self.llm.complete(messages, temperature=0.0)
         self.context.set_memory(response)
+        self.context.clear_messages()
         return response
 
     def _render_chat_messages(self):

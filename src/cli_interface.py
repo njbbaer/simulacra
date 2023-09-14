@@ -1,11 +1,11 @@
 from src.context import Context
-from src.chat import Chat
+from src.simulacrum import Simulacrum
 
 
 class ChatInterface:
     def __init__(self, context_file):
         self.context = Context(context_file)
-        self.chat = Chat(self.context)
+        self.chat = Simulacrum(self.context)
         self.command_handlers = {
             '/integrate': self.integrate_memory,
             '/clear': self.clear_messages,

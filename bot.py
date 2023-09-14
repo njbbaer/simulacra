@@ -7,27 +7,39 @@ import time
 from contextlib import contextmanager
 
 
-from src.chat import Chat
+from src.simulacrum import Simulacrum
 
 load_dotenv()
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('context', type=str)
+    parser.add_argument('context_file', type=str)
     return parser.parse_args()
 
 
-def configure_authorized_message_handler(bot, chat):
-    @bot.message_handler(func=lambda message: str(message.chat.id) == os.environ['USER_ID'])
+def execute_with_feedback(bot, chat_id, action, format_response=None):
+    try:
+        with show_typing(bot, chat_id):
+            result = action()
+        message = format_response(result) if format_response else result
+        bot.send_message(chat_id, message, parse_mode='Markdown')
+    except Exception as e:
+        error_text = f'```\n❌ An error occurred: {str(e)}\n```'
+        bot.send_message(chat_id, error_text, parse_mode='Markdown')
+
+
+def configure_integrate_command_handler(bot, sim):
+    @bot.message_handler(commands=['integrate'], func=is_authorized)
     def handle(message):
-        try:
-            with show_typing(bot, message.chat.id):
-                response = chat.chat(message.text)
-            bot.send_message(message.chat.id, response)
-        except Exception as e:
-            error_text = f'```\nAn error occurred: {str(e)}\n```'
-            bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
+        def format_response(_): return '```\n🧠 Memory integration complete\n```'
+        execute_with_feedback(bot, message.chat.id, sim.integrate_memory, format_response)
+
+
+def configure_authorized_message_handler(bot, sim):
+    @bot.message_handler(func=is_authorized)
+    def handle(message):
+        execute_with_feedback(bot, message.chat.id, lambda: sim.chat(message.text))
 
 
 def configure_unauthorized_message_handler(bot):
@@ -36,15 +48,8 @@ def configure_unauthorized_message_handler(bot):
         bot.reply_to(message, 'Unauthorized')
 
 
-def configure_bot():
-    args = get_args()
-    chat = Chat(args.context)
-    bot = telebot.TeleBot(os.environ['API_TOKEN'])
-
-    configure_authorized_message_handler(bot, chat)
-    configure_unauthorized_message_handler(bot)
-
-    return bot
+def is_authorized(message):
+    return str(message.chat.id) == os.environ['USER_ID']
 
 
 @contextmanager
@@ -61,6 +66,18 @@ def show_typing(bot, chat_id):
     yield
     stop_typing.set()
     thread.join()
+
+
+def configure_bot():
+    args = get_args()
+    sim = Simulacrum(args.context_file)
+    bot = telebot.TeleBot(os.environ['API_TOKEN'])
+
+    configure_integrate_command_handler(bot, sim)
+    configure_authorized_message_handler(bot, sim)
+    configure_unauthorized_message_handler(bot)
+
+    return bot
 
 
 if __name__ == '__main__':

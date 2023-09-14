@@ -6,7 +6,7 @@ from src.context import Context
 from src.llm import OpenAI
 
 
-class Chat:
+class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
         self.llm = OpenAI()

@@ -24,9 +24,9 @@ def configure_authorized_message_handler(bot, chat):
         try:
             with show_typing(bot, message.chat.id):
                 response = chat.chat(message.text)
-            bot.reply_to(message, response)
+            bot.send_message(message.chat.id, response)
         except Exception as e:
-            bot.reply_to(message, f'An error occurred: {str(e)}')
+            bot.send_message(message.chat.id, f'An error occurred: {str(e)}')
 
 
 def configure_unauthorized_message_handler(bot):

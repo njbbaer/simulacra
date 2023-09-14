@@ -29,34 +29,27 @@ def configure_handlers(bot, sim):
 
     @bot.message_handler(commands=['integrate'])
     def integrate_command_handler(message):
-        response_text = '🧠 Memory integration complete'
-        def make_response(_): return f'```\n{response_text}\n```'
-        execute_with_feedback(bot, message.chat.id, sim.integrate_memory, make_response)
+        with process_with_feedback(bot, message.chat.id):
+            sim.integrate_memory()
+            send_message(bot, message.chat.id, '🧠 Memory integration complete', is_block=True)
 
     @bot.message_handler(commands=['retry'])
     def retry_command_handler(message):
-        execute_with_feedback(bot, message.chat.id, sim.retry)
+        with process_with_feedback(bot, message.chat.id):
+            response = sim.retry()
+            send_message(bot, message.chat.id, response)
 
     @bot.message_handler()
     def message_handler(message):
-        execute_with_feedback(bot, message.chat.id, lambda: sim.chat(message.text))
+        with process_with_feedback(bot, message.chat.id):
+            response = sim.chat(message.text)
+            send_message(bot, message.chat.id, response)
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('context_file', type=str)
     return parser.parse_args()
-
-
-def execute_with_feedback(bot, chat_id, action, make_response=None):
-    try:
-        with show_typing(bot, chat_id):
-            result = action()
-        message = make_response(result) if make_response else result
-        send_message(bot, chat_id, message)
-    except Exception as e:
-        error_text = f'❌ An error occurred: {str(e)}'
-        send_message(bot, chat_id, error_text, is_block=True)
 
 
 def send_message(bot, chat_id, message, is_block=False):
@@ -66,6 +59,16 @@ def send_message(bot, chat_id, message, is_block=False):
 
 def is_unauthorized(message):
     return str(message.chat.id) != os.environ['USER_ID']
+
+
+@contextmanager
+def process_with_feedback(bot, chat_id):
+    try:
+        with show_typing(bot, chat_id):
+            yield
+    except Exception as e:
+        error_text = f'❌ An error occurred: {str(e)}'
+        send_message(bot, chat_id, error_text, is_block=True)
 
 
 @contextmanager

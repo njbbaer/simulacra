@@ -20,6 +20,11 @@ class Simulacrum:
         self.context.add_message('assistant', response)
         return response
 
+    def retry(self):
+        self.context.load()
+        self.context.delete_messages(1)
+        return self.chat()
+
     def integrate_memory(self):
         self.context.load()
         messages = self._render_memorizer_messages()

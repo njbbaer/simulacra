@@ -32,6 +32,10 @@ class Context:
             del self.data['messages']
         self.save()
 
+    def delete_messages(self, n):
+        self.data['messages'] = self.data['messages'][:-n]
+        self.save()
+
     @property
     def chat_messages(self):
         return self.data.get('messages') or []

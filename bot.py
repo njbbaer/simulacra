@@ -36,7 +36,7 @@ def configure_integrate_command_handler(bot, sim):
         execute_with_feedback(bot, message.chat.id, sim.integrate_memory, format_response)
 
 
-def configure_authorized_message_handler(bot, sim):
+def configure_message_handler(bot, sim):
     @bot.message_handler(func=is_authorized)
     def handle(message):
         execute_with_feedback(bot, message.chat.id, lambda: sim.chat(message.text))
@@ -46,6 +46,12 @@ def configure_unauthorized_message_handler(bot):
     @bot.message_handler(func=lambda message: True)
     def handle(message):
         bot.reply_to(message, 'Unauthorized')
+
+
+def configure_retry_command_handler(bot, sim):
+    @bot.message_handler(commands=['retry'], func=is_authorized)
+    def handle(message):
+        execute_with_feedback(bot, message.chat.id, sim.retry)
 
 
 def is_authorized(message):
@@ -74,7 +80,8 @@ def configure_bot():
     bot = telebot.TeleBot(os.environ['API_TOKEN'])
 
     configure_integrate_command_handler(bot, sim)
-    configure_authorized_message_handler(bot, sim)
+    configure_retry_command_handler(bot, sim)
+    configure_message_handler(bot, sim)
     configure_unauthorized_message_handler(bot)
 
     return bot

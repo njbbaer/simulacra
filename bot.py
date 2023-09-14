@@ -26,7 +26,8 @@ def configure_authorized_message_handler(bot, chat):
                 response = chat.chat(message.text)
             bot.send_message(message.chat.id, response)
         except Exception as e:
-            bot.send_message(message.chat.id, f'An error occurred: {str(e)}')
+            error_text = f'```\nAn error occurred: {str(e)}\n```'
+            bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
 
 
 def configure_unauthorized_message_handler(bot):

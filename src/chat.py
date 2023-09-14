@@ -2,12 +2,13 @@ import openai
 import readline
 from ruamel.yaml.scalarstring import LiteralScalarString
 
+from src.context import Context
 from src.llm import OpenAI
 
 
 class Chat:
-    def __init__(self, context):
-        self.context = context
+    def __init__(self, context_file):
+        self.context = Context(context_file)
         self.llm = OpenAI()
 
     def chat(self, user_input=None):

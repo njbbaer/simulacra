@@ -1,4 +1,4 @@
-deprecated/
-*.pyc
-context.yml
+__pycache__/
+contexts/
+.env
 log.yml

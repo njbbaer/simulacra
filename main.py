@@ -1,6 +1,6 @@
 import argparse
 
-from src.chat_interface import ChatInterface
+from src.cli_interface import ChatInterface
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

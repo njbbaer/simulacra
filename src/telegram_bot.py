@@ -66,6 +66,7 @@ class TelegramBot:
         stop_typing_event = threading.Event()
 
         def send_typing_periodically():
+            time.sleep(1)
             while not stop_typing_event.is_set():
                 self.bot.send_chat_action(chat_id, action='typing')
                 time.sleep(4)

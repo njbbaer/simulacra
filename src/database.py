@@ -10,8 +10,8 @@ class Prompt(Base):
     __tablename__ = 'prompt'
 
     id = Column(Integer, primary_key=True)
-    chat_prompt = Column(Text)
-    integration_prompt = Column(Text)
+    chat_prompt = Column(Text, nullable=False)
+    integration_prompt = Column(Text, nullable=False)
     conversations = relationship("Conversation", back_populates="prompt", cascade="all, delete-orphan")
 
 
@@ -19,25 +19,20 @@ class Conversation(Base):
     __tablename__ = 'conversation'
 
     id = Column(Integer, primary_key=True)
-    prompt_id = Column(Integer, ForeignKey('prompt.id'))
-    user_id = Column(Integer)
-    memory = Column(Text)
+    prompt_id = Column(Integer, ForeignKey('prompt.id'), nullable=False)
+    user_id = Column(Integer, nullable=False)
+    memory = Column(Text, nullable=False)
     prompt = relationship("Prompt", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
-
-
-class RoleEnum(Enum):
-    USER = "user"
-    ASSISTANT = "assistant"
 
 
 class Message(Base):
     __tablename__ = 'message'
 
     id = Column(Integer, primary_key=True)
-    conversation_id = Column(Integer, ForeignKey('conversation.id'))
-    role = Column(Enum("user", "assistant"))
-    content = Column(Text)
+    conversation_id = Column(Integer, ForeignKey('conversation.id'), nullable=False)
+    role = Column(Enum("user", "assistant"), nullable=False)
+    content = Column(Text, nullable=False)
     conversation = relationship("Conversation", back_populates="messages")
 
 

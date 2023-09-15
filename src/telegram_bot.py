@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import threading
 import time
 from contextlib import contextmanager
+import traceback
 
 from src.simulacrum import Simulacrum
 
@@ -58,6 +59,7 @@ class TelegramBot:
         except Exception as e:
             error_text = f'❌ An error occurred: {e}'
             self._send_message(chat_id, error_text, is_block=True)
+            traceback.print_exc()
 
     @contextmanager
     def _show_typing(self, chat_id):

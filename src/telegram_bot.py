@@ -30,13 +30,21 @@ class TelegramBot:
         def integrate_command_handler(message):
             with self._process_with_feedback(message.chat.id):
                 self.sim.integrate_memory()
-                self._send_message(message.chat.id, '🧠 Memory integration complete', is_block=True)
+                text = '🧠 Memory integration complete'
+                self._send_message(message.chat.id, text, is_block=True)
 
         @self.bot.message_handler(commands=['retry'])
         def retry_command_handler(message):
             with self._process_with_feedback(message.chat.id):
                 response = self.sim.retry()
                 self._send_message(message.chat.id, response)
+
+        @self.bot.message_handler(commands=['tokens'])
+        def tokens_command_handler(message):
+            with self._process_with_feedback(message.chat.id):
+                percentage = round(self.sim.llm.token_utilization_percentage)
+                text = f'{self.sim.llm.tokens} tokens in last request ({percentage}% of limit)'
+                self._send_message(message.chat.id, text, is_block=True)
 
         @self.bot.message_handler()
         def message_handler(message):

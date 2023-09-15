@@ -10,6 +10,7 @@ telebot = "*"
 backoff = "*"
 argparse = "*"
 python-dotenv = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 

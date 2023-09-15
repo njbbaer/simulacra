@@ -7,7 +7,6 @@ from contextlib import contextmanager
 
 from src.simulacrum import Simulacrum
 
-
 load_dotenv()
 
 
@@ -44,9 +43,9 @@ class TelegramBot:
                 response = self.sim.chat(message.text)
                 self._send_message(message.chat.id, response)
 
-    def _send_message(self, chat_id, message, is_block=False):
-        message = f'```\n{message}\n```' if is_block else message
-        self.bot.send_message(chat_id, message, parse_mode='Markdown')
+    def _send_message(self, chat_id, text, is_block=False):
+        formatted_text = f'```\n{text}\n```' if is_block else text
+        self.bot.send_message(chat_id, formatted_text, parse_mode='Markdown')
 
     def is_unauthorized(self, message):
         return str(message.chat.id) != os.environ['USER_ID']
@@ -57,20 +56,20 @@ class TelegramBot:
             with self._show_typing(chat_id):
                 yield
         except Exception as e:
-            error_text = f'❌ An error occurred: {str(e)}'
+            error_text = f'❌ An error occurred: {e}'
             self._send_message(chat_id, error_text, is_block=True)
 
     @contextmanager
     def _show_typing(self, chat_id):
-        stop_typing = threading.Event()
+        stop_typing_event = threading.Event()
 
         def send_typing_periodically():
-            while not stop_typing.is_set():
+            while not stop_typing_event.is_set():
                 self.bot.send_chat_action(chat_id, action='typing')
                 time.sleep(4)
 
-        thread = threading.Thread(target=send_typing_periodically)
-        thread.start()
+        typing_thread = threading.Thread(target=send_typing_periodically)
+        typing_thread.start()
         yield
-        stop_typing.set()
-        thread.join()
+        stop_typing_event.set()
+        typing_thread.join()

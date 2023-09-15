@@ -1,7 +1,7 @@
 import argparse
 
 from src.telegram_bot import TelegramBot
-from src.database import initialize_db
+from src.models import initialize_db
 
 
 def get_args():

@@ -17,13 +17,14 @@ class Context:
             yaml.dump(self.data, file)
 
     def add_message(self, role, message):
-        self.data['conversations'][-1]['messages'].append({
+        self.current_conversation['messages'].append({
             'role': role,
             'content': LiteralScalarString(message)
         })
 
-    def undo_messages(self, n):
-        self.data['conversations'][-1]['messages'] = self.current_messages[:-n]
+    def clear_messages(self, n=None):
+        new_messages = [] if n is None else self.current_messages[:-n]
+        self.current_conversation['messages'] = new_messages
 
     def create_conversation(self, memory_state):
         self.data['conversations'].append({

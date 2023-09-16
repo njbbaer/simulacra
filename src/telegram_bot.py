@@ -30,14 +30,16 @@ class TelegramBot:
         def integrate_command_handler(message):
             with self._process_with_feedback(message.chat.id):
                 self.sim.integrate_memory()
-                text = '🧠 Memory integration complete'
+                text = '✅ Memory integration complete'
                 self._send_message(message.chat.id, text, is_block=True)
 
         @self.bot.message_handler(commands=['retry'])
         def retry_command_handler(message):
             with self._process_with_feedback(message.chat.id):
-                response = self.sim.retry()
+                self.sim.clear_messages(1)
+                response = self.sim.chat()
                 self._send_message(message.chat.id, response)
+                self._check_token_utilization(message.chat.id)
 
         @self.bot.message_handler(commands=['tokens'])
         def tokens_command_handler(message):
@@ -46,11 +48,19 @@ class TelegramBot:
                 text = f'{self.sim.llm.tokens} tokens in last request ({percentage}% of limit)'
                 self._send_message(message.chat.id, text, is_block=True)
 
+        @self.bot.message_handler(commands=['clear'])
+        def tokens_command_handler(message):
+            with self._process_with_feedback(message.chat.id):
+                self.sim.clear_messages()
+                text = '🗑️ The conversation has been cleared'
+                self._send_message(message.chat.id, text, is_block=True)
+
         @self.bot.message_handler()
         def message_handler(message):
             with self._process_with_feedback(message.chat.id):
                 response = self.sim.chat(message.text)
                 self._send_message(message.chat.id, response)
+                self._check_token_utilization(message.chat.id)
 
     def _send_message(self, chat_id, text, is_block=False):
         formatted_text = f'```\n{text}\n```' if is_block else text
@@ -58,6 +68,12 @@ class TelegramBot:
 
     def is_unauthorized(self, message):
         return str(message.chat.id) != os.environ['USER_ID']
+
+    def _check_token_utilization(self, chat_id):
+        percentage = round(self.sim.llm.token_utilization_percentage)
+        if percentage >= 80:
+            text = f'🔶 {percentage}% of max tokens used'
+            self._send_message(chat_id, text, is_block=True)
 
     @contextmanager
     def _process_with_feedback(self, chat_id):

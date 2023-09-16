@@ -15,20 +15,11 @@ class Simulacrum:
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-            self.context.load()
+            self.context.save()
         response = self._fetch_chat_response()
         self.context.add_message('assistant', response)
         self.context.save()
         return response
-
-    def retry(self):
-        self.context.load()
-        self.context.undo_messages(1)
-        self.context.load()
-        response = self._fetch_chat_response()
-        self.context.add_message('assistant', response)
-        self.context.save()
-        return self.chat()
 
     def integrate_memory(self):
         self.context.load()
@@ -36,6 +27,11 @@ class Simulacrum:
         self.context.create_conversation(response)
         self.context.save()
         return response
+
+    def clear_messages(self, n=None):
+        self.context.load()
+        self.context.clear_messages(n)
+        self.context.save()
 
     def _fetch_chat_response(self):
         messages = [

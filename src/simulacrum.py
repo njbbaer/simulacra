@@ -15,46 +15,48 @@ class Simulacrum:
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-        messages = self._render_chat_messages()
-        response = self.llm.fetch_completion(messages)
+            self.context.load()
+        response = self._fetch_chat_response()
         self.context.add_message('assistant', response)
+        self.context.save()
         return response
 
     def retry(self):
         self.context.load()
-        self.context.delete_messages(1)
+        self.context.undo_messages(1)
+        self.context.load()
+        response = self._fetch_chat_response()
+        self.context.add_message('assistant', response)
+        self.context.save()
         return self.chat()
 
     def integrate_memory(self):
         self.context.load()
-        messages = self._render_memorizer_messages()
-        response = self.llm.fetch_completion(messages, temperature=0.0)
-        self.context.set_memory(response)
-        self.context.clear_messages()
+        response = self._fetch_integration_response()
+        self.context.create_conversation(response)
+        self.context.save()
         return response
 
-    def clear_messages(self):
-        self.context.clear_messages()
-
-    def _render_chat_messages(self):
+    def _fetch_chat_response(self):
         messages = [
             {
                 'role': 'system',
                 'content': self.context.chat_prompt,
             },
         ]
-        messages.extend(self.context.chat_messages)
-        return messages
+        messages.extend(self.context.current_messages)
+        return self.llm.fetch_completion(messages)
 
-    def _render_memorizer_messages(self):
+    def _fetch_integration_response(self):
         content = 'Integrate the following new information:\n\n' \
             + '\n\n'.join([
                 f'{message["role"]}:\n\n{message["content"]}'
-                for message in self.context.chat_messages
+                for message in self.context.current_messages
             ])
-        return [
-            {'role': 'system', 'content': self.context.memorizer_prompt},
-            {'role': 'assistant', 'content': self.context.current_memory},
+        messages = [
+            {'role': 'system', 'content': self.context.memory_integration_prompt},
+            {'role': 'assistant', 'content': self.context.current_memory_state},
             {'role': 'user', 'content': LiteralScalarString(content)},
-            {'role': 'system', 'content': self.context.memorizer_prompt},
+            {'role': 'system', 'content': self.context.memory_integration_prompt},
         ]
+        return self.llm.fetch_completion(messages, temperature=0.0)

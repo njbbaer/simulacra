@@ -5,7 +5,7 @@ from .base import Base
 
 
 class Prompt(Base):
-    __tablename__ = 'prompt'
+    __tablename__ = 'prompts'
 
     id = Column(Integer, primary_key=True)
     chat_prompt = Column(Text, nullable=False)

@@ -5,7 +5,7 @@ from .base import Base
 
 
 class Message(Base):
-    __tablename__ = 'message'
+    __tablename__ = 'messages'
 
     id = Column(Integer, primary_key=True)
     conversation_id = Column(Integer, ForeignKey('conversation.id'), nullable=False)

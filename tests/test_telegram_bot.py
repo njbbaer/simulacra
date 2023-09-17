@@ -1,10 +1,12 @@
 import unittest
 from unittest.mock import patch
-from src.telegram_bot import TelegramBot
 from telebot import types
 from time import sleep
 import os
 import yaml
+
+from src.telegram_bot import TelegramBot
+from src.simulacrum import Simulacrum
 
 
 class TestTelegramBot(unittest.TestCase):
@@ -42,10 +44,11 @@ conversations:
             os.remove(self.CONTEXT_FILENAME)
 
     def test_message_handler(self):
-        telegram_bot = TelegramBot(self.CONTEXT_FILENAME)
+        sim = Simulacrum(self.CONTEXT_FILENAME)
+        telegram_bot = TelegramBot(sim)
 
         telegram_bot.bot.send_message = unittest.mock.MagicMock()
-        telegram_bot.sim.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
+        sim.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
 
         msg = TestTelegramBot.create_text_message('Hello AI!', self.TELEGRAM_USER_ID)
         telegram_bot.bot.process_new_messages([msg])

@@ -1,6 +1,7 @@
 import argparse
 
 from src.telegram_bot import TelegramBot
+from src.simulacrum import Simulacrum
 
 
 def get_args():
@@ -11,4 +12,5 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    TelegramBot(args.context_file).start()
+    sim = Simulacrum(args.context_file)
+    TelegramBot(sim).start()

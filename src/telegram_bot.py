@@ -6,75 +6,62 @@ import time
 from contextlib import contextmanager
 import traceback
 
-from src.simulacrum import Simulacrum
-
 load_dotenv()
 
 
 class TelegramBot:
-    def __init__(self, context_file):
-        self.sim = Simulacrum(context_file)
+    def __init__(self, sim):
         self.bot = telebot.TeleBot(os.environ['TELEGRAM_API_TOKEN'])
+        self.sim = sim
         self._configure_handlers()
 
     def start(self):
         self.bot.infinity_polling()
 
     def _configure_handlers(self):
-        # Must be first to catch unauthorized messages
-        @self.bot.message_handler(func=self.is_unauthorized)
-        def unauthorized_message_handler(message):
-            self._send_message(message.chat.id, '🚫 Unauthorized', is_block=True)
+        self.bot.message_handler(func=self.is_unauthorized)(self.unauthorized_message_handler)
+        self.bot.message_handler(commands=['integrate'])(self.integrate_command_handler)
+        self.bot.message_handler(commands=['retry'])(self.retry_command_handler)
+        self.bot.message_handler(commands=['tokens'])(self.tokens_command_handler)
+        self.bot.message_handler(commands=['clear'])(self.clear_command_handler)
+        self.bot.message_handler()(self.message_handler)
 
-        @self.bot.message_handler(commands=['integrate'])
-        def integrate_command_handler(message):
-            with self._process_with_feedback(message.chat.id):
-                self.sim.integrate_memory()
-                text = '✅ Memory integration complete'
-                self._send_message(message.chat.id, text, is_block=True)
+    def unauthorized_message_handler(self, message):
+        self._send_message(message.chat.id, '🚫 Unauthorized', is_block=True)
 
-        @self.bot.message_handler(commands=['retry'])
-        def retry_command_handler(message):
-            with self._process_with_feedback(message.chat.id):
-                self.sim.clear_messages(1)
-                response = self.sim.chat()
-                self._send_message(message.chat.id, response)
-                self._check_token_utilization(message.chat.id)
+    def integrate_command_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            self.sim.integrate_memory()
+            self._send_message(message.chat.id, '✅ Memory integration complete', is_block=True)
 
-        @self.bot.message_handler(commands=['tokens'])
-        def tokens_command_handler(message):
-            with self._process_with_feedback(message.chat.id):
-                percentage = round(self.sim.llm.token_utilization_percentage)
-                text = f'{self.sim.llm.tokens} tokens in last request ({percentage}% of limit)'
-                self._send_message(message.chat.id, text, is_block=True)
+    def retry_command_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            self.sim.clear_messages(1)
+            response = self.sim.chat()
+            self._send_message(message.chat.id, response)
 
-        @self.bot.message_handler(commands=['clear'])
-        def tokens_command_handler(message):
-            with self._process_with_feedback(message.chat.id):
-                self.sim.clear_messages()
-                text = '🗑️ The conversation has been cleared'
-                self._send_message(message.chat.id, text, is_block=True)
+    def tokens_command_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            percentage = round(self.sim.llm.token_utilization_percentage)
+            text = f'{self.sim.llm.tokens} tokens in last request ({percentage}% of limit)'
+            self._send_message(message.chat.id, text, is_block=True)
 
-        # Must be last to catch all regular messages
-        @self.bot.message_handler()
-        def message_handler(message):
-            with self._process_with_feedback(message.chat.id):
-                response = self.sim.chat(message.text)
-                self._send_message(message.chat.id, response)
-                self._check_token_utilization(message.chat.id)
+    def clear_command_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            self.sim.clear_messages()
+            self._send_message(message.chat.id, '🗑️ The conversation has been cleared', is_block=True)
 
-    def _send_message(self, chat_id, text, is_block=False):
-        formatted_text = f'```\n{text}\n```' if is_block else text
-        self.bot.send_message(chat_id, formatted_text, parse_mode='Markdown')
+    def message_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            response = self.sim.chat(message.text)
+            self._send_message(message.chat.id, response)
 
     def is_unauthorized(self, message):
         return str(message.chat.id) != os.environ['TELEGRAM_USER_ID']
 
-    def _check_token_utilization(self, chat_id):
-        percentage = round(self.sim.llm.token_utilization_percentage)
-        if percentage >= 80:
-            text = f'🔶 {percentage}% of max tokens used'
-            self._send_message(chat_id, text, is_block=True)
+    def _send_message(self, chat_id, text, is_block=False):
+        formatted_text = f'```\n{text}\n```' if is_block else text
+        self.bot.send_message(chat_id, formatted_text, parse_mode='Markdown')
 
     @contextmanager
     def _process_with_feedback(self, chat_id):
@@ -101,4 +88,3 @@ class TelegramBot:
         yield
         stop_typing_event.set()
         typing_thread.join()
-        

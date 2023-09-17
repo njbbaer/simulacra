@@ -55,6 +55,7 @@ class TelegramBot:
                 text = '🗑️ The conversation has been cleared'
                 self._send_message(message.chat.id, text, is_block=True)
 
+        # Must be last to catch all regular messages
         @self.bot.message_handler()
         def message_handler(message):
             with self._process_with_feedback(message.chat.id):

@@ -32,6 +32,9 @@ class Context:
             'messages': [],
         })
 
+    def get_name(self, role):
+        return self.data['names'][role]
+
     @property
     def current_conversation(self):
         return self.data['conversations'][-1]

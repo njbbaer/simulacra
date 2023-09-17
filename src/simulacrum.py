@@ -1,5 +1,4 @@
-import openai
-import readline
+import re
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from src.context import Context
@@ -19,7 +18,7 @@ class Simulacrum:
         response = self._fetch_chat_response()
         self.context.add_message('assistant', response)
         self.context.save()
-        return response
+        return self._extract_speech(response)
 
     def integrate_memory(self):
         self.context.load()
@@ -43,16 +42,30 @@ class Simulacrum:
         messages.extend(self.context.current_messages)
         return self.llm.fetch_completion(messages)
 
+    def _extract_speech(self, response):
+        match = re.search(r'<SPEAKS>(.*?)</SPEAKS>', response)
+        return match.group(1) if match else response
+
     def _fetch_integration_response(self):
-        content = 'Integrate the following new information:\n\n' \
-            + '\n\n'.join([
-                f'{message["role"]}:\n\n{message["content"]}'
-                for message in self.context.current_messages
-            ])
-        messages = [
-            {'role': 'system', 'content': self.context.memory_integration_prompt},
-            {'role': 'assistant', 'content': self.context.current_memory_state},
+        content = (
+            f'Most recent conversation: \n\n{self._formatted_conversation_history()}\n\n'
+            f'---\n\nPrevious memory state:\n\n{self.context.current_memory_state}'
+        )
+
+        prompt = self.context.memory_integration_prompt
+        formatted_messages = [
+            {'role': 'system', 'content': prompt},
             {'role': 'user', 'content': LiteralScalarString(content)},
-            {'role': 'system', 'content': self.context.memory_integration_prompt},
+            {'role': 'system', 'content': prompt},
         ]
-        return self.llm.fetch_completion(messages, temperature=0.0)
+
+        response = self.llm.fetch_completion(formatted_messages, temperature=0.0)
+        return LiteralScalarString(response)
+
+    def _formatted_conversation_history(self):
+        def format_message(msg):
+            name = self.context.get_name(msg['role'])
+            return f'{name}:\n\n{msg["content"]}'
+
+        messages = [format_message(msg) for msg in self.context.current_messages]
+        return '\n\n'.join(messages)

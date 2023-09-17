@@ -14,7 +14,7 @@ load_dotenv()
 class TelegramBot:
     def __init__(self, context_file):
         self.sim = Simulacrum(context_file)
-        self.bot = telebot.TeleBot(os.environ['API_TOKEN'])
+        self.bot = telebot.TeleBot(os.environ['TELEGRAM_API_TOKEN'])
         self._configure_handlers()
 
     def start(self):
@@ -68,7 +68,7 @@ class TelegramBot:
         self.bot.send_message(chat_id, formatted_text, parse_mode='Markdown')
 
     def is_unauthorized(self, message):
-        return str(message.chat.id) != os.environ['USER_ID']
+        return str(message.chat.id) != os.environ['TELEGRAM_USER_ID']
 
     def _check_token_utilization(self, chat_id):
         percentage = round(self.sim.llm.token_utilization_percentage)
@@ -101,3 +101,4 @@ class TelegramBot:
         yield
         stop_typing_event.set()
         typing_thread.join()
+        

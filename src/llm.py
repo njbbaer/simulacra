@@ -11,6 +11,7 @@ class OpenAI:
     def __init__(self, parameters={}):
         self.parameters = parameters
         self.logger = Logger('log.yml')
+        self.tokens = 0
 
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
     def fetch_completion(self, messages, **kwargs):

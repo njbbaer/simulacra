@@ -7,6 +7,7 @@ from src.logger import Logger
 class OpenAI:
     MODEL = 'gpt-4'
     MAX_TOKENS = 8192
+    MAX_TOKENS_BUFFER = 1024
 
     def __init__(self, parameters={}):
         self.parameters = parameters
@@ -31,4 +32,5 @@ class OpenAI:
 
     @property
     def token_utilization_percentage(self):
-        return self.tokens / self.MAX_TOKENS * 100
+        max_tokens = self.MAX_TOKENS - self.MAX_TOKENS_BUFFER
+        return self.tokens / max_tokens * 100

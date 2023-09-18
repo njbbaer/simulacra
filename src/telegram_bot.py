@@ -46,11 +46,12 @@ class TelegramBot:
             self.simulacrum.clear_messages(1)
             response = self.simulacrum.chat()
             self._send_message(message.chat.id, response)
+            self._warn_token_utilization(message.chat.id)
 
     def tokens_command_handler(self, message):
         with self._process_with_feedback(message.chat.id):
             percentage = round(self.simulacrum.llm.token_utilization_percentage)
-            text = f'{self.simulacrum.llm.tokens} tokens in last request ({percentage}% of limit)'
+            text = f'{self.simulacrum.llm.tokens} tokens in last request ({percentage}% of max)'
             self._send_message(message.chat.id, text, is_block=True)
 
     def clear_command_handler(self, message):
@@ -71,6 +72,7 @@ class TelegramBot:
         with self._process_with_feedback(message.chat.id):
             response = self.simulacrum.chat(message.text)
             self._send_message(message.chat.id, response)
+            self._warn_token_utilization(message.chat.id)
 
     def invalid_command_handler(self, message):
         self._send_message(message.chat.id, '❌ Command not recognized', is_block=True)
@@ -84,6 +86,13 @@ class TelegramBot:
     def _send_message(self, chat_id, text, is_block=False):
         formatted_text = f'```\n{text}\n```' if is_block else text
         self.telebot.send_message(chat_id, formatted_text, parse_mode='Markdown')
+
+    def _warn_token_utilization(self, chat_id):
+        percentage = round(self.simulacrum.llm.token_utilization_percentage)
+        if percentage >= 80:
+            shape, adverb = ['🔴', 'now'] if percentage >= 90 else ['🟠', 'soon']
+            text = f'{shape} {percentage}% of max tokens used. Run /new {adverb}.'
+            self._send_message(chat_id, text, is_block=True)
 
     @contextmanager
     def _process_with_feedback(self, chat_id):

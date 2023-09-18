@@ -35,7 +35,7 @@ class Simulacrum:
         messages = [
             {
                 'role': 'system',
-                'content': self.context.chat_prompt,
+                'content': self._format_chat_prompt(),
             },
         ]
         messages.extend(self.context.current_messages)
@@ -47,8 +47,8 @@ class Simulacrum:
 
     def _fetch_integration_response(self):
         content = (
-            f'Most recent conversation: \n\n{self._formatted_conversation_history()}\n\n'
-            f'---\n\nPrevious memory state:\n\n{self.context.current_memory_state}'
+            f'Most recent conversation: \n\n{self._format_conversation_history()}\n\n'
+            f'---\n\nPrevious memory state:\n\n{self.context.current_memory}'
         )
         prompt = self.context.memory_integration_prompt
         formatted_messages = [
@@ -58,10 +58,15 @@ class Simulacrum:
         ]
         return self.llm.fetch_completion(formatted_messages, temperature=0.0)
 
-    def _formatted_conversation_history(self):
+    def _format_conversation_history(self):
         def format_message(msg):
             name = self.context.get_name(msg['role'])
             return f'{name}:\n\n{msg["content"]}'
 
         messages = [format_message(msg) for msg in self.context.current_messages]
         return '\n\n'.join(messages)
+
+    def _format_chat_prompt(self):
+        name = self.context.get_name('assistant')
+        memory = f"{name}'s Memory:\n\n{self.context.current_memory}"
+        return self.context.chat_prompt + '\n\n---\n\n' + memory

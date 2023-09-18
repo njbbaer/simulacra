@@ -11,13 +11,13 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True)
     prompt_id = Column(Integer, ForeignKey('prompt.id'), nullable=False)
     user_id = Column(Integer, nullable=False)
-    memory_state = Column(Text, nullable=False)
+    memory = Column(Text, nullable=False)
     prompt = relationship("Prompt", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
     @classmethod
-    def create_conversation(cls, prompt_id, user_id, memory_state):
-        new_conversation = cls(prompt_id=prompt_id, user_id=user_id, memory_state=memory_state)
+    def create_conversation(cls, prompt_id, user_id, memory):
+        new_conversation = cls(prompt_id=prompt_id, user_id=user_id, memory=memory)
         Session.add(new_conversation)
         Session.commit()
 

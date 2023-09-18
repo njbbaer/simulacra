@@ -23,6 +23,7 @@ class TelegramBot:
         self.telebot.message_handler(commands=['retry'])(self.retry_command_handler)
         self.telebot.message_handler(commands=['tokens'])(self.tokens_command_handler)
         self.telebot.message_handler(commands=['clear'])(self.clear_command_handler)
+        self.telebot.message_handler(commands=['start'])(lambda x: None)
         self.telebot.message_handler()(self.message_handler)
 
     def unauthorized_message_handler(self, message):

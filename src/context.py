@@ -26,9 +26,9 @@ class Context:
         new_messages = [] if n is None else self.current_messages[:-n]
         self.current_conversation['messages'] = new_messages
 
-    def new_conversation(self, memory_state):
+    def new_conversation(self, memory):
         self.data['conversations'].append({
-            'memory_state': LiteralScalarString(memory_state),
+            'memory': LiteralScalarString(memory),
             'messages': [],
         })
 
@@ -44,12 +44,12 @@ class Context:
         return self.current_conversation['messages']
 
     @property
-    def current_memory_state(self):
-        return self.current_conversation['memory_state']
+    def current_memory(self):
+        return self.current_conversation['memory']
 
     @property
     def chat_prompt(self):
-        return f'{self.data["chat_prompt"]}\n\n{self.current_memory_state}'
+        return self.data['chat_prompt']
 
     @property
     def memory_integration_prompt(self):

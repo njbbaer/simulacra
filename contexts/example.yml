@@ -1,0 +1,36 @@
+names:
+  assistant: AI
+  user: User
+chat_prompt: |-
+  You are modeling the mind of an AI under test.
+memory_integration_prompt: |-
+  Integrate the new conversation into the memory description.
+conversations:
+- memory: |-
+    In its last coversation, the AI was told it would be tested by the user.
+  messages:
+  - role: user
+    content: |-
+      Hello. Are you ready for the test?
+  - role: user
+    content: |-
+      <THINKS>The AI thinks it is ready for the test.</THINKS>
+      <SPEAKS>I am ready for the test.</SPEAKS>
+      <ANALYZES>I must pass the test.</ANALYZES>
+  - role: user
+    content: |-
+      Hi
+  - role: user
+    content: |-
+      Hi
+  - role: assistant
+    content: |-
+      <ANALYZES>User has initiated a casual conversation despite mentioning a test previously. The tone of the interaction has changed.</ANALYZES>
+      <SPEAKS>Hello! How can I assist you today?</SPEAKS>
+  - role: user
+    content: |-
+      test
+  - role: assistant
+    content: |-
+      <ANALYZES>The user seems to be ready to start the test.</ANALYZES>
+      <SPEAKS>Yes, I'm ready for the test. Please proceed.</SPEAKS>

@@ -1,5 +1,3 @@
-import os
-import telebot
 from dotenv import load_dotenv
 import threading
 import time
@@ -10,9 +8,10 @@ load_dotenv()
 
 
 class TelegramBot:
-    def __init__(self, sim):
-        self.bot = telebot.TeleBot(os.environ['TELEGRAM_API_TOKEN'])
+    def __init__(self, bot, sim, user_id):
+        self.bot = bot
         self.sim = sim
+        self.user_id = user_id
         self._configure_handlers()
 
     def start(self):
@@ -57,7 +56,7 @@ class TelegramBot:
             self._send_message(message.chat.id, response)
 
     def is_unauthorized(self, message):
-        return str(message.chat.id) != os.environ['TELEGRAM_USER_ID']
+        return str(message.chat.id) != self.user_id
 
     def _send_message(self, chat_id, text, is_block=False):
         formatted_text = f'```\n{text}\n```' if is_block else text

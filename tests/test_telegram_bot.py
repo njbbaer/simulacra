@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+import telebot
 from telebot import types
 from time import sleep
 import os
@@ -7,6 +8,14 @@ import yaml
 
 from src.telegram_bot import TelegramBot
 from src.simulacrum import Simulacrum
+
+
+class ExceptionHandler(telebot.ExceptionHandler):
+    def __init__(self):
+        self.exception = None
+
+    def handle(self, exception):
+        self.exception = exception
 
 
 class TestTelegramBot(unittest.TestCase):
@@ -30,11 +39,6 @@ conversations:
 '''
 
     def setUp(self):
-        patch.dict(os.environ, {
-            'TELEGRAM_API_TOKEN': 'fake',
-            'TELEGRAM_USER_ID': self.TELEGRAM_USER_ID
-        }).start()
-
         self.CONTEXT_FILENAME = './tests/context.yml'
         with open(self.CONTEXT_FILENAME, 'w') as file:
             file.write(self.CONTEXT_CONTENT)
@@ -44,18 +48,23 @@ conversations:
             os.remove(self.CONTEXT_FILENAME)
 
     def test_message_handler(self):
+        exception_handler = ExceptionHandler()
         sim = Simulacrum(self.CONTEXT_FILENAME)
-        telegram_bot = TelegramBot(sim)
+        bot = telebot.TeleBot('fake_token', exception_handler=exception_handler)
+        TelegramBot(bot, sim, self.TELEGRAM_USER_ID)
 
-        telegram_bot.bot.send_message = unittest.mock.MagicMock()
+        bot.send_message = unittest.mock.MagicMock()
         sim.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
 
         msg = TestTelegramBot.create_text_message('Hello AI!', self.TELEGRAM_USER_ID)
-        telegram_bot.bot.process_new_messages([msg])
+        bot.process_new_messages([msg])
 
         sleep(0.1)
 
-        telegram_bot.bot.send_message.assert_called_once_with(self.TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
+        if exception_handler.exception:
+            raise exception_handler.exception
+
+        bot.send_message.assert_called_once_with(self.TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
 
         with open(self.CONTEXT_FILENAME, 'r') as file:
             context = yaml.safe_load(file)

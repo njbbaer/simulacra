@@ -21,6 +21,9 @@ class TestTelegramBot(unittest.TestCase):
     TELEGRAM_USER_ID = '123'
     CONTEXT_FILENAME = './tests/context.yml'
     CONTEXT_CONTENT = '''
+names:
+  assistant: AI
+  user: User
 chat_prompt: |-
   You are modeling the mind of an AI under test.
 conversations:

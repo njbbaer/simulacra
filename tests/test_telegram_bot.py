@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 import telebot
-from telebot import types
 from time import sleep
 import os
 import yaml
@@ -49,22 +48,22 @@ conversations:
 
     def test_message_handler(self):
         exception_handler = ExceptionHandler()
-        sim = Simulacrum(self.CONTEXT_FILENAME)
-        bot = telebot.TeleBot('fake_token', exception_handler=exception_handler)
-        TelegramBot(bot, sim, self.TELEGRAM_USER_ID)
+        simulacrum = Simulacrum(self.CONTEXT_FILENAME)
+        telebot_instance = telebot.TeleBot('fake_token', exception_handler=exception_handler)
+        TelegramBot(telebot_instance, simulacrum, self.TELEGRAM_USER_ID)
 
-        bot.send_message = unittest.mock.MagicMock()
-        sim.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
+        telebot_instance.send_message = unittest.mock.MagicMock()
+        simulacrum.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
 
-        msg = TestTelegramBot.create_text_message('Hello AI!', self.TELEGRAM_USER_ID)
-        bot.process_new_messages([msg])
+        telebot_msg = self.create_text_message('Hello AI!', self.TELEGRAM_USER_ID)
+        telebot_instance.process_new_messages([telebot_msg])
 
         sleep(0.1)
 
         if exception_handler.exception:
             raise exception_handler.exception
 
-        bot.send_message.assert_called_once_with(self.TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
+        telebot_instance.send_message.assert_called_once_with(self.TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
 
         with open(self.CONTEXT_FILENAME, 'r') as file:
             context = yaml.safe_load(file)
@@ -76,5 +75,5 @@ conversations:
     @staticmethod
     def create_text_message(text, user_id):
         params = {'text': text}
-        chat = types.User(user_id, False, 'test')
-        return types.Message(1, None, None, chat, 'text', params, "")
+        chat = telebot.types.User(user_id, False, 'test')
+        return telebot.types.Message(1, None, None, chat, 'text', params, "")

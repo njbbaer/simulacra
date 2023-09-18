@@ -1,5 +1,4 @@
 import re
-from ruamel.yaml.scalarstring import LiteralScalarString
 
 from src.context import Context
 from src.llm import OpenAI
@@ -23,7 +22,7 @@ class Simulacrum:
     def integrate_memory(self):
         self.context.load()
         response = self._fetch_integration_response()
-        self.context.create_conversation(response)
+        self.context.new_conversation(response)
         self.context.save()
         return response
 
@@ -51,16 +50,13 @@ class Simulacrum:
             f'Most recent conversation: \n\n{self._formatted_conversation_history()}\n\n'
             f'---\n\nPrevious memory state:\n\n{self.context.current_memory_state}'
         )
-
         prompt = self.context.memory_integration_prompt
         formatted_messages = [
             {'role': 'system', 'content': prompt},
-            {'role': 'user', 'content': LiteralScalarString(content)},
+            {'role': 'user', 'content': content},
             {'role': 'system', 'content': prompt},
         ]
-
-        response = self.llm.fetch_completion(formatted_messages, temperature=0.0)
-        return LiteralScalarString(response)
+        return self.llm.fetch_completion(formatted_messages, temperature=0.0)
 
     def _formatted_conversation_history(self):
         def format_message(msg):

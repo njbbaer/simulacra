@@ -16,10 +16,9 @@ class OpenAI:
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
     def fetch_completion(self, messages, **kwargs):
         parameters = self._get_parameters(kwargs)
-        self.logger.record(messages, parameters)
         response = openai.ChatCompletion.create(**parameters, messages=messages)
         response_content = response['choices'][0]['message']['content']
-        self.logger.attach_response(response_content)
+        self.logger.log(parameters, messages, response_content)
         self.tokens = response['usage']['total_tokens']
         return response_content
 

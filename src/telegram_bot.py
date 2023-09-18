@@ -48,7 +48,7 @@ class TelegramBot:
     def clear_command_handler(self, message):
         with self._process_with_feedback(message.chat.id):
             self.simulacrum.clear_messages()
-            self._send_message(message.chat.id, '🗑️ The conversation has been cleared', is_block=True)
+            self._send_message(message.chat.id, '🗑️ Current conversation cleared', is_block=True)
 
     def message_handler(self, message):
         with self._process_with_feedback(message.chat.id):

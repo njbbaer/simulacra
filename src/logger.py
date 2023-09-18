@@ -1,4 +1,4 @@
-import os
+import io
 from datetime import datetime
 from ruamel.yaml.scalarstring import LiteralScalarString
 
@@ -8,27 +8,24 @@ from src.yaml_config import yaml
 class Logger:
     def __init__(self, filepath):
         self.filepath = filepath
-        self._load()
 
-    def record(self, messages, parameters):
-        self.log.append({
-            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'parameters': parameters,
-            'messages': messages,
-        })
-        self._save()
+    def log(self, parameters, messages, response):
+        buffer = io.StringIO()
+        yaml.dump([
+            {
+                'timestamp': self._current_timestamp(),
+                'parameters': parameters,
+                'messages': self._format_messages(messages),
+                'response': LiteralScalarString(response),
+            }
+        ], buffer)
+        with open(self.filepath, 'a') as file:
+            file.write(buffer.getvalue())
 
-    def attach_response(self, response):
-        self.log[-1]['response'] = LiteralScalarString(response)
-        self._save()
+    @staticmethod
+    def _current_timestamp():
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def _load(self):
-        if os.path.exists(self.filepath):
-            with open(self.filepath, 'r') as file:
-                self.log = yaml.load(file)
-        else:
-            self.log = []
-
-    def _save(self):
-        with open(self.filepath, 'w') as file:
-            yaml.dump(self.log, file)
+    @staticmethod
+    def _format_messages(messages):
+        return [{**msg, 'content': LiteralScalarString(msg['content'])} for msg in messages]

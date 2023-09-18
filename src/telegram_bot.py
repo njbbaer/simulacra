@@ -23,6 +23,7 @@ class TelegramBot:
         self.telebot.message_handler(commands=['retry'])(self.retry_command_handler)
         self.telebot.message_handler(commands=['tokens'])(self.tokens_command_handler)
         self.telebot.message_handler(commands=['clear'])(self.clear_command_handler)
+        self.telebot.message_handler(commands=['help'])(self.help_command_handler)
         self.telebot.message_handler(commands=['start'])(lambda x: None)
         self.telebot.message_handler(func=self.is_command)(self.invalid_command_handler)
         self.telebot.message_handler()(self.message_handler)
@@ -56,6 +57,15 @@ class TelegramBot:
         with self._process_with_feedback(message.chat.id):
             self.simulacrum.clear_messages()
             self._send_message(message.chat.id, '🗑️ Current conversation cleared', is_block=True)
+
+    def help_command_handler(self, message):
+        text = \
+            "/new - Start a new conversation with memory\n" \
+            "/retry - Regenerate the last message\n" \
+            "/clear - Clear the current conversation\n" \
+            "/tokens - Show token utilization\n" \
+            "/help - Show this help message"
+        self._send_message(message.chat.id, text, is_block=True)
 
     def message_handler(self, message):
         with self._process_with_feedback(message.chat.id):

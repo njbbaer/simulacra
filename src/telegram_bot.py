@@ -19,20 +19,26 @@ class TelegramBot:
 
     def _configure_handlers(self):
         self.telebot.message_handler(func=self.is_unauthorized)(self.unauthorized_message_handler)
-        self.telebot.message_handler(commands=['integrate'])(self.integrate_command_handler)
+        self.telebot.message_handler(commands=['new'])(self.new_conversation_command_handler)
         self.telebot.message_handler(commands=['retry'])(self.retry_command_handler)
         self.telebot.message_handler(commands=['tokens'])(self.tokens_command_handler)
         self.telebot.message_handler(commands=['clear'])(self.clear_command_handler)
         self.telebot.message_handler(commands=['start'])(lambda x: None)
+        self.telebot.message_handler(func=self.is_command)(self.invalid_command_handler)
         self.telebot.message_handler()(self.message_handler)
 
     def unauthorized_message_handler(self, message):
         self._send_message(message.chat.id, '🚫 Unauthorized', is_block=True)
 
-    def integrate_command_handler(self, message):
+    def new_conversation_command_handler(self, message):
         with self._process_with_feedback(message.chat.id):
-            self.simulacrum.integrate_memory()
-            self._send_message(message.chat.id, '✅ Memory integration complete', is_block=True)
+            if self.simulacrum.context.current_messages:
+                self._send_message(message.chat.id, '⏳ Integrating memory...', is_block=True)
+                self.simulacrum.integrate_memory()
+                self._send_message(message.chat.id, '✅ Ready to chat', is_block=True)
+            else:
+                self._send_message(message.chat.id, '❌ No messages in conversation', is_block=True)
+            return
 
     def retry_command_handler(self, message):
         with self._process_with_feedback(message.chat.id):
@@ -56,8 +62,14 @@ class TelegramBot:
             response = self.simulacrum.chat(message.text)
             self._send_message(message.chat.id, response)
 
+    def invalid_command_handler(self, message):
+        self._send_message(message.chat.id, '❌ Command not recognized', is_block=True)
+
     def is_unauthorized(self, message):
         return str(message.chat.id) != self.user_id
+
+    def is_command(self, message):
+        return message.text.startswith('/')
 
     def _send_message(self, chat_id, text, is_block=False):
         formatted_text = f'```\n{text}\n```' if is_block else text

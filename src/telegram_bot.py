@@ -11,7 +11,7 @@ class TelegramBot:
     def __init__(self, telebot, simulacrum, user_id):
         self.telebot = telebot
         self.simulacrum = simulacrum
-        self.user_id = user_id
+        self.user_id = str(user_id)
         self._configure_handlers()
 
     def start(self):

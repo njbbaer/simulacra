@@ -1,6 +1,6 @@
 __pycache__/
 contexts/*
-.env
-log.yml
-*.db
 !contexts/example.yml
+log.yml
+config.yml
+.env

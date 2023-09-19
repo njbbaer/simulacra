@@ -10,10 +10,10 @@ telebot = "*"
 backoff = "*"
 argparse = "*"
 python-dotenv = "*"
+pyyaml = "*"
 
 [dev-packages]
 pycodestyle = "*"
-pyyaml = "*"
 
 [requires]
 python_version = "3.10"

@@ -72,12 +72,13 @@ class TelegramBot:
 
     def help_command_handler(self, message):
         text = \
-            "/new - Start a new conversation with memory\n" \
-            "/retry - Regenerate the last message\n" \
-            "/clear - Clear the current conversation\n" \
-            "/tokens - Show token utilization\n" \
-            "/help - Show this help message"
-        self._send_message(message.chat.id, text, is_block=True)
+            "*/new* — Start a new conversation\n" \
+            "*/retry* — Regenerate the last message\n" \
+            "*/clear* — Clear the current conversation\n" \
+            "*/remember <text>* — Add text to memory\n" \
+            "*/tokens* — Show token utilization\n" \
+            "*/help* — Show this help message"
+        self._send_message(message.chat.id, text)
 
     def message_handler(self, message):
         with self._process_with_feedback(message.chat.id):

@@ -4,3 +4,4 @@ contexts/*
 log.yml
 config.yml
 .env
+.vscode/

@@ -50,7 +50,7 @@ class Simulacrum:
         return self.llm.fetch_completion(messages)
 
     def _extract_speech(self, response):
-        match = re.search(r'<MESSAGE>(.*?)</MESSAGE>', response)
+        match = re.search(r'<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>', response)
         return match.group(1) if match else response
 
     def _fetch_integration_response(self):

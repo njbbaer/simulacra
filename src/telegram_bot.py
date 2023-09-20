@@ -9,10 +9,10 @@ load_dotenv()
 
 
 class TelegramBot:
-    def __init__(self, telebot, simulacrum, user_id):
+    def __init__(self, telebot, simulacrum, user_ids):
         self.telebot = telebot
         self.simulacrum = simulacrum
-        self.user_id = str(user_id)
+        self.user_ids = user_ids
         self._configure_handlers()
 
     def start(self):
@@ -100,7 +100,7 @@ class TelegramBot:
     #
 
     def is_unauthorized(self, message):
-        return str(message.chat.id) != self.user_id
+        return message.chat.id not in self.user_ids
 
     def is_command(self, message):
         return message.text.startswith('/')

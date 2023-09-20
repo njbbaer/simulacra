@@ -6,11 +6,11 @@ from src.telegram_bot import TelegramBot
 from src.simulacrum import Simulacrum
 
 
-def start_bot(context_file, user_id, api_token):
+def start_bot(context_file, user_ids, api_token):
     TelegramBot(
         telebot.TeleBot(api_token),
         Simulacrum(context_file),
-        user_id
+        user_ids
     ).start()
 
 
@@ -23,7 +23,7 @@ if __name__ == "__main__":
             target=start_bot,
             args=(
                 bot['context_file'],
-                bot['user_id'],
+                bot['user_ids'],
                 bot['api_token']
             )
         ).start()

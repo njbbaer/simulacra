@@ -26,6 +26,11 @@ class Simulacrum:
         self.context.save()
         return response
 
+    def append_memory(self, text):
+        self.context.load()
+        self.context.append_memory('\n\n' + text)
+        self.context.save()
+
     def clear_messages(self, n=None):
         self.context.load()
         self.context.clear_messages(n)

@@ -22,6 +22,9 @@ class Context:
             'content': LiteralScalarString(message)
         })
 
+    def append_memory(self, text):
+        self.current_conversation['memory'] += text
+
     def clear_messages(self, n=None):
         new_messages = [] if n is None else self.current_messages[:-n]
         self.current_conversation['messages'] = new_messages

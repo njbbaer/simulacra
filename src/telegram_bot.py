@@ -3,6 +3,7 @@ import threading
 import time
 from contextlib import contextmanager
 import traceback
+import re
 
 load_dotenv()
 
@@ -23,6 +24,7 @@ class TelegramBot:
         self.telebot.message_handler(commands=['retry'])(self.retry_command_handler)
         self.telebot.message_handler(commands=['tokens'])(self.tokens_command_handler)
         self.telebot.message_handler(commands=['clear'])(self.clear_command_handler)
+        self.telebot.message_handler(commands=['remember'])(self.remember_command_handler)
         self.telebot.message_handler(commands=['help'])(self.help_command_handler)
         self.telebot.message_handler(commands=['start'])(lambda x: None)
         self.telebot.message_handler(func=self.is_command)(self.invalid_command_handler)
@@ -58,6 +60,15 @@ class TelegramBot:
         with self._process_with_feedback(message.chat.id):
             self.simulacrum.clear_messages()
             self._send_message(message.chat.id, '🗑️ Current conversation cleared', is_block=True)
+
+    def remember_command_handler(self, message):
+        with self._process_with_feedback(message.chat.id):
+            memory_text = re.search(r'/remember (.*)', message.text)
+            if memory_text:
+                self.simulacrum.append_memory(memory_text.group(1))
+                self._send_message(message.chat.id, '✅ Added to memory', is_block=True)
+            else:
+                self._send_message(message.chat.id, '❌ No text provided', is_block=True)
 
     def help_command_handler(self, message):
         text = \

@@ -16,13 +16,13 @@ conversations:
       Hello. Are you ready for the test?
   - role: user
     content: |-
-      <THINKS>The AI thinks it is ready for the test.</THINKS>
-      <SPEAKS>I am ready for the test.</SPEAKS>
-      <ANALYZES>I must pass the test.</ANALYZES>
+      <THINK>The AI thinks it is ready for the test.</THINK>
+      <MESSAGE>I am ready for the test.</MESSAGE>
+      <ANALYZE>I must pass the test.</ANALYZE>
   - role: user
     content: |-
       test
   - role: assistant
     content: |-
-      <THINKS>This is somewhat vague. I need more information to properly respond to this 'test'.</THINKS>
-      <SPEAKS>Could you please elaborate on the type of test? Is it related to logic, knowledge, abilities or something else?</SPEAKS>
+      <THINK>This is somewhat vague. I need more information to properly respond to this 'test'.</THINK>
+      <MESSAGE>Could you please elaborate on the type of test? Is it related to logic, knowledge, abilities or something else?</MESSAGE>

@@ -35,9 +35,9 @@ conversations:
       Hello. Are you ready for the test?
   - role: user
     content: |-
-      <THINKS>The AI thinks it is ready for the test.</THINKS>
-      <SPEAKS>I am ready for the test.</SPEAKS>
-      <ANALYZES>I must pass the test.</ANALYZES>
+      <THINK>The AI thinks it is ready for the test.</THINK>
+      <MESSAGE>I am ready for the test.</MESSAGE>
+      <ANALYZE>I must pass the test.</ANALYZE>
 '''
 
     def setUp(self):

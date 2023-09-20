@@ -57,3 +57,7 @@ class Context:
     @property
     def memory_integration_prompt(self):
         return self.data['memory_integration_prompt']
+
+    @property
+    def reinforcement_chat_prompt(self):
+        return self.data['reinforcement_chat_prompt']

@@ -3,6 +3,8 @@ names:
   user: User
 chat_prompt: |-
   You are modeling the mind of an AI under test.
+reinforcement_chat_prompt: |-
+  You are modeling the mind of an AI under test.
 memory_integration_prompt: |-
   Integrate the new conversation into the memory description.
 conversations:
@@ -19,18 +21,8 @@ conversations:
       <ANALYZES>I must pass the test.</ANALYZES>
   - role: user
     content: |-
-      Hi
-  - role: user
-    content: |-
-      Hi
-  - role: assistant
-    content: |-
-      <ANALYZES>User has initiated a casual conversation despite mentioning a test previously. The tone of the interaction has changed.</ANALYZES>
-      <SPEAKS>Hello! How can I assist you today?</SPEAKS>
-  - role: user
-    content: |-
       test
   - role: assistant
     content: |-
-      <ANALYZES>The user seems to be ready to start the test.</ANALYZES>
-      <SPEAKS>Yes, I'm ready for the test. Please proceed.</SPEAKS>
+      <THINKS>This is somewhat vague. I need more information to properly respond to this 'test'.</THINKS>
+      <SPEAKS>Could you please elaborate on the type of test? Is it related to logic, knowledge, abilities or something else?</SPEAKS>

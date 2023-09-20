@@ -37,13 +37,16 @@ class Simulacrum:
         self.context.save()
 
     def _fetch_chat_response(self):
-        messages = [
-            {
-                'role': 'system',
-                'content': self._format_chat_prompt(),
-            },
-        ]
+        messages = [{
+            'role': 'system',
+            'content': self._format_chat_prompt(),
+        }]
         messages.extend(self.context.current_messages)
+        messages.append({
+            'role': 'system',
+            'content': self.context.reinforcement_chat_prompt,
+        })
+
         return self.llm.fetch_completion(messages)
 
     def _extract_speech(self, response):

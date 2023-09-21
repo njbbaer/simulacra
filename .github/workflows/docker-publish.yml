@@ -1,0 +1,19 @@
+name: Build and Publish Docker Image
+on:
+  push:
+    branches:
+      - master
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    
+    - name: Login to GitHub Container Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    
+    - name: Build and push Docker image
+      run: |
+        docker build -t ghcr.io/${{ github.repository }}/simulacra:latest .
+        docker push ghcr.io/${{ github.repository }}/simulacra:latest

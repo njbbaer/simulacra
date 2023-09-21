@@ -26,6 +26,8 @@ names:
   user: User
 chat_prompt: |-
   You are modeling the mind of an AI under test.
+reinforcement_chat_prompt: |-
+  Remember, you are modeling the mind of an AI under test.
 conversations:
 - memory: |-
     In its last coversation, the AI was told it would be tested by the user.

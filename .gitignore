@@ -1,7 +1,6 @@
 __pycache__/
-contexts/*
-!contexts/example.yml
 log.yml
-config.yml
 .env
 .vscode/
+sync/
+backup/

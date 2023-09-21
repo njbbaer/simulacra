@@ -13,5 +13,5 @@ pipenv install
 ### Run the application
 
 ```sh
-pipenv run python main.py
+pipenv run python run.py examples/config.yml
 ```

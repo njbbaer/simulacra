@@ -1,4 +1,4 @@
-name: Test and Deploy
+name: Test and Publish
 on:
   push:
 
@@ -23,7 +23,7 @@ jobs:
     - name: Run tests
       run: pipenv run python -m unittest
   
-  docker:
+  publish:
     needs: test
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest

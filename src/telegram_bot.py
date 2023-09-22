@@ -1,11 +1,8 @@
-from dotenv import load_dotenv
 import threading
 import time
 from contextlib import contextmanager
 import traceback
 import re
-
-load_dotenv()
 
 
 class TelegramBot:

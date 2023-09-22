@@ -1,5 +1,7 @@
 # Simulacra
 
+[![build](https://github.com/njbbaer/simulacra/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/njbbaer/simulacra/actions/workflows/build.yml)
+
 Simulacra is a platform for creating OpenAI based Telegram bots with personalities, internal dialogue, and long term memory.
 
 ## Usage

@@ -1,10 +1,8 @@
-import unittest
-from unittest.mock import patch
 import telebot
-from time import sleep
 import os
 import yaml
-
+from time import sleep
+import pytest
 from src.telegram_bot import TelegramBot
 from src.simulacrum import Simulacrum
 
@@ -17,8 +15,8 @@ class ExceptionHandler(telebot.ExceptionHandler):
         self.exception = exception
 
 
-class TestTelegramBot(unittest.TestCase):
-    TELEGRAM_USER_ID = '123'
+@pytest.fixture(scope="function")
+def setup_teardown():
     CONTEXT_FILENAME = './tests/context.yml'
     CONTEXT_CONTENT = '''
 names:
@@ -42,43 +40,44 @@ conversations:
       <ANALYZE>I must pass the test.</ANALYZE>
 '''
 
-    def setUp(self):
-        self.CONTEXT_FILENAME = './tests/context.yml'
-        with open(self.CONTEXT_FILENAME, 'w') as file:
-            file.write(self.CONTEXT_CONTENT)
+    with open(CONTEXT_FILENAME, 'w') as file:
+        file.write(CONTEXT_CONTENT)
 
-    def tearDown(self):
-        if os.path.exists(self.CONTEXT_FILENAME):
-            os.remove(self.CONTEXT_FILENAME)
+    yield CONTEXT_FILENAME  # This is where the test function will execute
 
-    def test_message_handler(self):
-        exception_handler = ExceptionHandler()
-        simulacrum = Simulacrum(self.CONTEXT_FILENAME)
-        telebot_instance = telebot.TeleBot('fake_token', exception_handler=exception_handler)
-        TelegramBot(telebot_instance, simulacrum, self.TELEGRAM_USER_ID)
+    if os.path.exists(CONTEXT_FILENAME):
+        os.remove(CONTEXT_FILENAME)
 
-        telebot_instance.send_message = unittest.mock.MagicMock()
-        simulacrum.llm.fetch_completion = unittest.mock.MagicMock(return_value='Hello User!')
 
-        telebot_msg = self.create_text_message('Hello AI!', self.TELEGRAM_USER_ID)
-        telebot_instance.process_new_messages([telebot_msg])
+def create_text_message(text, user_id):
+    params = {'text': text}
+    chat = telebot.types.User(user_id, False, 'test')
+    return telebot.types.Message(1, None, None, chat, 'text', params, "")
 
-        sleep(0.1)
 
-        if exception_handler.exception:
-            raise exception_handler.exception
+def test_message_handler(setup_teardown, mocker):
+    TELEGRAM_USER_ID = '123'
+    exception_handler = ExceptionHandler()
+    simulacrum = Simulacrum(setup_teardown)
+    telebot_instance = telebot.TeleBot('fake_token', exception_handler=exception_handler)
+    TelegramBot(telebot_instance, simulacrum, TELEGRAM_USER_ID)
 
-        telebot_instance.send_message.assert_called_once_with(self.TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
+    mocker.patch.object(telebot_instance, 'send_message')
+    mocker.patch.object(simulacrum.llm, 'fetch_completion', return_value='Hello User!')
 
-        with open(self.CONTEXT_FILENAME, 'r') as file:
-            context = yaml.safe_load(file)
+    telebot_msg = create_text_message('Hello AI!', TELEGRAM_USER_ID)
+    telebot_instance.process_new_messages([telebot_msg])
 
-        messages = context['conversations'][0]['messages']
-        self.assertEqual(messages[-2]['content'], 'Hello AI!')
-        self.assertEqual(messages[-1]['content'], 'Hello User!')
+    sleep(0.1)
 
-    @staticmethod
-    def create_text_message(text, user_id):
-        params = {'text': text}
-        chat = telebot.types.User(user_id, False, 'test')
-        return telebot.types.Message(1, None, None, chat, 'text', params, "")
+    if exception_handler.exception:
+        raise exception_handler.exception
+
+    telebot_instance.send_message.assert_called_once_with(TELEGRAM_USER_ID, 'Hello User!', parse_mode='Markdown')
+
+    with open(setup_teardown, 'r') as file:
+        context = yaml.safe_load(file)
+
+    messages = context['conversations'][0]['messages']
+    assert messages[-2]['content'] == 'Hello AI!'
+    assert messages[-1]['content'] == 'Hello User!'

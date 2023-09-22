@@ -9,11 +9,12 @@ telebot = "*"
 "ruamel.yaml" = "*"
 backoff = "*"
 argparse = "*"
-python-dotenv = "*"
 pyyaml = "*"
+pytest-mock = "*"
 
 [dev-packages]
 pycodestyle = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.10"

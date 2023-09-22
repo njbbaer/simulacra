@@ -1,4 +1,4 @@
-name: Test and Publish
+name: build
 on:
   push:
 
@@ -31,10 +31,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Login to GitHub Container Registry
+    - name: Login to GHCR
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-    - name: Build and push Docker image
-      run: |
-        docker build -t ghcr.io/${{ github.repository }}:latest .
-        docker push ghcr.io/${{ github.repository }}:latest
+    - name: Build Docker image
+      run: docker build -t ghcr.io/${{ github.repository }}:latest .
+
+    - name: Push image to GHCR
+      run: docker push ghcr.io/${{ github.repository }}:latest

@@ -37,6 +37,7 @@ class TelegramBot:
 
     def new_conversation_command_handler(self, message):
         with self._process_with_feedback(message.chat.id):
+            self.simulacrum.context.load()
             if self.simulacrum.context.current_messages:
                 self._send_message(message.chat.id, '⏳ Integrating memory...', is_block=True)
                 self.simulacrum.integrate_memory()

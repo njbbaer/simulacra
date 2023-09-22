@@ -1,5 +1,4 @@
 import telebot
-import os
 import yaml
 import pytest
 from time import sleep
@@ -7,7 +6,18 @@ from src.telegram_bot import TelegramBot
 from src.simulacrum import Simulacrum
 
 TELEGRAM_USER_ID = '123'
-CONTEXT_PATH = './tests/context.yml'
+CONTEXT_PATH = './context.yml'
+CONTEXT_CONTENT = {
+    'names': {'assistant': 'AI', 'user': 'User'},
+    'chat_prompt': 'You are modeling the mind of an AI under test.',
+    'reinforcement_chat_prompt': 'Remember, you are modeling the mind of an AI under test.',
+    'conversations': [
+        {
+            'memory': 'In its last coversation, the AI was told it would be tested by the user.',
+            'messages': []
+        }
+    ]
+}
 
 
 class ExceptionHandler(telebot.ExceptionHandler):
@@ -18,30 +28,9 @@ class ExceptionHandler(telebot.ExceptionHandler):
         self.exception = exception
 
 
-def create_context_content():
-    return {
-        'names': {'assistant': 'AI', 'user': 'User'},
-        'chat_prompt': 'You are modeling the mind of an AI under test.',
-        'reinforcement_chat_prompt': 'Remember, you are modeling the mind of an AI under test.',
-        'conversations': [
-            {
-                'memory': 'In its last coversation, the AI was told it would be tested by the user.',
-                'messages': []
-            }
-        ]
-    }
-
-
 @pytest.fixture(scope="function")
-def setup_teardown():
-    context_content = create_context_content()
-    with open(CONTEXT_PATH, 'w') as file:
-        yaml.dump(context_content, file)
-
-    yield CONTEXT_PATH
-
-    if os.path.exists(CONTEXT_PATH):
-        os.remove(CONTEXT_PATH)
+def setup(fs):
+    fs.create_file(CONTEXT_PATH, contents=yaml.dump(CONTEXT_CONTENT))
 
 
 @pytest.fixture
@@ -82,7 +71,7 @@ def assert_sent_message(telebot_instance, message):
     )
 
 
-def test_message_handler(setup_teardown, telebot_instance, simulacrum, exception_handler, mocker):
+def test_message_handler(setup, telebot_instance, simulacrum, exception_handler, mocker, fs):
     TelegramBot(telebot_instance, simulacrum, TELEGRAM_USER_ID)
     mocker.patch.object(telebot_instance, 'send_message')
     mocker.patch.object(simulacrum.llm, 'fetch_completion', return_value='Hello User!')

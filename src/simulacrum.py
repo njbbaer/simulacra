@@ -13,7 +13,6 @@ class Simulacrum:
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-            self.context.save()
         response = self._fetch_chat_response()
         self.context.add_message('assistant', response)
         self.context.save()

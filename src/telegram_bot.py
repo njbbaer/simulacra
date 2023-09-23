@@ -41,7 +41,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler('clear', self.clear_command_handler))
         self.app.add_handler(CommandHandler('remember', self.remember_command_handler))
         self.app.add_handler(CommandHandler('help', self.help_command_handler))
-        self.app.add_handler(CommandHandler('start', lambda x: None))
+        self.app.add_handler(CommandHandler('start', self.do_nothing))
         self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_handler))
         self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
 
@@ -119,6 +119,9 @@ class TelegramBot:
         logger.error(context.error, exc_info=True)
         if update:
             return f'`❌ An error occurred: {context.error}`'
+
+    async def do_nothing(self, *_):
+        pass
 
     async def _send_message(self, chat_id, text):
         await self.app.bot.send_message(chat_id, text, parse_mode='Markdown')

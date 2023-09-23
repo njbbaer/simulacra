@@ -9,7 +9,7 @@ logger = logging.getLogger('telegram_bot')
 logging.basicConfig(level=logging.ERROR)
 
 
-def handle_message(func):
+def message_handler(func):
     @wraps(func)
     async def wrapper(self, update, context, *args, **kwargs):
         async def loop_send_typing_action():
@@ -42,19 +42,18 @@ class TelegramBot:
         self.app.add_handler(CommandHandler('remember', self.remember_command_handler))
         self.app.add_handler(CommandHandler('help', self.help_command_handler))
         self.app.add_handler(CommandHandler('start', self.do_nothing))
-        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_handler))
+        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.chat_message_handler))
         self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
-
         self.app.add_error_handler(self.error_handler)
 
     def run(self):
         self.app.run_polling()
 
-    @handle_message
-    async def message_handler(self, update, context):
+    @message_handler
+    async def chat_message_handler(self, update, context):
         return await self._chat(update.effective_chat.id, update.message.text)
 
-    @handle_message
+    @message_handler
     async def new_conversation_command_handler(self, update, context):
         chat_id = update.effective_chat.id
         self.sim.context.load()
@@ -63,25 +62,25 @@ class TelegramBot:
         else:
             return '`❌ No messages in conversation`'
 
-    @handle_message
+    @message_handler
     async def retry_command_handler(self, update, context):
         self.sim.clear_messages(1)
         return await self._chat(update.effective_chat.id, message_text=None)
 
-    @handle_message
+    @message_handler
     async def reply_command_handler(self, update, context):
         return await self._chat(update.effective_chat.id, message_text=None)
 
-    @handle_message
+    @message_handler
     async def tokens_command_handler(self, update, context):
         return f'`{self.sim.llm.tokens} tokens in last request`'
 
-    @handle_message
+    @message_handler
     async def clear_command_handler(self, update, context):
         self.sim.clear_messages()
         return '🗑️ Current conversation cleared'
 
-    @handle_message
+    @message_handler
     async def remember_command_handler(self, update, context):
         memory_text = re.search(r'/remember (.*)', update.message.text)
         if memory_text:
@@ -90,7 +89,7 @@ class TelegramBot:
         else:
             return '`❌ No text provided`'
 
-    @handle_message
+    @message_handler
     async def help_command_handler(self, update, context):
         text = textwrap.dedent("""\
             *Actions*
@@ -106,15 +105,15 @@ class TelegramBot:
         """)
         return text
 
-    @handle_message
+    @message_handler
     async def unauthorized(self, update, context):
         return '`❌ Unauthorized`'
 
-    @handle_message
+    @message_handler
     async def unknown_message_handler(self, update, context):
         return '`❌ Not recognized`'
 
-    @handle_message
+    @message_handler
     async def error_handler(self, update, context):
         logger.error(context.error, exc_info=True)
         if update:

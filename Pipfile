@@ -5,12 +5,13 @@ name = "pypi"
 
 [packages]
 openai = "*"
-telebot = "*"
 "ruamel.yaml" = "*"
 backoff = "*"
 argparse = "*"
 pyyaml = "*"
 pytest-mock = "*"
+python-telegram-bot = "*"
+asyncio = "*"
 
 [dev-packages]
 pycodestyle = "*"

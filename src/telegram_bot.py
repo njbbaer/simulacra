@@ -19,9 +19,9 @@ def message_handler(func):
 
         typing_task = asyncio.create_task(loop_send_typing_action())
         try:
-            text = await func(self, update, context, *args, **kwargs)
-            if text:
-                await self._send_message(update.effective_chat.id, text)
+            async for text in func(self, update, context, *args, **kwargs):
+                if text:
+                    await self._send_message(update.effective_chat.id, text)
         finally:
             typing_task.cancel()
 
@@ -58,9 +58,11 @@ class TelegramBot:
         chat_id = update.effective_chat.id
         self.sim.context.load()
         if self.sim.context.current_messages:
-            return '`⏳ Integrating memory...`'
+            yield '`⏳ Integrating memory...`'
+            await self.sim.integrate_memory()
+            yield '`✅ Ready to chat`'
         else:
-            return '`❌ No messages in conversation`'
+            yield '`❌ No messages in conversation`'
 
     @message_handler
     async def retry_command_handler(self, update, context):

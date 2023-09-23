@@ -112,7 +112,8 @@ class TelegramBot:
     async def error_handler(self, update, context):
         logger.error(context.error, exc_info=True)
         error_text = f'`❌ An error occurred: {context.error}`'
-        await self._send_message(update.effective_chat.id, error_text)
+        if update:
+            await self._send_message(update.effective_chat.id, error_text)
 
     async def _send_message(self, chat_id, text):
         await self.app.bot.send_message(chat_id, text, parse_mode='Markdown')

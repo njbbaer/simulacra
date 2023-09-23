@@ -9,9 +9,9 @@ logger = logging.getLogger('telegram_bot')
 logging.basicConfig(level=logging.ERROR)
 
 
-def send_typing_action(func):
+def handle_message(func):
     @wraps(func)
-    async def command_func(self, update, context, *args, **kwargs):
+    async def wrapper(self, update, context, *args, **kwargs):
         async def loop_send_typing_action():
             while True:
                 await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action='typing')
@@ -19,11 +19,13 @@ def send_typing_action(func):
 
         typing_task = asyncio.create_task(loop_send_typing_action())
         try:
-            return await func(self, update, context, *args, **kwargs)
+            text = await func(self, update, context, *args, **kwargs)
+            if text:
+                await self._send_message(update.effective_chat.id, text)
         finally:
             typing_task.cancel()
 
-    return command_func
+    return wrapper
 
 
 class TelegramBot:
@@ -48,46 +50,47 @@ class TelegramBot:
     def run(self):
         self.app.run_polling()
 
-    @send_typing_action
+    @handle_message
     async def message_handler(self, update, context):
-        await self._chat(update.effective_chat.id, update.message.text)
+        return await self._chat(update.effective_chat.id, update.message.text)
 
-    @send_typing_action
+    @handle_message
     async def new_conversation_command_handler(self, update, context):
         chat_id = update.effective_chat.id
         self.sim.context.load()
         if self.sim.context.current_messages:
-            await self._send_message(chat_id, '`⏳ Integrating memory...`')
-            await self.sim.integrate_memory()
-            await self._send_message(chat_id, '`✅ Ready to chat`')
+            return '`⏳ Integrating memory...`'
         else:
-            await self._send_message(chat_id, '`❌ No messages in conversation`')
+            return '`❌ No messages in conversation`'
 
-    @send_typing_action
+    @handle_message
     async def retry_command_handler(self, update, context):
         self.sim.clear_messages(1)
-        await self._chat(update.effective_chat.id, message_text=None)
+        return await self._chat(update.effective_chat.id, message_text=None)
 
-    @send_typing_action
-    def reply_command_handler(self, update, context):
-        self._chat(update.effective_chat.id, message_text=None)
+    @handle_message
+    async def reply_command_handler(self, update, context):
+        return await self._chat(update.effective_chat.id, message_text=None)
 
+    @handle_message
     async def tokens_command_handler(self, update, context):
-        text = f'`{self.sim.llm.tokens} tokens in last request`'
-        await self._send_message(update.effective_chat.id, text)
+        return f'`{self.sim.llm.tokens} tokens in last request`'
 
+    @handle_message
     async def clear_command_handler(self, update, context):
         self.sim.clear_messages()
-        await self._send_message(update.effective_chat.id, '🗑️ Current conversation cleared')
+        return '🗑️ Current conversation cleared'
 
+    @handle_message
     async def remember_command_handler(self, update, context):
         memory_text = re.search(r'/remember (.*)', update.message.text)
         if memory_text:
             self.sim.append_memory(memory_text.group(1))
-            await self._send_message(update.effective_chat.id, '`✅ Added to memory`')
+            return '`✅ Added to memory`'
         else:
-            await self._send_message(update.effective_chat.id, '`❌ No text provided`')
+            return '`❌ No text provided`'
 
+    @handle_message
     async def help_command_handler(self, update, context):
         text = textwrap.dedent("""\
             *Actions*
@@ -101,19 +104,21 @@ class TelegramBot:
             /tokens - Show token utilization
             /help - Show this help message
         """)
-        await self._send_message(update.effective_chat.id, text)
+        return text
 
+    @handle_message
     async def unauthorized(self, update, context):
-        await self._send_message(update.effective_chat.id, '`❌ Unauthorized`')
+        return '`❌ Unauthorized`'
 
+    @handle_message
     async def unknown_message_handler(self, update, context):
-        await self._send_message(update.effective_chat.id, '`❌ Not recognized`')
+        return '`❌ Not recognized`'
 
+    @handle_message
     async def error_handler(self, update, context):
         logger.error(context.error, exc_info=True)
-        error_text = f'`❌ An error occurred: {context.error}`'
         if update:
-            await self._send_message(update.effective_chat.id, error_text)
+            return f'`❌ An error occurred: {context.error}`'
 
     async def _send_message(self, chat_id, text):
         await self.app.bot.send_message(chat_id, text, parse_mode='Markdown')

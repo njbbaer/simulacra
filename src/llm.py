@@ -15,9 +15,9 @@ class OpenAI:
         self.tokens = 0
 
     @backoff.on_exception(backoff.expo, openai.error.RateLimitError)
-    def fetch_completion(self, messages, **kwargs):
+    async def fetch_completion(self, messages, **kwargs):
         parameters = self._get_parameters(kwargs)
-        response = openai.ChatCompletion.create(**parameters, messages=messages)
+        response = await openai.ChatCompletion.acreate(**parameters, messages=messages)
         response_content = response['choices'][0]['message']['content']
         self.logger.log(parameters, messages, response_content)
         self.tokens = response['usage']['total_tokens']

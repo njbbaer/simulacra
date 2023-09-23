@@ -9,18 +9,18 @@ class Simulacrum:
         self.context = Context(context_file)
         self.llm = OpenAI()
 
-    def chat(self, user_input=None):
+    async def chat(self, user_input=None):
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-        response = self._fetch_chat_response()
+        response = await self._fetch_chat_response()
         self.context.add_message('assistant', response)
         self.context.save()
         return self._extract_speech(response)
 
-    def integrate_memory(self):
+    async def integrate_memory(self):
         self.context.load()
-        response = self._fetch_integration_response()
+        response = await self._fetch_integration_response()
         self.context.new_conversation(response)
         self.context.save()
         return response
@@ -35,7 +35,7 @@ class Simulacrum:
         self.context.clear_messages(n)
         self.context.save()
 
-    def _fetch_chat_response(self):
+    async def _fetch_chat_response(self):
         messages = [{
             'role': 'system',
             'content': self._format_chat_prompt(),
@@ -46,13 +46,13 @@ class Simulacrum:
             'content': self.context.reinforcement_chat_prompt,
         })
 
-        return self.llm.fetch_completion(messages)
+        return await self.llm.fetch_completion(messages)
 
     def _extract_speech(self, response):
         match = re.search(r'<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>', response, re.DOTALL)
         return match.group(1) if match else response
 
-    def _fetch_integration_response(self):
+    async def _fetch_integration_response(self):
         content = (
             f'Most recent conversation: \n\n{self._format_conversation_history()}\n\n'
             f'---\n\nPrevious memory state:\n\n{self.context.current_memory}'
@@ -63,7 +63,7 @@ class Simulacrum:
             {'role': 'user', 'content': content},
             {'role': 'system', 'content': prompt},
         ]
-        return self.llm.fetch_completion(formatted_messages, temperature=0.0)
+        return await self.llm.fetch_completion(formatted_messages, temperature=0.0)
 
     def _format_conversation_history(self):
         def format_message(msg):

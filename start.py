@@ -1,12 +1,13 @@
 import yaml
 import argparse
+import multiprocessing
 from telegram.ext import ApplicationBuilder
 
 from src.telegram_bot import TelegramBot
 from src.simulacrum import Simulacrum
 
 
-def _start_bot(context_file, authorized_users, api_token):
+def _run_bot(context_file, authorized_users, api_token):
     TelegramBot(
         ApplicationBuilder().token(api_token).build(),
         Simulacrum(context_file),
@@ -26,4 +27,11 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     for bot in config:
-        _start_bot(bot['context_file'], bot['authorized_users'], bot['api_token'])
+        multiprocessing.Process(
+            target=_run_bot,
+            args=(
+                bot['context_file'],
+                bot['authorized_users'],
+                bot['api_token']
+            )
+        ).start()

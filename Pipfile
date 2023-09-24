@@ -13,6 +13,7 @@ python-telegram-bot = "*"
 asyncio = "*"
 tiktoken = "*"
 toml = "*"
+pytz = "*"
 
 [dev-packages]
 pycodestyle = "*"

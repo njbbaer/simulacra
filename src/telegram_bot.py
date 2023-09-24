@@ -1,7 +1,9 @@
 import textwrap
 import re
-import asyncio
 import logging
+import asyncio
+import pytz
+from datetime import datetime
 from functools import wraps
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
@@ -30,11 +32,22 @@ def message_handler(func):
     return wrapper
 
 
+class StaleMessageFilter(filters.MessageFilter):
+    SECONDS_STALE = 5
+
+    def filter(self, message):
+        message_time = message.date
+        current_time = datetime.now(pytz.utc)
+        time_difference = (current_time - message_time).total_seconds()
+        return time_difference > self.SECONDS_STALE
+
+
 class TelegramBot:
     def __init__(self, context_filepath, telegram_token, authorized_users):
         self.app = ApplicationBuilder().token(telegram_token).build()
         self.sim = Simulacrum(context_filepath)
 
+        self.app.add_handler(MessageHandler(StaleMessageFilter(), self.do_nothing))
         self.app.add_handler(MessageHandler(~filters.User(username=authorized_users), self.unauthorized))
         self.app.add_handler(CommandHandler('new', self.new_conversation_command_handler))
         self.app.add_handler(CommandHandler('retry', self.retry_command_handler))

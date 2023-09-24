@@ -56,8 +56,7 @@ class TelegramBot:
     @message_handler
     async def new_conversation_command_handler(self, update, context):
         chat_id = update.effective_chat.id
-        self.sim.context.load()
-        if self.sim.context.current_messages:
+        if self.sim.has_messages():
             yield '`⏳ Integrating memory...`'
             await self.sim.integrate_memory()
             yield '`✅ Ready to chat`'

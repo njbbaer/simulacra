@@ -46,6 +46,10 @@ class Simulacrum:
             num_tokens += len(encoding.encode(message['content'])) + 4
         return num_tokens / (self.llm.MAX_TOKENS - 1500) * 100
 
+    def has_messages(self):
+        self.context.load()
+        return len(self.context.current_messages) > 0
+
     async def _fetch_chat_response(self):
         messages = [{
             'role': 'system',

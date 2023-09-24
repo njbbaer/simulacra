@@ -37,6 +37,15 @@ class Simulacrum:
         self.context.clear_messages(n)
         self.context.save()
 
+    def undo_last_user_message(self):
+        self.context.load()
+        num_messages = len(self.context.current_messages)
+        for i in range(num_messages):
+            message = self.context.current_messages.pop()
+            if message['role'] == 'user':
+                break
+        self.context.save()
+
     def estimate_utilization_percentage(self):
         self.context.load()
         messages = self._build_integration_messages()

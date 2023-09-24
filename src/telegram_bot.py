@@ -36,6 +36,7 @@ class TelegramBot:
         self.app.add_handler(MessageHandler(~filters.User(username=authorized_users), self.unauthorized))
         self.app.add_handler(CommandHandler('new', self.new_conversation_command_handler))
         self.app.add_handler(CommandHandler('retry', self.retry_command_handler))
+        self.app.add_handler(CommandHandler('undo', self.undo_command_handler))
         self.app.add_handler(CommandHandler('reply', self.reply_command_handler))
         self.app.add_handler(CommandHandler('stats', self.stats_command_handler))
         self.app.add_handler(CommandHandler('clear', self.clear_command_handler))
@@ -69,6 +70,11 @@ class TelegramBot:
         yield await self._chat(update.effective_chat.id, message_text=None)
 
     @message_handler
+    async def undo_command_handler(self, update, context):
+        self.sim.undo_last_user_message()
+        yield '🗑️ Last message undone'
+
+    @message_handler
     async def reply_command_handler(self, update, context):
         yield await self._chat(update.effective_chat.id, message_text=None)
 
@@ -97,6 +103,7 @@ class TelegramBot:
             *Actions*
             /new - Start a new conversation
             /retry - Retry the last response
+            /undo - Undo the last exchange
             /reply - Reply immediately
             /clear - Clear the current conversation
             /remember <text> - Add text to memory

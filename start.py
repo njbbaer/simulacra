@@ -1,37 +1,26 @@
-import yaml
+import toml
 import argparse
 import multiprocessing
-from telegram.ext import ApplicationBuilder
-
 from src.telegram_bot import TelegramBot
-from src.simulacrum import Simulacrum
 
 
-def _run_bot(context_file, authorized_users, api_token):
+def run_bot(bot_config):
     TelegramBot(
-        ApplicationBuilder().token(api_token).build(),
-        Simulacrum(context_file),
-        authorized_users
+        bot_config['context_filepath'],
+        bot_config['telegram_token'],
+        bot_config['authorized_users']
     ).run()
 
 
-def _get_args():
+def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('config_file', type=str)
-    return parser.parse_args()
+    return parser.parse_args().config_file
 
 
 if __name__ == "__main__":
-    args = _get_args()
-    with open(args.config_file, 'r') as file:
-        config = yaml.safe_load(file)
+    config_file = get_args()
+    configs = toml.load(open(config_file, 'r'))
 
-    for bot in config:
-        multiprocessing.Process(
-            target=_run_bot,
-            args=(
-                bot['context_file'],
-                bot['authorized_users'],
-                bot['api_token']
-            )
-        ).start()
+    for bot_config in configs.get('simulacra', []):
+        multiprocessing.Process(target=run_bot, args=(bot_config,)).start()

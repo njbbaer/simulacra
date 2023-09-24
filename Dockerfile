@@ -6,4 +6,4 @@ COPY . /app
 RUN pip install pipenv && \
     pipenv install --deploy --ignore-pipfile
 
-CMD ["pipenv", "run", "python", "start.py", "/config/production.yml"]
+CMD ["sh", "-c", "pipenv run python start.py $CONFIG_FILE"]

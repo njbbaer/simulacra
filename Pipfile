@@ -12,6 +12,7 @@ pyyaml = "*"
 python-telegram-bot = "*"
 asyncio = "*"
 tiktoken = "*"
+toml = "*"
 
 [dev-packages]
 pycodestyle = "*"

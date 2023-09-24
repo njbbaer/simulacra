@@ -3,7 +3,9 @@ import re
 import asyncio
 import logging
 from functools import wraps
-from telegram.ext import CommandHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+
+from src.simulacrum import Simulacrum
 
 logger = logging.getLogger('telegram_bot')
 logging.basicConfig(level=logging.ERROR)
@@ -29,9 +31,9 @@ def message_handler(func):
 
 
 class TelegramBot:
-    def __init__(self, app, sim, authorized_users):
-        self.app = app
-        self.sim = sim
+    def __init__(self, context_filepath, telegram_token, authorized_users):
+        self.app = ApplicationBuilder().token(telegram_token).build()
+        self.sim = Simulacrum(context_filepath)
 
         self.app.add_handler(MessageHandler(~filters.User(username=authorized_users), self.unauthorized))
         self.app.add_handler(CommandHandler('new', self.new_conversation_command_handler))

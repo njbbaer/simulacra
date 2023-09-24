@@ -7,7 +7,6 @@ from src.logger import Logger
 class OpenAI:
     MODEL = 'gpt-4'
     MAX_TOKENS = 8192
-    MAX_TOKENS_BUFFER = 1024
 
     def __init__(self, parameters={}):
         self.parameters = parameters
@@ -20,7 +19,6 @@ class OpenAI:
         response = await openai.ChatCompletion.acreate(**parameters, messages=messages)
         response_content = response['choices'][0]['message']['content']
         self.logger.log(parameters, messages, response_content)
-        self.tokens = response['usage']['total_tokens']
         return response_content
 
     def _get_parameters(self, overrides={}):
@@ -29,8 +27,3 @@ class OpenAI:
             **self.parameters,
             **overrides,
         }
-
-    @property
-    def token_utilization_percentage(self):
-        max_tokens = self.MAX_TOKENS - self.MAX_TOKENS_BUFFER
-        return self.tokens / max_tokens * 100

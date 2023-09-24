@@ -1,4 +1,5 @@
 import re
+import tiktoken
 
 from src.context import Context
 from src.llm import OpenAI
@@ -20,7 +21,8 @@ class Simulacrum:
 
     async def integrate_memory(self):
         self.context.load()
-        response = await self._fetch_integration_response()
+        messages = self._build_integration_messages()
+        response = await self.llm.fetch_completion(messages, temperature=0.0)
         self.context.new_conversation(response)
         self.context.save()
         return response
@@ -34,6 +36,15 @@ class Simulacrum:
         self.context.load()
         self.context.clear_messages(n)
         self.context.save()
+
+    def estimate_utilization_percentage(self):
+        self.context.load()
+        messages = self._build_integration_messages()
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        num_tokens = 3
+        for message in messages:
+            num_tokens += len(encoding.encode(message['content'])) + 4
+        return num_tokens / (self.llm.MAX_TOKENS - 1500) * 100
 
     async def _fetch_chat_response(self):
         messages = [{
@@ -52,18 +63,17 @@ class Simulacrum:
         match = re.search(r'<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>', response, re.DOTALL)
         return match.group(1) if match else response
 
-    async def _fetch_integration_response(self):
+    def _build_integration_messages(self):
         content = (
             f'Most recent conversation: \n\n{self._format_conversation_history()}\n\n'
             f'---\n\nPrevious memory state:\n\n{self.context.current_memory}'
         )
         prompt = self.context.memory_integration_prompt
-        formatted_messages = [
+        return [
             {'role': 'system', 'content': prompt},
             {'role': 'user', 'content': content},
             {'role': 'system', 'content': prompt},
         ]
-        return await self.llm.fetch_completion(formatted_messages, temperature=0.0)
 
     def _format_conversation_history(self):
         def format_message(msg):

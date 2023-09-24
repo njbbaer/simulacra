@@ -11,6 +11,7 @@ argparse = "*"
 pyyaml = "*"
 python-telegram-bot = "*"
 asyncio = "*"
+tiktoken = "*"
 
 [dev-packages]
 pycodestyle = "*"

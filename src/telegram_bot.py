@@ -37,7 +37,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler('new', self.new_conversation_command_handler))
         self.app.add_handler(CommandHandler('retry', self.retry_command_handler))
         self.app.add_handler(CommandHandler('reply', self.reply_command_handler))
-        self.app.add_handler(CommandHandler('usage', self.usage_command_handler))
+        self.app.add_handler(CommandHandler('size', self.size_command_handler))
         self.app.add_handler(CommandHandler('clear', self.clear_command_handler))
         self.app.add_handler(CommandHandler('remember', self.remember_command_handler))
         self.app.add_handler(CommandHandler('help', self.help_command_handler))
@@ -74,8 +74,9 @@ class TelegramBot:
         yield await self._chat(update.effective_chat.id, message_text=None)
 
     @message_handler
-    async def tokens_command_handler(self, update, context):
-        return f'`{self.sim.llm.tokens} tokens in last request`'
+    async def size_command_handler(self, update, context):
+        percentage = round(self.sim.estimate_utilization_percentage())
+        yield f'`{percentage}% of max conversation size`'
 
     @message_handler
     async def clear_command_handler(self, update, context):
@@ -102,7 +103,7 @@ class TelegramBot:
             /remember <text> - Add text to memory
 
             *Information*
-            /tokens - Show token utilization
+            /size - Show conversation size
             /help - Show this help message
         """)
 
@@ -129,15 +130,15 @@ class TelegramBot:
     async def _chat(self, chat_id, message_text):
         response = await self.sim.chat(message_text)
         await self._send_message(chat_id, response)
-        await self._warn_token_utilization(chat_id)
+        await self._warn_max_size(chat_id)
 
-    async def _warn_token_utilization(self, chat_id):
-        percentage = round(self.sim.llm.token_utilization_percentage)
+    async def _warn_max_size(self, chat_id):
+        percentage = round(self.sim.estimate_utilization_percentage())
         if percentage >= 80:
             shape, adverb = (
                 ('🔴', 'now') if percentage >= 90 else
                 ('🟠', 'soon') if percentage >= 80 else
                 ('🟡', 'when ready')
             )
-            text = f'`{shape} {percentage}% of limit used. Run /new {adverb}.`'
+            text = f'`{shape} {percentage}% of max conversation size. Run /new {adverb}.`'
             await self._send_message(chat_id, text)

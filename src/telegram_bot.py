@@ -155,7 +155,7 @@ class TelegramBot:
 
     async def _warn_max_size(self, chat_id):
         percentage = round(self.sim.estimate_utilization_percentage())
-        if percentage >= 80:
+        if percentage >= 70:
             shape, adverb = (
                 ('🔴', 'now') if percentage >= 90 else
                 ('🟠', 'soon') if percentage >= 80 else

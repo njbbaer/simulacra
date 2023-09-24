@@ -37,7 +37,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler('new', self.new_conversation_command_handler))
         self.app.add_handler(CommandHandler('retry', self.retry_command_handler))
         self.app.add_handler(CommandHandler('reply', self.reply_command_handler))
-        self.app.add_handler(CommandHandler('size', self.size_command_handler))
+        self.app.add_handler(CommandHandler('stats', self.stats_command_handler))
         self.app.add_handler(CommandHandler('clear', self.clear_command_handler))
         self.app.add_handler(CommandHandler('remember', self.remember_command_handler))
         self.app.add_handler(CommandHandler('help', self.help_command_handler))
@@ -74,7 +74,7 @@ class TelegramBot:
         yield await self._chat(update.effective_chat.id, message_text=None)
 
     @message_handler
-    async def size_command_handler(self, update, context):
+    async def stats_command_handler(self, update, context):
         percentage = round(self.sim.estimate_utilization_percentage())
         yield f'`{percentage}% of max conversation size`'
 
@@ -103,7 +103,7 @@ class TelegramBot:
             /remember <text> - Add text to memory
 
             *Information*
-            /size - Show conversation size
+            /stats - Show conversation statistics
             /help - Show this help message
         """)
 

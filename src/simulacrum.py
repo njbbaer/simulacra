@@ -79,7 +79,7 @@ class Simulacrum:
     def _build_integration_messages(self):
         content = (
             f'Most recent conversation: \n\n{self._format_conversation_history()}\n\n'
-            f'---\n\nPrevious memory state:\n\n{self.context.current_memory}'
+            f'---\n\nPrevious knowledge base:\n\n{self.context.current_memory}'
         )
         prompt = self.context.memory_integration_prompt
         return [

@@ -50,10 +50,12 @@ class Simulacrum:
         self.context.load()
         messages = self._build_integration_messages()
         encoding = tiktoken.encoding_for_model("gpt-4")
-        num_tokens = 3
+        num_request_tokens = 3
         for message in messages:
-            num_tokens += len(encoding.encode(message['content'])) + 4
-        return num_tokens / (self.llm.MAX_TOKENS - 1500) * 100
+            num_request_tokens += len(encoding.encode(message['content'])) + 4
+        num_memory_tokens = len(encoding.encode(self.context.current_memory))
+        predicted_response_tokens = max(num_memory_tokens * 1.2, 500)
+        return num_request_tokens / (self.llm.MAX_TOKENS - predicted_response_tokens) * 100
 
     def has_messages(self):
         self.context.load()

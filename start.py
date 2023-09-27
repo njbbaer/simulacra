@@ -1,7 +1,7 @@
 import toml
 import argparse
 import multiprocessing
-from src.telegram.telegram_bot import TelegramBot
+from src.telegram import TelegramBot
 
 
 def run_bot(bot_config):

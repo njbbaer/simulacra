@@ -4,12 +4,9 @@ from src.telegram.telegram_context import TelegramContext
 
 
 async def _loop_send_typing_action(ctx):
-    try:
-        while True:
-            await ctx.send_typing_action()
-            await asyncio.sleep(4)
-    except asyncio.CancelledError:
-        pass
+    while True:
+        await ctx.send_typing_action()
+        await asyncio.sleep(4)
 
 
 def message_handler(func):
@@ -20,6 +17,5 @@ def message_handler(func):
             await func(self, ctx, *args, **kwargs)
         finally:
             typing_task.cancel()
-            await typing_task  # Wait for the task to cancel and cleanup
 
     return wrapper

@@ -55,9 +55,13 @@ class Context:
         return self.data['chat_prompt']
 
     @property
-    def memory_integration_prompt(self):
-        return self.data['memory_integration_prompt']
-
-    @property
     def reinforcement_chat_prompt(self):
         return self.data['reinforcement_chat_prompt']
+
+    @property
+    def conversation_summarization_prompt(self):
+        return self.data['conversation_summarization_prompt']
+
+    @property
+    def memory_integration_prompt(self):
+        return self.data['memory_integration_prompt']

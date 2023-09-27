@@ -2,27 +2,25 @@ import re
 import tiktoken
 
 from src.context import Context
-from src.llm import OpenAI
+from src.prompt_executors import ChatPromptExecutor, MemoryIntegrationPromptExecutor
 
 
 class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
-        self.llm = OpenAI()
 
     async def chat(self, user_input=None):
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-        response = await self._fetch_chat_response()
+        response = await ChatPromptExecutor(self.context).execute()
         self.context.add_message('assistant', response)
         self.context.save()
         return self._extract_speech(response)
 
     async def integrate_memory(self):
         self.context.load()
-        messages = self._build_integration_messages()
-        response = await self.llm.fetch_completion(messages, temperature=0.0)
+        response = await MemoryIntegrationPromptExecutor(self.context).execute()
         self.context.new_conversation(response)
         self.context.save()
         return response
@@ -47,58 +45,24 @@ class Simulacrum:
         self.context.save()
 
     def estimate_utilization_percentage(self):
+        MAX_TOKENS = 8192
+        ESTIMATED_RESPONSE_TOKENS = 1000
+        BASE_TOKENS = 3
+        BASE_TOKENS_PER_MESSAGE = 4
+
         self.context.load()
-        messages = self._build_integration_messages()
+        executor = MemoryIntegrationPromptExecutor(self.context)
+        messages = executor.build_conversation_summarization_messages()
         encoding = tiktoken.encoding_for_model("gpt-4")
-        num_request_tokens = 3
+        num_request_tokens = BASE_TOKENS
         for message in messages:
-            num_request_tokens += len(encoding.encode(message['content'])) + 4
-        num_memory_tokens = len(encoding.encode(self.context.current_memory))
-        predicted_response_tokens = max(num_memory_tokens * 1.2, 500)
-        return num_request_tokens / (self.llm.MAX_TOKENS - predicted_response_tokens) * 100
+            num_request_tokens += len(encoding.encode(message['content'])) + BASE_TOKENS_PER_MESSAGE
+        return num_request_tokens / (MAX_TOKENS - ESTIMATED_RESPONSE_TOKENS) * 100
 
     def has_messages(self):
         self.context.load()
         return len(self.context.current_messages) > 0
 
-    async def _fetch_chat_response(self):
-        messages = [{
-            'role': 'system',
-            'content': self._format_chat_prompt(),
-        }]
-        messages.extend(self.context.current_messages)
-        messages.append({
-            'role': 'system',
-            'content': self.context.reinforcement_chat_prompt,
-        })
-
-        return await self.llm.fetch_completion(messages)
-
     def _extract_speech(self, response):
         match = re.search(r'<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>', response, re.DOTALL)
         return match.group(1) if match else response
-
-    def _build_integration_messages(self):
-        content = (
-            f'# Most recent conversation: \n\n{self._format_conversation_history()}\n\n'
-            f'---\n\n# Previous knowledge base:\n\n{self.context.current_memory}'
-        )
-        prompt = self.context.memory_integration_prompt
-        return [
-            {'role': 'system', 'content': prompt},
-            {'role': 'user', 'content': content},
-            {'role': 'system', 'content': prompt + '\n\n---\n\nUpdated knowledge base:'},
-        ]
-
-    def _format_conversation_history(self):
-        def format_message(msg):
-            name = self.context.get_name(msg['role'])
-            return f'{name}:\n\n{msg["content"]}'
-
-        messages = [format_message(msg) for msg in self.context.current_messages]
-        return '\n\n'.join(messages)
-
-    def _format_chat_prompt(self):
-        name = self.context.get_name('assistant')
-        memory = f"{name}'s Memory:\n\n{self.context.current_memory}"
-        return self.context.chat_prompt + '\n\n---\n\n' + memory

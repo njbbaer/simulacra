@@ -1,14 +1,27 @@
+import asyncio
 from .prompt_executor import PromptExecutor
 
 
 class MemoryIntegrationPromptExecutor(PromptExecutor):
     async def execute(self):
-        messages = self.build_conversation_summarization_messages()
-        conversation_summary = await self.llm.fetch_completion(messages)
-        messages = self._build_integration_messages(conversation_summary)
-        return await self.llm.fetch_completion(messages)
+        segments = self._segment_memory(4)
+        tasks = []
 
-    def build_conversation_summarization_messages(self):
+        for segment in segments:
+            tasks.append(self.llm.fetch_completion(
+                self._build_segment_summarization_messages(segment),
+                model='gpt-3.5-turbo', max_tokens=1000, temperature=0.2
+            ))
+
+        tasks.append(self.llm.fetch_completion(
+            self._build_conversation_summarization_messages(),
+            model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0.2
+        ))
+
+        new_segments = await asyncio.gather(*tasks)
+        return '\n\n'.join(new_segments)
+
+    def _build_conversation_summarization_messages(self):
         return [
             {
                 'role': 'system',
@@ -17,10 +30,10 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             {
                 'role': 'user',
                 'content': '\n\n'.join([
-                    '# Knowledge base:',
+                    '# Memory Context:',
                     self.context.current_memory,
                     '---',
-                    '# Most recent conversation:',
+                    '# Latest Conversation:',
                     self._format_conversation_history()
                 ])
             },
@@ -29,12 +42,12 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
                 'content': '\n\n'.join([
                     self.context.conversation_summarization_prompt,
                     '---',
-                    '# Most recent conversation summary:'
+                    '# Latest Conversation Summary:'
                 ])
             }
         ]
 
-    def _build_integration_messages(self, conversation_summary):
+    def _build_segment_summarization_messages(self, memory_segment):
         return [
             {
                 'role': 'system',
@@ -43,9 +56,8 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             {
                 'role': 'user',
                 'content': '\n\n'.join([
-                    '# Knowledge base:',
-                    self.context.current_memory,
-                    conversation_summary
+                    '# Memory Segment:',
+                    memory_segment
                 ])
             },
             {
@@ -53,7 +65,7 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
                 'content': '\n\n'.join([
                     self.context.memory_integration_prompt,
                     '---',
-                    '# Rewritten knowledge base:'
+                    '# New Memory Segment:',
                 ])
             }
         ]
@@ -65,3 +77,15 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
 
         messages = [format_message(msg) for msg in self.context.current_messages]
         return '\n\n'.join(messages)
+
+    def _segment_memory(self, n):
+        paragraphs = self.context.current_memory.split('\n\n')
+        segment_lengths = [0] * n
+        segments = [[] for _ in range(n)]
+
+        for paragraph in paragraphs:
+            min_idx = segment_lengths.index(min(segment_lengths))
+            segment_lengths[min_idx] += len(paragraph)
+            segments[min_idx].append(paragraph)
+
+        return ['\n\n'.join(segment) for segment in segments]

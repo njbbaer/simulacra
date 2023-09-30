@@ -1,25 +1,66 @@
 import asyncio
 from .prompt_executor import PromptExecutor
+from dataclasses import dataclass
+from typing import Union
+
+
+@dataclass
+class Range:
+    min: Union[int, float]
+    max: Union[int, float]
+
+    def contains(self, value):
+        return self.min <= value <= self.max
 
 
 class MemoryIntegrationPromptExecutor(PromptExecutor):
+    CHUNK_SIZE = Range(1500, 3000)
+    COMPRESSION_RATIO = Range(0.70, 0.95)
+    MAX_ATTEMPTS = 5
+
     async def execute(self):
-        segments = self._segment_memory(4)
         tasks = []
+        for chunk in self.context.current_memory_chunks:
+            tasks.append(self._summarize_chunk(chunk))
+        tasks.append(self._fetch_conversation_summary_completion())
+        new_chunks = await asyncio.gather(*tasks)
+        self._merge_chunks(new_chunks)
+        return new_chunks
 
-        for segment in segments:
-            tasks.append(self.llm.fetch_completion(
-                self._build_segment_summarization_messages(segment),
-                model='gpt-3.5-turbo', max_tokens=1000, temperature=0.2
-            ))
+    async def _summarize_chunk(self, chunk, retries=0):
+        if len(chunk) < self.CHUNK_SIZE.min:
+            return chunk
 
-        tasks.append(self.llm.fetch_completion(
+        if retries >= self.MAX_ATTEMPTS:
+            raise Exception(f'Failed to summarize chunk after {retries} attempts.')
+
+        new_chunk = await self._fetch_chunk_summary_completion(chunk)
+        ratio = len(new_chunk) / len(chunk)
+
+        if not self.COMPRESSION_RATIO.contains(ratio):
+            return await self._summarize_chunk(chunk, retries + 1)
+
+        return new_chunk
+
+    def _fetch_conversation_summary_completion(self):
+        return self.llm.fetch_completion(
             self._build_conversation_summarization_messages(),
             model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0.2
-        ))
+        )
 
-        new_segments = await asyncio.gather(*tasks)
-        return '\n\n'.join(new_segments)
+    def _fetch_chunk_summary_completion(self, chunk):
+        return self.llm.fetch_completion(
+            self._build_chunk_summarization_messages(chunk),
+            model='gpt-3.5-turbo', max_tokens=1000, temperature=1
+        )
+
+    def _merge_chunks(self, chunks):
+        i = 0
+        while i < len(chunks) - 1:
+            if len(chunks[i]) + len(chunks[i + 1]) < self.CHUNK_SIZE.max:
+                chunks[i] += "\n\n" + chunks.pop(i + 1)
+            else:
+                i += 1
 
     def _build_conversation_summarization_messages(self):
         return [
@@ -30,24 +71,20 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             {
                 'role': 'user',
                 'content': '\n\n'.join([
-                    '# Memory Context:',
+                    '# Memory context:',
                     self.context.current_memory,
                     '---',
-                    '# Latest Conversation:',
+                    '# Latest conversation:',
                     self._format_conversation_history()
                 ])
             },
             {
-                'role': 'system',
-                'content': '\n\n'.join([
-                    self.context.conversation_summarization_prompt,
-                    '---',
-                    '# Latest Conversation Summary:'
-                ])
+                'role': 'user',
+                'content': self.context.conversation_summarization_prompt,
             }
         ]
 
-    def _build_segment_summarization_messages(self, memory_segment):
+    def _build_chunk_summarization_messages(self, memory_chunk):
         return [
             {
                 'role': 'system',
@@ -55,19 +92,12 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             },
             {
                 'role': 'user',
-                'content': '\n\n'.join([
-                    '# Memory Segment:',
-                    memory_segment
-                ])
+                'content': memory_chunk
             },
             {
-                'role': 'system',
-                'content': '\n\n'.join([
-                    self.context.memory_integration_prompt,
-                    '---',
-                    '# New Memory Segment:',
-                ])
-            }
+                'role': 'user',
+                'content': self.context.memory_integration_prompt
+            },
         ]
 
     def _format_conversation_history(self):
@@ -77,15 +107,3 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
 
         messages = [format_message(msg) for msg in self.context.current_messages]
         return '\n\n'.join(messages)
-
-    def _segment_memory(self, n):
-        paragraphs = self.context.current_memory.split('\n\n')
-        segment_lengths = [0] * n
-        segments = [[] for _ in range(n)]
-
-        for paragraph in paragraphs:
-            min_idx = segment_lengths.index(min(segment_lengths))
-            segment_lengths[min_idx] += len(paragraph)
-            segments[min_idx].append(paragraph)
-
-        return ['\n\n'.join(segment) for segment in segments]

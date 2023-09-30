@@ -20,10 +20,9 @@ class Simulacrum:
 
     async def integrate_memory(self):
         self.context.load()
-        response = await MemoryIntegrationPromptExecutor(self.context).execute()
-        print(response)
-        # self.context.new_conversation(response)
-        # self.context.save()
+        memory_chunks = await MemoryIntegrationPromptExecutor(self.context).execute()
+        self.context.new_conversation(memory_chunks)
+        self.context.save()
 
     def append_memory(self, text):
         self.context.load()

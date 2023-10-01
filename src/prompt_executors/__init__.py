@@ -1,2 +1,2 @@
-from .memory_integration_executor import MemoryIntegrationPromptExecutor
-from .chat_prompt_executor import ChatPromptExecutor
+from .memory_integration_executor import MemoryIntegrationExecutor
+from .chat_prompt_executor import ChatExecutor

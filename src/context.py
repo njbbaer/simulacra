@@ -29,9 +29,9 @@ class Context:
         new_messages = [] if n is None else self.current_messages[:-n]
         self.current_conversation['messages'] = new_messages
 
-    def new_conversation(self, memory):
+    def new_conversation(self, memory_chunks):
         self.data['conversations'].append({
-            'memory': LiteralScalarString(memory),
+            'memory': [LiteralScalarString(x) for x in memory_chunks],
             'messages': [],
         })
 
@@ -48,7 +48,15 @@ class Context:
 
     @property
     def current_memory(self):
+        return '\n\n'.join(self.current_conversation['memory'])
+
+    @property
+    def current_memory_chunks(self):
         return self.current_conversation['memory']
+
+    @property
+    def current_memory_size(self):
+        return len(self.current_memory)
 
     @property
     def chat_prompt(self):

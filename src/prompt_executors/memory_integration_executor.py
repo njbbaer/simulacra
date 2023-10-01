@@ -1,14 +1,72 @@
+import asyncio
 from .prompt_executor import PromptExecutor
+from dataclasses import dataclass
+from typing import Union
 
 
-class MemoryIntegrationPromptExecutor(PromptExecutor):
+@dataclass
+class Range:
+    min: Union[int, float]
+    max: Union[int, float]
+
+    def contains(self, value):
+        return self.min <= value <= self.max
+
+
+class MemoryIntegrationExecutor(PromptExecutor):
+    CHUNK_SIZE = Range(2000, 4000)
+    SUMMARY_SIZE = Range(1000, 2000)
+    COMPRESSION_RATIO = Range(0.80, 0.97)
+    MAX_ATTEMPTS = 10
+
     async def execute(self):
-        messages = self.build_conversation_summarization_messages()
-        conversation_summary = await self.llm.fetch_completion(messages)
-        messages = self._build_integration_messages(conversation_summary)
-        return await self.llm.fetch_completion(messages)
+        tasks = []
+        for chunk in self.context.current_memory_chunks:
+            tasks.append(self._summarize_chunk(chunk))
+        tasks.append(self._fetch_conversation_summary_completion())
+        new_chunks = await asyncio.gather(*tasks)
+        self._merge_chunks(new_chunks)
+        return new_chunks
 
-    def build_conversation_summarization_messages(self):
+    async def _summarize_chunk(self, chunk, retries=0):
+        if len(chunk) < self.CHUNK_SIZE.min:
+            return chunk
+
+        if retries >= self.MAX_ATTEMPTS:
+            raise Exception(f'Failed to summarize chunk after {retries} attempts. Try again!')
+
+        new_chunk = await self._fetch_chunk_summary_completion(chunk)
+        ratio = len(new_chunk) / len(chunk)
+
+        with open('data.csv', 'a') as f:
+            f.write(f'{len(chunk)},{ratio},{retries}\n')
+
+        if not self.COMPRESSION_RATIO.contains(ratio):
+            return await self._summarize_chunk(chunk, retries + 1)
+
+        return new_chunk
+
+    def _fetch_conversation_summary_completion(self):
+        return self.llm.fetch_completion(
+            self._build_conversation_summarization_messages(),
+            model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0.2
+        )
+
+    def _fetch_chunk_summary_completion(self, chunk):
+        return self.llm.fetch_completion(
+            self._build_chunk_summarization_messages(chunk),
+            model='gpt-3.5-turbo', max_tokens=1000, temperature=1
+        )
+
+    def _merge_chunks(self, chunks):
+        i = 0
+        while i < len(chunks) - 1:
+            if len(chunks[i]) + len(chunks[i + 1]) < self.CHUNK_SIZE.max:
+                chunks[i] += "\n\n" + chunks.pop(i + 1)
+            else:
+                i += 1
+
+    def _build_conversation_summarization_messages(self):
         return [
             {
                 'role': 'system',
@@ -17,24 +75,20 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             {
                 'role': 'user',
                 'content': '\n\n'.join([
-                    '# Knowledge base:',
+                    '# Memory context:',
                     self.context.current_memory,
                     '---',
-                    '# Most recent conversation:',
+                    '# Conversation:',
                     self._format_conversation_history()
                 ])
             },
             {
-                'role': 'system',
-                'content': '\n\n'.join([
-                    self.context.conversation_summarization_prompt,
-                    '---',
-                    '# Most recent conversation summary:'
-                ])
+                'role': 'user',
+                'content': self.context.conversation_summarization_prompt,
             }
         ]
 
-    def _build_integration_messages(self, conversation_summary):
+    def _build_chunk_summarization_messages(self, memory_chunk):
         return [
             {
                 'role': 'system',
@@ -42,20 +96,12 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             },
             {
                 'role': 'user',
-                'content': '\n\n'.join([
-                    '# Knowledge base:',
-                    self.context.current_memory,
-                    conversation_summary
-                ])
+                'content': memory_chunk
             },
             {
-                'role': 'system',
-                'content': '\n\n'.join([
-                    self.context.memory_integration_prompt,
-                    '---',
-                    '# Rewritten knowledge base:'
-                ])
-            }
+                'role': 'user',
+                'content': self.context.memory_integration_prompt
+            },
         ]
 
     def _format_conversation_history(self):

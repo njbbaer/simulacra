@@ -2,7 +2,7 @@ import re
 import tiktoken
 
 from src.context import Context
-from src.prompt_executors import ChatPromptExecutor, MemoryIntegrationPromptExecutor
+from src.prompt_executors import ChatExecutor, MemoryIntegrationExecutor
 
 
 class Simulacrum:
@@ -13,17 +13,16 @@ class Simulacrum:
         self.context.load()
         if user_input:
             self.context.add_message('user', user_input)
-        response = await ChatPromptExecutor(self.context).execute()
+        response = await ChatExecutor(self.context).execute()
         self.context.add_message('assistant', response)
         self.context.save()
         return self._extract_speech(response)
 
     async def integrate_memory(self):
         self.context.load()
-        response = await MemoryIntegrationPromptExecutor(self.context).execute()
-        self.context.new_conversation(response)
+        memory_chunks = await MemoryIntegrationExecutor(self.context).execute()
+        self.context.new_conversation(memory_chunks)
         self.context.save()
-        return response
 
     def append_memory(self, text):
         self.context.load()
@@ -46,13 +45,13 @@ class Simulacrum:
 
     def estimate_utilization_percentage(self):
         MAX_TOKENS = 8192
-        ESTIMATED_RESPONSE_TOKENS = 1000
+        ESTIMATED_RESPONSE_TOKENS = 500
         BASE_TOKENS = 3
         BASE_TOKENS_PER_MESSAGE = 4
 
         self.context.load()
-        executor = MemoryIntegrationPromptExecutor(self.context)
-        messages = executor.build_conversation_summarization_messages()
+        executor = ChatExecutor(self.context)
+        messages = executor.build_chat_messages()
         encoding = tiktoken.encoding_for_model("gpt-4")
         num_request_tokens = BASE_TOKENS
         for message in messages:

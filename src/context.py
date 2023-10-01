@@ -55,6 +55,10 @@ class Context:
         return self.current_conversation['memory']
 
     @property
+    def current_memory_size(self):
+        return len(self.current_memory)
+
+    @property
     def chat_prompt(self):
         return self.data['chat_prompt']
 

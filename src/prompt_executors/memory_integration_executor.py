@@ -13,10 +13,11 @@ class Range:
         return self.min <= value <= self.max
 
 
-class MemoryIntegrationPromptExecutor(PromptExecutor):
-    CHUNK_SIZE = Range(1500, 3000)
-    COMPRESSION_RATIO = Range(0.70, 0.95)
-    MAX_ATTEMPTS = 5
+class MemoryIntegrationExecutor(PromptExecutor):
+    CHUNK_SIZE = Range(2000, 4000)
+    SUMMARY_SIZE = Range(1000, 2000)
+    COMPRESSION_RATIO = Range(0.80, 0.97)
+    MAX_ATTEMPTS = 10
 
     async def execute(self):
         tasks = []
@@ -32,10 +33,13 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
             return chunk
 
         if retries >= self.MAX_ATTEMPTS:
-            raise Exception(f'Failed to summarize chunk after {retries} attempts.')
+            raise Exception(f'Failed to summarize chunk after {retries} attempts. Try again!')
 
         new_chunk = await self._fetch_chunk_summary_completion(chunk)
         ratio = len(new_chunk) / len(chunk)
+
+        with open('data.csv', 'a') as f:
+            f.write(f'{len(chunk)},{ratio},{retries}\n')
 
         if not self.COMPRESSION_RATIO.contains(ratio):
             return await self._summarize_chunk(chunk, retries + 1)
@@ -74,7 +78,7 @@ class MemoryIntegrationPromptExecutor(PromptExecutor):
                     '# Memory context:',
                     self.context.current_memory,
                     '---',
-                    '# Latest conversation:',
+                    '# Conversation:',
                     self._format_conversation_history()
                 ])
             },

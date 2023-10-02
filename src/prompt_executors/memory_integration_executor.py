@@ -2,6 +2,7 @@ import asyncio
 from .prompt_executor import PromptExecutor
 from dataclasses import dataclass
 from typing import Union
+from functools import wraps
 
 
 @dataclass
@@ -13,48 +14,61 @@ class Range:
         return self.min <= value <= self.max
 
 
+def retry(max_tries):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            for retries in range(max_tries):
+                kwargs['retries'] = retries
+                result = await func(*args, **kwargs)
+                if result is not None:
+                    return result
+            raise Exception(f'Failed after {max_tries} attempts.')
+        return wrapper
+    return decorator
+
+
 class MemoryIntegrationExecutor(PromptExecutor):
     CHUNK_SIZE = Range(2000, 4000)
-    SUMMARY_SIZE = Range(1000, 2000)
     COMPRESSION_RATIO = Range(0.80, 0.97)
-    MAX_ATTEMPTS = 10
 
     async def execute(self):
-        tasks = []
-        for chunk in self.context.current_memory_chunks:
-            tasks.append(self._summarize_chunk(chunk))
-        tasks.append(self._fetch_conversation_summary_completion())
+        tasks = self._build_tasks()
         new_chunks = await asyncio.gather(*tasks)
         self._merge_chunks(new_chunks)
         return new_chunks
 
-    async def _summarize_chunk(self, chunk, retries=0):
-        if len(chunk) < self.CHUNK_SIZE.min:
-            return chunk
+    def _build_tasks(self):
+        tasks = []
+        for chunk in self.context.current_memory_chunks:
+            if len(chunk) > self.CHUNK_SIZE.min:
+                tasks.append(self._compress_chunk(chunk))
+            else:
+                tasks.append(chunk)
+        tasks.append(self._fetch_conversation_summary_completion())
+        return tasks
 
-        if retries >= self.MAX_ATTEMPTS:
-            raise Exception(f'Failed to summarize chunk after {retries} attempts. Try again!')
-
-        new_chunk = await self._fetch_chunk_summary_completion(chunk)
+    @retry(max_tries=10)
+    async def _compress_chunk(self, chunk, retries=0):
+        new_chunk = await self._fetch_chunk_compression_completion(chunk)
         ratio = len(new_chunk) / len(chunk)
+        await self._log_compression_stats(len(chunk), ratio, retries)
+        if self.COMPRESSION_RATIO.contains(ratio):
+            return new_chunk
 
+    async def _log_compression_stats(self, len_chunk, ratio, retries):
         with open('data.csv', 'a') as f:
-            f.write(f'{len(chunk)},{ratio},{retries}\n')
-
-        if not self.COMPRESSION_RATIO.contains(ratio):
-            return await self._summarize_chunk(chunk, retries + 1)
-
-        return new_chunk
+            f.write(f'{len_chunk},{ratio},{retries}\n')
 
     def _fetch_conversation_summary_completion(self):
         return self.llm.fetch_completion(
             self._build_conversation_summarization_messages(),
-            model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0.2
+            model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0
         )
 
-    def _fetch_chunk_summary_completion(self, chunk):
+    def _fetch_chunk_compression_completion(self, chunk):
         return self.llm.fetch_completion(
-            self._build_chunk_summarization_messages(chunk),
+            self._build_chunk_compression_messages(chunk),
             model='gpt-3.5-turbo', max_tokens=1000, temperature=1
         )
 
@@ -88,7 +102,7 @@ class MemoryIntegrationExecutor(PromptExecutor):
             }
         ]
 
-    def _build_chunk_summarization_messages(self, memory_chunk):
+    def _build_chunk_compression_messages(self, memory_chunk):
         return [
             {
                 'role': 'system',

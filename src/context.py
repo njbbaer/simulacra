@@ -23,7 +23,7 @@ class Context:
         })
 
     def append_memory(self, text):
-        self.current_conversation['memory'] += text
+        self.current_memory_chunks.append(text)
 
     def clear_messages(self, n=None):
         new_messages = [] if n is None else self.current_messages[:-n]
@@ -57,6 +57,10 @@ class Context:
     @property
     def current_memory_size(self):
         return len(self.current_memory)
+
+    @property
+    def current_conversation_size(self):
+        return sum(len(item['content']) for item in self.current_messages)
 
     @property
     def chat_prompt(self):

@@ -23,7 +23,7 @@ class Context:
         })
 
     def append_memory(self, text):
-        self.current_conversation['memory'] += text
+        self.current_memory_chunks.append(text)
 
     def clear_messages(self, n=None):
         new_messages = [] if n is None else self.current_messages[:-n]

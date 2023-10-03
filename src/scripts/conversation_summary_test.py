@@ -2,7 +2,7 @@ import asyncio
 import statistics
 
 from src.context import Context
-from src.prompt_executors import MemoryIntegrationExecutor
+from src.executors import MemoryIntegrationExecutor
 
 
 async def main():

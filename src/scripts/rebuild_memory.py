@@ -1,6 +1,6 @@
 import asyncio
 
-from src.prompt_executors import MemoryIntegrationExecutor
+from src.executors import MemoryIntegrationExecutor
 from src.context import Context
 from src.yaml_config import yaml
 

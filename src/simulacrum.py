@@ -2,7 +2,7 @@ import re
 import tiktoken
 
 from src.context import Context
-from src.prompt_executors import ChatExecutor, MemoryIntegrationExecutor
+from src.executors import ChatExecutor, MemoryIntegrationExecutor
 
 
 class Simulacrum:

@@ -6,4 +6,4 @@ COPY . /app
 RUN pip install pipenv && \
     pipenv install --deploy --ignore-pipfile
 
-CMD ["sh", "-c", "pipenv run python start.py $CONFIG_FILEPATH"]
+CMD ["sh", "-c", "pipenv run app $CONFIG_FILEPATH"]

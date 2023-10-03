@@ -28,5 +28,5 @@ Set your `TELEGRAM_API_TOKEN` and `TELEGRAM_USER_ID` in `example/config.yml`.
 ### Run the application
 
 ```sh
-pipenv run python start.py examples/config.yml
+pipenv run python app.py examples/config.yml
 ```

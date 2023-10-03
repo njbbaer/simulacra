@@ -41,33 +41,33 @@ class MemoryIntegrationExecutor(PromptExecutor):
     def _build_tasks(self):
         tasks = []
         for chunk in self.context.current_memory_chunks:
-            if len(chunk) > self.CHUNK_SIZE.min:
-                tasks.append(self._compress_chunk(chunk))
-            else:
-                tasks.append(chunk)
+            tasks.append(self._compress_chunk(chunk))
         tasks.append(self._fetch_conversation_summary_completion())
         return tasks
 
     @retry(max_tries=10)
     async def _compress_chunk(self, chunk, retries=0):
+        if len(chunk) < self.CHUNK_SIZE.min:
+            return chunk
+
         new_chunk = await self._fetch_chunk_compression_completion(chunk)
         ratio = len(new_chunk) / len(chunk)
-        await self._log_compression_stats(len(chunk), ratio, retries)
+        self._log_compression_stats(len(chunk), ratio, retries)
         if self.COMPRESSION_RATIO.contains(ratio):
             return new_chunk
 
-    async def _log_compression_stats(self, len_chunk, ratio, retries):
+    def _log_compression_stats(self, len_chunk, ratio, retries):
         with open('data.csv', 'a') as f:
             f.write(f'{len_chunk},{ratio},{retries}\n')
 
-    def _fetch_conversation_summary_completion(self):
-        return self.llm.fetch_completion(
+    async def _fetch_conversation_summary_completion(self):
+        return await self.llm.fetch_completion(
             self._build_conversation_summarization_messages(),
             model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0
         )
 
-    def _fetch_chunk_compression_completion(self, chunk):
-        return self.llm.fetch_completion(
+    async def _fetch_chunk_compression_completion(self, chunk):
+        return await self.llm.fetch_completion(
             self._build_chunk_compression_messages(chunk),
             model='gpt-3.5-turbo', max_tokens=1000, temperature=1
         )

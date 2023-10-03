@@ -3,6 +3,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[scripts]
+deploy = "ansible-playbook ansible/deploy.yml -i ansible/inventory.yml"
+
 [packages]
 openai = "*"
 "ruamel.yaml" = "*"

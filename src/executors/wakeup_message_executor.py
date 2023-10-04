@@ -1,7 +1,7 @@
 from .prompt_executor import PromptExecutor
 
 
-class ChatExecutor(PromptExecutor):
+class WakeupMessageExecutor(PromptExecutor):
     async def execute(self):
         messages = self.build_messages()
         return await self.llm.fetch_completion(messages)
@@ -20,6 +20,6 @@ class ChatExecutor(PromptExecutor):
             *self.context.current_messages,
             {
                 'role': 'system',
-                'content': self.context.reinforcement_chat_prompt
+                'content': self.context.wakeup_message_prompt
             }
         ]

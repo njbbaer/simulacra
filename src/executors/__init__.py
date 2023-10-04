@@ -1,2 +1,3 @@
 from .memory_integration_executor import MemoryIntegrationExecutor
 from .chat_executor import ChatExecutor
+from .wakeup_message_executor import WakeupMessageExecutor

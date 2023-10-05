@@ -1,7 +1,11 @@
 import toml
+import os
 import argparse
 import multiprocessing
+import hupper
 from src.telegram import TelegramBot
+
+IS_DEVELOPMENT = os.environ.get('ENVIRONMENT') == 'development'
 
 
 def run_bot(bot_config):
@@ -18,9 +22,19 @@ def get_args():
     return parser.parse_args().config_file
 
 
-if __name__ == "__main__":
+def main():
     config_file = get_args()
     configs = toml.load(open(config_file, 'r'))
+    bot_configs = configs.get('simulacra', [])
 
-    for bot_config in configs.get('simulacra', []):
-        multiprocessing.Process(target=run_bot, args=(bot_config,)).start()
+    if IS_DEVELOPMENT:
+        run_bot(bot_configs[0])
+    else:
+        for bot_config in bot_configs:
+            multiprocessing.Process(target=run_bot, args=(bot_config,)).start()
+
+
+if __name__ == "__main__":
+    if IS_DEVELOPMENT:
+        hupper.start_reloader('app.main')
+    main()

@@ -30,3 +30,15 @@ Set your `TELEGRAM_API_TOKEN` and `TELEGRAM_USER_ID` in `example/config.yml`.
 ```sh
 pipenv run python app.py examples/config.yml
 ```
+
+## Development mode
+
+Enable code reloading with development mode.
+
+Create a `.env` file or add the following to your environment:
+
+```sh
+export ENVIRONMENT=development
+```
+
+Note: development mode will only run the first bot in your config file.

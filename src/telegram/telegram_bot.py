@@ -1,6 +1,7 @@
 import textwrap
 import re
 import logging
+import signal
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 from src.simulacrum import Simulacrum

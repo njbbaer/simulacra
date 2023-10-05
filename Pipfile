@@ -18,6 +18,7 @@ asyncio = "*"
 tiktoken = "*"
 toml = "*"
 pytz = "*"
+hupper = "*"
 
 [dev-packages]
 pycodestyle = "*"

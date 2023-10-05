@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from src.llm import OpenAI
 
@@ -8,6 +8,6 @@ class PromptExecutor(ABC):
         self.context = context
         self.llm = OpenAI()
 
+    @abstractmethod
     async def execute(self):
-        messages = self.build_messages()
-        return await self.llm.fetch_completion(messages)
+        pass

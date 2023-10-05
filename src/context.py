@@ -77,11 +77,3 @@ class Context:
     @property
     def memory_integration_prompt(self):
         return self.data['memory_integration_prompt']
-
-    @property
-    def wakeup_message_prompt(self):
-        return self.data['wakeup_message_prompt']
-
-    @property
-    def chat_id(self):
-        return self.data['chat_id']

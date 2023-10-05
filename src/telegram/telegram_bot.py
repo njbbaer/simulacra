@@ -1,9 +1,6 @@
 import textwrap
 import re
 import logging
-import multiprocessing
-import asyncio
-import datetime
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 from src.simulacrum import Simulacrum
@@ -35,22 +32,7 @@ class TelegramBot:
         self.app.add_error_handler(self.error_handler)
 
     def run(self):
-        multiprocessing.Process(target=self.app.run_polling).start()
-        if self.sim.context.get_name('assistant') == 'Pearl':
-            multiprocessing.Process(target=lambda: asyncio.run(self._wakeup_scheduler())).start()
-
-    async def _wakeup_scheduler(self):
-        while True:
-            now = datetime.datetime.now()
-            target_time = datetime.datetime(now.year, now.month, now.day, 8, 0)
-
-            if now >= target_time:
-                target_time += datetime.timedelta(days=1)
-
-            sleep_duration = (target_time - now).total_seconds()
-            await asyncio.sleep(sleep_duration)
-
-            await self.send_wakeup_message()
+        self.app.run_polling()
 
     @message_handler
     async def chat_message_handler(self, ctx):
@@ -83,7 +65,7 @@ class TelegramBot:
     @message_handler
     async def stats_command_handler(self, ctx):
         percentage = round(self.sim.estimate_utilization_percentage())
-        await ctx.send_message(f'`{percentage}% of max conversation size {ctx.chat_id}`')
+        await ctx.send_message(f'`{percentage}% of max conversation size`')
 
     @message_handler
     async def clear_command_handler(self, ctx):
@@ -147,7 +129,3 @@ class TelegramBot:
             )
             text = f'`{shape} {percentage}% of max conversation size. Run /new {adverb}.`'
             await ctx.send_message(text)
-
-    async def send_wakeup_message(self):
-        response = await self.sim.send_wakeup_message()
-        await self.app.bot.send_message(self.sim.context.chat_id, response, parse_mode='Markdown')

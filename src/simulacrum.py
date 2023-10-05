@@ -2,7 +2,7 @@ import re
 import tiktoken
 
 from src.context import Context
-from src.executors import ChatExecutor, MemoryIntegrationExecutor, WakeupMessageExecutor
+from src.executors import ChatExecutor, MemoryIntegrationExecutor
 
 
 class Simulacrum:
@@ -18,13 +18,6 @@ class Simulacrum:
         self.context.save()
         return self._extract_speech(response)
 
-    async def send_wakeup_message(self):
-        self.context.load()
-        response = await WakeupMessageExecutor(self.context).execute()
-        self.context.add_message('assistant', response)
-        self.context.save()
-        return self._extract_speech(response)
-    
     async def integrate_memory(self):
         self.context.load()
         memory_chunks = await MemoryIntegrationExecutor(self.context).execute()
@@ -58,7 +51,7 @@ class Simulacrum:
 
         self.context.load()
         executor = ChatExecutor(self.context)
-        messages = executor.build_messages()
+        messages = executor.build_chat_messages()
         encoding = tiktoken.encoding_for_model("gpt-4")
         num_request_tokens = BASE_TOKENS
         for message in messages:

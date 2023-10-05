@@ -3,10 +3,10 @@ from .prompt_executor import PromptExecutor
 
 class ChatExecutor(PromptExecutor):
     async def execute(self):
-        messages = self.build_messages()
+        messages = self.build_chat_messages()
         return await self.llm.fetch_completion(messages)
 
-    def build_messages(self):
+    def build_chat_messages(self):
         return [
             {
                 'role': 'system',

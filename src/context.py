@@ -1,5 +1,6 @@
-from src.yaml_config import yaml
 from ruamel.yaml.scalarstring import LiteralScalarString
+
+from .yaml_config import yaml
 
 
 class Context:

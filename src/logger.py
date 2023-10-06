@@ -2,7 +2,7 @@ import io
 from datetime import datetime
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from src.yaml_config import yaml
+from .yaml_config import yaml
 
 
 class Logger:

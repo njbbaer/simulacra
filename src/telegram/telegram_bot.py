@@ -3,9 +3,9 @@ import re
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
-from src.simulacrum import Simulacrum
-from src.telegram.filters import StaleMessageFilter
-from src.telegram.message_handler import message_handler
+from ..simulacrum import Simulacrum
+from ..telegram.filters import StaleMessageFilter
+from ..telegram.message_handler import message_handler
 
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)

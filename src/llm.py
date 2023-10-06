@@ -1,6 +1,6 @@
 import openai
 
-from src.logger import Logger
+from .logger import Logger
 
 
 class OpenAI:

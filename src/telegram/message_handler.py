@@ -1,6 +1,6 @@
 import asyncio
 
-from src.telegram.telegram_context import TelegramContext
+from .telegram_context import TelegramContext
 
 
 async def _loop_send_typing_action(ctx):

@@ -3,7 +3,8 @@ import os
 import argparse
 import multiprocessing
 import hupper
-from src.telegram import TelegramBot
+
+from src import TelegramBot
 
 IS_DEVELOPMENT = os.environ.get("ENVIRONMENT") == "development"
 

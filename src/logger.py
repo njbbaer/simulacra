@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from .yaml_config import yaml

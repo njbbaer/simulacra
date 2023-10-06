@@ -1,8 +1,9 @@
 import asyncio
-from .prompt_executor import PromptExecutor
 from dataclasses import dataclass
-from typing import Union
 from functools import wraps
+from typing import Union
+
+from .prompt_executor import PromptExecutor
 
 
 @dataclass

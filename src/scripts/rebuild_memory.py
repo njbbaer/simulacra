@@ -1,7 +1,7 @@
 import asyncio
 
-from src.executors import MemoryIntegrationExecutor
 from src.context import Context
+from src.executors import MemoryIntegrationExecutor
 from src.yaml_config import yaml
 
 ORIGINAL_FILEPATH = "sync/contexts/test.yml"

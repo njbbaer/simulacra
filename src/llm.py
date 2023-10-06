@@ -6,8 +6,8 @@ from .logger import Logger
 class OpenAI:
     MODEL = "gpt-4"
 
-    def __init__(self, parameters={}):
-        self.parameters = parameters
+    def __init__(self, parameters):
+        self.parameters = parameters or {}
         self.logger = Logger("log.yml")
 
     async def fetch_completion(self, messages, **kwargs):
@@ -19,10 +19,10 @@ class OpenAI:
         self.logger.log(parameters, messages, response_content)
         return response_content
 
-    def _get_merged_parameters(self, overrides={}):
+    def _get_merged_parameters(self, overrides):
         return {
             "model": self.MODEL,
             "stop": "---",
             **self.parameters,
-            **overrides,
+            **(overrides or {}),
         }

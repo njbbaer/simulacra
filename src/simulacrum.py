@@ -38,7 +38,7 @@ class Simulacrum:
     def undo_last_user_message(self):
         self.context.load()
         num_messages = len(self.context.current_messages)
-        for i in range(num_messages):
+        for _ in range(num_messages):
             message = self.context.current_messages.pop()
             if message["role"] == "user":
                 break

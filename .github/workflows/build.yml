@@ -40,10 +40,10 @@ jobs:
     - name: Install dependencies
       run: pipenv install --dev
 
-    - name: Run black
+    - name: Run Black
       run: pipenv run black --check .
 
-    - name: Run flake8
+    - name: Run Flake8
       run: pipenv run flake8
     
     - name: Run isort

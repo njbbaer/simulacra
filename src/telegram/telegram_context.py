@@ -13,7 +13,7 @@ class TelegramContext:
         return self.update.message.text
 
     async def send_message(self, text):
-        await self.app.bot.send_message(self.chat_id, text, parse_mode='Markdown')
+        await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")
 
     async def send_typing_action(self):
-        await self.app.bot.send_chat_action(chat_id=self.chat_id, action='typing')
+        await self.app.bot.send_chat_action(chat_id=self.chat_id, action="typing")

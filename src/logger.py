@@ -11,15 +11,18 @@ class Logger:
 
     def log(self, parameters, messages, response):
         buffer = io.StringIO()
-        yaml.dump([
-            {
-                'timestamp': self._current_timestamp(),
-                'parameters': parameters,
-                'messages': self._format_messages(messages),
-                'response': LiteralScalarString(response),
-            }
-        ], buffer)
-        with open(self.filepath, 'a') as file:
+        yaml.dump(
+            [
+                {
+                    "timestamp": self._current_timestamp(),
+                    "parameters": parameters,
+                    "messages": self._format_messages(messages),
+                    "response": LiteralScalarString(response),
+                }
+            ],
+            buffer,
+        )
+        with open(self.filepath, "a") as file:
             file.write(buffer.getvalue())
 
     @staticmethod
@@ -28,4 +31,6 @@ class Logger:
 
     @staticmethod
     def _format_messages(messages):
-        return [{**msg, 'content': LiteralScalarString(msg['content'])} for msg in messages]
+        return [
+            {**msg, "content": LiteralScalarString(msg["content"])} for msg in messages
+        ]

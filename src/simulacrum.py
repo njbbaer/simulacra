@@ -12,9 +12,9 @@ class Simulacrum:
     async def chat(self, user_input=None):
         self.context.load()
         if user_input:
-            self.context.add_message('user', user_input)
+            self.context.add_message("user", user_input)
         response = await ChatExecutor(self.context).execute()
-        self.context.add_message('assistant', response)
+        self.context.add_message("assistant", response)
         self.context.save()
         return self._extract_speech(response)
 
@@ -26,7 +26,7 @@ class Simulacrum:
 
     def append_memory(self, text):
         self.context.load()
-        self.context.append_memory('\n\n' + text)
+        self.context.append_memory("\n\n" + text)
         self.context.save()
 
     def clear_messages(self, n=None):
@@ -39,7 +39,7 @@ class Simulacrum:
         num_messages = len(self.context.current_messages)
         for i in range(num_messages):
             message = self.context.current_messages.pop()
-            if message['role'] == 'user':
+            if message["role"] == "user":
                 break
         self.context.save()
 
@@ -55,7 +55,9 @@ class Simulacrum:
         encoding = tiktoken.encoding_for_model("gpt-4")
         num_request_tokens = BASE_TOKENS
         for message in messages:
-            num_request_tokens += len(encoding.encode(message['content'])) + BASE_TOKENS_PER_MESSAGE
+            num_request_tokens += (
+                len(encoding.encode(message["content"])) + BASE_TOKENS_PER_MESSAGE
+            )
         return num_request_tokens / (MAX_TOKENS - ESTIMATED_RESPONSE_TOKENS) * 100
 
     def has_messages(self):
@@ -63,5 +65,7 @@ class Simulacrum:
         return len(self.context.current_messages) > 0
 
     def _extract_speech(self, response):
-        match = re.search(r'<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>', response, re.DOTALL)
+        match = re.search(
+            r"<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>", response, re.DOTALL
+        )
         return match.group(1) if match else response

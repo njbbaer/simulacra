@@ -9,17 +9,16 @@ class ChatExecutor(PromptExecutor):
     def build_chat_messages(self):
         return [
             {
-                'role': 'system',
-                'content': '\n\n'.join([
-                    self.context.chat_prompt,
-                    '---',
-                    f"{self.context.get_name('assistant')}'s Memory Context:",
-                    self.context.current_memory
-                ])
+                "role": "system",
+                "content": "\n\n".join(
+                    [
+                        self.context.chat_prompt,
+                        "---",
+                        f"{self.context.get_name('assistant')}'s Memory Context:",
+                        self.context.current_memory,
+                    ]
+                ),
             },
             *self.context.current_messages,
-            {
-                'role': 'system',
-                'content': self.context.reinforcement_chat_prompt
-            }
+            {"role": "system", "content": self.context.reinforcement_chat_prompt},
         ]

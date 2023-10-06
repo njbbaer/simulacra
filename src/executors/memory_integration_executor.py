@@ -19,12 +19,14 @@ def retry(max_tries):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             for retries in range(max_tries):
-                kwargs['retries'] = retries
+                kwargs["retries"] = retries
                 result = await func(*args, **kwargs)
                 if result is not None:
                     return result
-            raise Exception(f'Failed after {max_tries} attempts.')
+            raise Exception(f"Failed after {max_tries} attempts.")
+
         return wrapper
+
     return decorator
 
 
@@ -57,19 +59,23 @@ class MemoryIntegrationExecutor(PromptExecutor):
             return new_chunk
 
     def _log_compression_stats(self, len_chunk, ratio, retries):
-        with open('data.csv', 'a') as f:
-            f.write(f'{len_chunk},{ratio},{retries}\n')
+        with open("data.csv", "a") as f:
+            f.write(f"{len_chunk},{ratio},{retries}\n")
 
     async def _fetch_conversation_summary_completion(self):
         return await self.llm.fetch_completion(
             self._build_conversation_summarization_messages(),
-            model='gpt-3.5-turbo-16k', max_tokens=1000, temperature=0
+            model="gpt-3.5-turbo-16k",
+            max_tokens=1000,
+            temperature=0,
         )
 
     async def _fetch_chunk_compression_completion(self, chunk):
         return await self.llm.fetch_completion(
             self._build_chunk_compression_messages(chunk),
-            model='gpt-3.5-turbo', max_tokens=1000, temperature=1
+            model="gpt-3.5-turbo",
+            max_tokens=1000,
+            temperature=1,
         )
 
     def _merge_chunks(self, chunks):
@@ -83,45 +89,38 @@ class MemoryIntegrationExecutor(PromptExecutor):
     def _build_conversation_summarization_messages(self):
         return [
             {
-                'role': 'system',
-                'content': self.context.conversation_summarization_prompt
+                "role": "system",
+                "content": self.context.conversation_summarization_prompt,
             },
             {
-                'role': 'user',
-                'content': '\n\n'.join([
-                    '# Memory context:',
-                    self.context.current_memory,
-                    '---',
-                    '# Conversation:',
-                    self._format_conversation_history()
-                ])
+                "role": "user",
+                "content": "\n\n".join(
+                    [
+                        "# Memory context:",
+                        self.context.current_memory,
+                        "---",
+                        "# Conversation:",
+                        self._format_conversation_history(),
+                    ]
+                ),
             },
             {
-                'role': 'user',
-                'content': self.context.conversation_summarization_prompt,
-            }
+                "role": "user",
+                "content": self.context.conversation_summarization_prompt,
+            },
         ]
 
     def _build_chunk_compression_messages(self, memory_chunk):
         return [
-            {
-                'role': 'system',
-                'content': self.context.memory_integration_prompt
-            },
-            {
-                'role': 'user',
-                'content': memory_chunk
-            },
-            {
-                'role': 'user',
-                'content': self.context.memory_integration_prompt
-            },
+            {"role": "system", "content": self.context.memory_integration_prompt},
+            {"role": "user", "content": memory_chunk},
+            {"role": "user", "content": self.context.memory_integration_prompt},
         ]
 
     def _format_conversation_history(self):
         def format_message(msg):
-            name = self.context.get_name(msg['role'])
+            name = self.context.get_name(msg["role"])
             return f'{name}:\n\n{msg["content"]}'
 
         messages = [format_message(msg) for msg in self.context.current_messages]
-        return '\n\n'.join(messages)
+        return "\n\n".join(messages)

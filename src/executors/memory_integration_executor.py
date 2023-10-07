@@ -64,19 +64,15 @@ class MemoryIntegrationExecutor(PromptExecutor):
             f.write(f"{len_chunk},{ratio},{retries}\n")
 
     async def _fetch_conversation_summary_completion(self):
-        return await self.llm.fetch_completion(
+        return await self._fetch_completion(
             self._build_conversation_summarization_messages(),
-            model="gpt-3.5-turbo-16k",
-            max_tokens=1000,
-            temperature=0,
+            {"model": "gpt-3.5-turbo-16k", "max_tokens": 1000, "temperature": 0},
         )
 
     async def _fetch_chunk_compression_completion(self, chunk):
-        return await self.llm.fetch_completion(
+        return await self._fetch_completion(
             self._build_chunk_compression_messages(chunk),
-            model="gpt-3.5-turbo",
-            max_tokens=1000,
-            temperature=1,
+            {"model": "gpt-3.5-turbo", "max_tokens": 1000, "temperature": 1},
         )
 
     def _merge_chunks(self, chunks):

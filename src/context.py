@@ -39,6 +39,9 @@ class Context:
     def get_name(self, role):
         return self.data["names"][role]
 
+    def add_cost(self, cost):
+        self.data["total_cost"] = self.data.get("total_cost", 0) + cost
+
     @property
     def current_conversation(self):
         return self.data["conversations"][-1]

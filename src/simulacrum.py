@@ -14,15 +14,15 @@ class Simulacrum:
         self.context.load()
         if user_input:
             self.context.add_message("user", user_input)
-        response = await ChatExecutor(self.context).execute()
-        self.context.add_message("assistant", response)
+        content = await ChatExecutor(self.context).execute()
+        self.context.add_message("assistant", content)
         self.context.save()
-        return self._extract_speech(response)
+        return self._extract_speech(content)
 
     async def integrate_memory(self):
         self.context.load()
-        memory_chunks = await MemoryIntegrationExecutor(self.context).execute()
-        self.context.new_conversation(memory_chunks)
+        content = await MemoryIntegrationExecutor(self.context).execute()
+        self.context.new_conversation(content)
         self.context.save()
 
     def append_memory(self, text):

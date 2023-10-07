@@ -3,8 +3,7 @@ from .prompt_executor import PromptExecutor
 
 class ChatExecutor(PromptExecutor):
     async def execute(self):
-        messages = self.build_chat_messages()
-        return await self.llm.fetch_completion(messages)
+        return await self._fetch_completion(self.build_chat_messages())
 
     def build_chat_messages(self):
         return [

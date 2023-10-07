@@ -44,6 +44,10 @@ class Context:
         return self.data["conversations"][-1]
 
     @property
+    def prompts(self):
+        return self.data["prompts"]
+
+    @property
     def current_messages(self):
         return self.current_conversation["messages"]
 
@@ -65,16 +69,16 @@ class Context:
 
     @property
     def chat_prompt(self):
-        return self.data["chat_prompt"]
+        return self.prompts["chat_prompt"]
 
     @property
     def reinforcement_chat_prompt(self):
-        return self.data["reinforcement_chat_prompt"]
+        return self.prompts["reinforcement_chat_prompt"]
 
     @property
     def conversation_summarization_prompt(self):
-        return self.data["conversation_summarization_prompt"]
+        return self.prompts["conversation_summarization_prompt"]
 
     @property
     def memory_integration_prompt(self):
-        return self.data["memory_integration_prompt"]
+        return self.prompts["memory_integration_prompt"]

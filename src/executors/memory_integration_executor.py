@@ -33,7 +33,7 @@ def retry(max_tries):
 
 class MemoryIntegrationExecutor(Executor):
     CHUNK_SIZE = Range(2000, 4000)
-    COMPRESSION_RATIO = Range(0.80, 0.97)
+    COMPRESSION_RATIO = Range(0.80, 0.95)
 
     async def execute(self):
         tasks = self._build_tasks()
@@ -72,7 +72,7 @@ class MemoryIntegrationExecutor(Executor):
     async def _fetch_chunk_compression_completion(self, chunk):
         return await self._generate_legacy_completion(
             self._build_chunk_compression_prompt(chunk),
-            {"model": "gpt-3.5-turbo-instruct", "max_tokens": 1000, "temperature": 1},
+            {"model": "gpt-3.5-turbo-instruct", "max_tokens": 1000, "temperature": 0.5},
         )
 
     def _merge_chunks(self, chunks):

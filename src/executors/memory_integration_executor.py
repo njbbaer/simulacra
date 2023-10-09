@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Union
 
-from .prompt_executor import PromptExecutor
+from .executor import Executor
 
 
 @dataclass
@@ -31,7 +31,7 @@ def retry(max_tries):
     return decorator
 
 
-class MemoryIntegrationExecutor(PromptExecutor):
+class MemoryIntegrationExecutor(Executor):
     CHUNK_SIZE = Range(2000, 4000)
     COMPRESSION_RATIO = Range(0.80, 0.97)
 
@@ -64,15 +64,15 @@ class MemoryIntegrationExecutor(PromptExecutor):
             f.write(f"{len_chunk},{ratio},{retries}\n")
 
     async def _fetch_conversation_summary_completion(self):
-        return await self._fetch_completion(
+        return await self._generate_chat_completion(
             self._build_conversation_summarization_messages(),
             {"model": "gpt-3.5-turbo-16k", "max_tokens": 1000, "temperature": 0},
         )
 
     async def _fetch_chunk_compression_completion(self, chunk):
-        return await self._fetch_completion(
-            self._build_chunk_compression_messages(chunk),
-            {"model": "gpt-3.5-turbo", "max_tokens": 1000, "temperature": 1},
+        return await self._generate_legacy_completion(
+            self._build_chunk_compression_prompt(chunk),
+            {"model": "gpt-3.5-turbo-instruct", "max_tokens": 1000, "temperature": 1},
         )
 
     def _merge_chunks(self, chunks):
@@ -107,12 +107,10 @@ class MemoryIntegrationExecutor(PromptExecutor):
             },
         ]
 
-    def _build_chunk_compression_messages(self, memory_chunk):
-        return [
-            {"role": "system", "content": self.context.memory_integration_prompt},
-            {"role": "user", "content": memory_chunk},
-            {"role": "user", "content": self.context.memory_integration_prompt},
-        ]
+    def _build_chunk_compression_prompt(self, memory_chunk):
+        return "{}\n\n---\n\n{}".format(
+            memory_chunk, self.context.memory_integration_prompt
+        )
 
     def _format_conversation_history(self):
         def format_message(msg):

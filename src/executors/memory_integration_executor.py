@@ -1,6 +1,5 @@
 import asyncio
 from dataclasses import dataclass
-from functools import wraps
 from typing import Union
 
 from .executor import Executor
@@ -15,25 +14,20 @@ class Range:
         return self.min <= value <= self.max
 
 
-def retry(max_tries):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            for retries in range(max_tries):
-                kwargs["retries"] = retries
-                result = await func(*args, **kwargs)
-                if result is not None:
-                    return result
-            raise Exception(f"Failed after {max_tries} attempts.")
-
-        return wrapper
-
-    return decorator
-
-
 class MemoryIntegrationExecutor(Executor):
     CHUNK_SIZE = Range(2000, 4000)
-    COMPRESSION_RATIO = Range(0.80, 0.95)
+    COMPRESSION_RATIO = Range(0.70, 0.95)
+    COMPRESSION_BIAS_TEXT = [
+        "much longer than",
+        "longer than",
+        "slightly longer than",
+        "very slightly longer than",
+        "the same length as",
+        "very slightly shorter than",
+        "slightly shorter than",
+        "shorter than",
+        "much shorter than",
+    ]
 
     async def execute(self):
         tasks = self._build_tasks()
@@ -44,24 +38,31 @@ class MemoryIntegrationExecutor(Executor):
     def _build_tasks(self):
         tasks = []
         for chunk in self.context.current_memory_chunks:
-            tasks.append(self._compress_chunk(chunk))
+            tasks.append(self._compress_chunk(chunk, 20))
         tasks.append(self._fetch_conversation_summary_completion())
         return tasks
 
-    @retry(max_tries=10)
-    async def _compress_chunk(self, chunk, retries=0):
+    async def _compress_chunk(self, chunk, tries, bias=0):
         if len(chunk) < self.CHUNK_SIZE.min:
             return chunk
 
-        new_chunk = await self._fetch_chunk_compression_completion(chunk)
-        ratio = len(new_chunk) / len(chunk)
-        self._log_compression_stats(len(chunk), ratio, retries)
-        if self.COMPRESSION_RATIO.contains(ratio):
-            return new_chunk
+        if tries <= 0:
+            raise Exception("Failed after max attempts.")
 
-    def _log_compression_stats(self, len_chunk, ratio, retries):
+        new_chunk = await self._fetch_chunk_compression_completion(chunk, bias)
+        ratio = len(new_chunk) / len(chunk)
+        self._log_compression_stats(len(chunk), ratio, tries, bias)
+
+        if ratio > self.COMPRESSION_RATIO.max:
+            return await self._compress_chunk(chunk, tries - 1, min(bias + 1, 4))
+        elif ratio < self.COMPRESSION_RATIO.min:
+            return await self._compress_chunk(chunk, tries - 1, max(bias - 1, -4))
+
+        return new_chunk
+
+    def _log_compression_stats(self, len_chunk, ratio, retries, bias):
         with open("data.csv", "a") as f:
-            f.write(f"{len_chunk},{ratio},{retries}\n")
+            f.write(f"{len_chunk},{ratio},{retries},{bias}\n")
 
     async def _fetch_conversation_summary_completion(self):
         return await self._generate_chat_completion(
@@ -69,10 +70,10 @@ class MemoryIntegrationExecutor(Executor):
             {"model": "gpt-3.5-turbo-16k", "max_tokens": 1000, "temperature": 0},
         )
 
-    async def _fetch_chunk_compression_completion(self, chunk):
+    async def _fetch_chunk_compression_completion(self, chunk, bias):
         return await self._generate_legacy_completion(
-            self._build_chunk_compression_prompt(chunk),
-            {"model": "gpt-3.5-turbo-instruct", "max_tokens": 1000, "temperature": 0.5},
+            self._build_chunk_compression_prompt(chunk, bias),
+            {"model": "gpt-3.5-turbo-instruct", "max_tokens": 2000, "temperature": 1},
         )
 
     def _merge_chunks(self, chunks):
@@ -107,9 +108,13 @@ class MemoryIntegrationExecutor(Executor):
             },
         ]
 
-    def _build_chunk_compression_prompt(self, memory_chunk):
-        return "{}\n\n---\n\n{}".format(
-            memory_chunk, self.context.memory_integration_prompt
+    def _build_chunk_compression_prompt(self, memory_chunk, bias):
+        bias_text = self.COMPRESSION_BIAS_TEXT[bias + 4]
+        prompt = self.context.memory_integration_prompt.replace(
+            "{BIAS_TEXT}", bias_text
+        )
+        return "{}\n\n---\n\n{}\n\n---\n\n# Full-length rewritten document:".format(
+            memory_chunk, prompt
         )
 
     def _format_conversation_history(self):

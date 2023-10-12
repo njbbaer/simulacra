@@ -46,7 +46,7 @@ class Simulacrum:
 
     def estimate_utilization_percentage(self):
         MAX_TOKENS = 8192
-        ESTIMATED_RESPONSE_TOKENS = 500
+        RESPONSE_TOKENS = 500
         BASE_TOKENS = 3
         BASE_TOKENS_PER_MESSAGE = 4
 
@@ -59,7 +59,7 @@ class Simulacrum:
             num_request_tokens += (
                 len(encoding.encode(message["content"])) + BASE_TOKENS_PER_MESSAGE
             )
-        return num_request_tokens / (MAX_TOKENS - ESTIMATED_RESPONSE_TOKENS) * 100
+        return num_request_tokens / (MAX_TOKENS - RESPONSE_TOKENS) * 100
 
     def has_messages(self):
         self.context.load()

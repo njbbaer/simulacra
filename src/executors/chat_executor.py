@@ -1,9 +1,11 @@
-from .prompt_executor import PromptExecutor
+from .executor import Executor
 
 
-class ChatExecutor(PromptExecutor):
+class ChatExecutor(Executor):
     async def execute(self):
-        return await self._fetch_completion(self.build_chat_messages())
+        return await self._generate_chat_completion(
+            self.build_chat_messages(), {"model": "gpt-4"}
+        )
 
     def build_chat_messages(self):
         return [

@@ -1,4 +1,5 @@
 import asyncio
+import math
 from dataclasses import dataclass
 from typing import Union
 
@@ -38,25 +39,29 @@ class MemoryIntegrationExecutor(Executor):
     def _build_tasks(self):
         tasks = []
         for chunk in self.context.current_memory_chunks:
-            tasks.append(self._compress_chunk(chunk, 20))
+            tasks.append(self._compress_chunk(chunk, retries=10))
         tasks.append(self._fetch_conversation_summary_completion())
         return tasks
 
-    async def _compress_chunk(self, chunk, tries, bias=0):
+    async def _compress_chunk(self, chunk, retries, bias=0):
         if len(chunk) < self.CHUNK_SIZE.min:
             return chunk
 
-        if tries <= 0:
+        if retries <= 0:
             raise Exception("Failed after max attempts.")
 
         new_chunk = await self._fetch_chunk_compression_completion(chunk, bias)
         ratio = len(new_chunk) / len(chunk)
-        self._log_compression_stats(len(chunk), ratio, tries, bias)
+        self._log_compression_stats(len(chunk), ratio, retries, bias)
 
         if ratio > self.COMPRESSION_RATIO.max:
-            return await self._compress_chunk(chunk, tries - 1, min(bias + 1, 4))
+            return await self._compress_chunk(
+                chunk, retries - 1, self._increment_bias(bias)
+            )
         elif ratio < self.COMPRESSION_RATIO.min:
-            return await self._compress_chunk(chunk, tries - 1, max(bias - 1, -4))
+            return await self._compress_chunk(
+                chunk, retries - 1, self._decrement_bias(bias)
+            )
 
         return new_chunk
 
@@ -109,7 +114,7 @@ class MemoryIntegrationExecutor(Executor):
         ]
 
     def _build_chunk_compression_prompt(self, memory_chunk, bias):
-        bias_text = self.COMPRESSION_BIAS_TEXT[bias + 4]
+        bias_text = self.COMPRESSION_BIAS_TEXT[bias + self._bias_offset]
         prompt = self.context.memory_integration_prompt.replace(
             "{BIAS_TEXT}", bias_text
         )
@@ -124,3 +129,13 @@ class MemoryIntegrationExecutor(Executor):
 
         messages = [format_message(msg) for msg in self.context.current_messages]
         return "\n\n".join(messages)
+
+    def _increment_bias(self, bias):
+        return min(bias + 1, self._bias_offset)
+
+    def _decrement_bias(self, bias):
+        return max(bias - 1, -self._bias_offset)
+
+    @property
+    def _bias_offset(self):
+        return math.floor(len(self.COMPRESSION_BIAS_TEXT) / 2)

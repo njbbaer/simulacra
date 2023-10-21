@@ -126,7 +126,9 @@ class TelegramBot:
         pass
 
     async def _chat(self, ctx, user_message):
-        response = await self.sim.chat(user_message)
+        response, action = await self.sim.chat(user_message)
+        if action:
+            response = f"{response}\n\n_{action}_"
         await ctx.send_message(response)
         await self._warn_max_size(ctx)
 

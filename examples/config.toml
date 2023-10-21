@@ -1,0 +1,4 @@
+[[simulacra]]
+context_filepath = "example/context.yml"
+telegram_token = "TELEGRAM_API_TOKEN"
+authorized_users = [ "TELEGRAM_USERNAME" ] # [ "@username", ... ]

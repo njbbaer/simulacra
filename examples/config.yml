@@ -1,3 +1,0 @@
-- context_file: example/context.yml
-  api_token: TELEGRAM_API_TOKEN
-  user_ids: [ TELEGRAM_USER_ID ]

@@ -17,7 +17,9 @@ class Simulacrum:
         content = await ChatExecutor(self.context).execute()
         self.context.add_message("assistant", content)
         self.context.save()
-        return self._extract_speech(content)
+        speech = self._extract_speech(content)
+        action = self._extract_action(content)
+        return speech, action
 
     async def integrate_memory(self):
         self.context.load()
@@ -70,3 +72,7 @@ class Simulacrum:
             r"<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>", response, re.DOTALL
         )
         return match.group(1) if match else response
+
+    def _extract_action(self, response):
+        match = re.search(r"<(?:ACT)>(.*?)</(?:ACT)>", response, re.DOTALL)
+        return match.group(1) if match else None

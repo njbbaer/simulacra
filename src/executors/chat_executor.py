@@ -15,7 +15,7 @@ class ChatExecutor(Executor):
                     [
                         self.context.chat_prompt,
                         "---",
-                        f"{self.context.get_name('assistant')}'s Memory Context:",
+                        f"{self.context.get_name('assistant')}'s Memory:",
                         self.context.current_memory,
                     ]
                 ),

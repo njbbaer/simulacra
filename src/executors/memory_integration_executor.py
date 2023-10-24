@@ -5,6 +5,34 @@ from typing import Union
 
 from .executor import Executor
 
+DEFAULT_CONVERSATION_SUMMARIZATION_PROMPT = """\
+Create a comprehensive and information-dense summary of the latest conversation. Describe important events, facts, and the character's emotional reasoning.
+
+Carefully follow these guidelines:
+- Include all important information from the conversation.
+- Report the conversation dispassionately without editorializing.
+- Longer and more important conversations should have longer summaries.
+- Do not describe the summary as the "latest" conversation.
+- Use the past memory for context only. Do not include it in your summary.
+"""
+
+DEFAULT_MEMORY_INTEGRATION_PROMPT = """\
+Improve the document above by rewriting it to be clearer and more efficent.
+
+The new document should be {BIAS_TEXT} the original document.
+
+Carefully follow these guidelines:
+- Use concise, information-dense language, avoiding transitional statements and filler words.
+- Write in your own words, not plagiarized the original document.
+- Comprehensively cover the entire document without omitting important details.
+- Fix confusing, awkward, or repetitive phrasing.
+- Improve sentence flow by reordering or rephrasing.
+- Break or combine paragraphs to group related topics and improve readability.
+- Write dispassionately without editorializing.
+- Do not infer events that are not supported by the original document.
+- Preserve important details and eliminate trivial ones.
+"""
+
 
 @dataclass
 class Range:
@@ -93,13 +121,13 @@ class MemoryIntegrationExecutor(Executor):
         return [
             {
                 "role": "system",
-                "content": self.context.conversation_summarization_prompt,
+                "content": self._conversation_summarization_prompt,
             },
             {
                 "role": "user",
                 "content": "\n\n".join(
                     [
-                        "# Memory context:",
+                        "# Past Memory Context:",
                         self.context.current_memory,
                         "---",
                         "# Conversation:",
@@ -109,15 +137,13 @@ class MemoryIntegrationExecutor(Executor):
             },
             {
                 "role": "user",
-                "content": self.context.conversation_summarization_prompt,
+                "content": self._conversation_summarization_prompt,
             },
         ]
 
     def _build_chunk_compression_prompt(self, memory_chunk, bias):
         bias_text = self.COMPRESSION_BIAS_TEXT[bias + self._bias_offset]
-        prompt = self.context.memory_integration_prompt.replace(
-            "{BIAS_TEXT}", bias_text
-        )
+        prompt = self._memory_integration_prompt.replace("{BIAS_TEXT}", bias_text)
         return "{}\n\n---\n\n{}\n\n---\n\n# Full-length rewritten document:".format(
             memory_chunk, prompt
         )
@@ -139,3 +165,16 @@ class MemoryIntegrationExecutor(Executor):
     @property
     def _bias_offset(self):
         return math.floor(len(self.COMPRESSION_BIAS_TEXT) / 2)
+
+    @property
+    def _conversation_summarization_prompt(self):
+        return (
+            DEFAULT_CONVERSATION_SUMMARIZATION_PROMPT
+            or self.context.conversation_summarization_prompt
+        )
+
+    @property
+    def _memory_integration_prompt(self):
+        return (
+            DEFAULT_MEMORY_INTEGRATION_PROMPT or self.context.memory_integration_prompt
+        )

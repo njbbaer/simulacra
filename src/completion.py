@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 
 import openai
@@ -6,6 +7,8 @@ from .logger import Logger
 
 
 class Completion(ABC):
+    API_CALL_TIMEOUT = 120
+
     MODEL_PRICINGS = {
         "gpt-4": [0.03, 0.06],
         "gpt-3.5-turbo": [0.0015, 0.002],
@@ -62,13 +65,21 @@ class Completion(ABC):
         if self.finish_reason == "length":
             raise Exception("Response exceeded maximum length")
 
+    @classmethod
+    async def _call_with_timeout(cls, api_call_coroutine):
+        try:
+            return await asyncio.wait_for(api_call_coroutine, cls.API_CALL_TIMEOUT)
+        except asyncio.TimeoutError:
+            raise Exception("API call timed out")
+
 
 class ChatCompletion(Completion):
     COMPLETION_TYPE = openai.ChatCompletion
 
     @staticmethod
     async def _call_api(messages, parameters):
-        return await openai.ChatCompletion.acreate(**parameters, messages=messages)
+        api_call = openai.ChatCompletion.acreate(**parameters, messages=messages)
+        return await Completion._call_with_timeout(api_call)
 
     @property
     def content(self):
@@ -80,7 +91,8 @@ class LegacyCompletion(Completion):
 
     @staticmethod
     async def _call_api(prompt, parameters):
-        return await openai.Completion.acreate(**parameters, prompt=prompt)
+        api_call = openai.Completion.acreate(**parameters, prompt=prompt)
+        return await Completion._call_with_timeout(api_call)
 
     @property
     def content(self):

@@ -6,7 +6,8 @@ from typing import Union
 from .executor import Executor
 
 DEFAULT_CONVERSATION_SUMMARIZATION_PROMPT = """\
-Create a comprehensive and information-dense summary of the latest conversation. Describe important events, facts, and the character's emotional reasoning.
+Create a comprehensive and information-dense summary of the latest conversation. \
+Describe important events, facts, and the character's emotional reasoning.
 
 Carefully follow these guidelines:
 - Include all important information from the conversation.
@@ -22,7 +23,8 @@ Improve the document above by rewriting it to be clearer and more efficent.
 The new document should be {BIAS_TEXT} the original document.
 
 Carefully follow these guidelines:
-- Use concise, information-dense language, avoiding transitional statements and filler words.
+- Use concise, information-dense language, avoiding transitional statements and filler \
+words.
 - Write in your own words, not plagiarized the original document.
 - Comprehensively cover the entire document without omitting important details.
 - Fix confusing, awkward, or repetitive phrasing.

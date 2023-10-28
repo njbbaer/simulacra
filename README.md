@@ -52,7 +52,7 @@ Information
 
 The application is configured by a config file and one or more context files.
 
-### Config ile
+### Config file
 
 The config TOML file initializes one or more bots and defines the paths to their context files.
 

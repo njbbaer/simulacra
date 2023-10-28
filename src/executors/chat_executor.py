@@ -8,7 +8,7 @@ class ChatExecutor(Executor):
         )
 
     def build_chat_messages(self):
-        return [
+        messages = [
             {
                 "role": "system",
                 "content": "\n\n".join(
@@ -21,5 +21,11 @@ class ChatExecutor(Executor):
                 ),
             },
             *self.context.current_messages,
-            {"role": "system", "content": self.context.reinforcement_chat_prompt},
         ]
+
+        if self.context.reinforcement_chat_prompt:
+            messages.append(
+                {"role": "system", "content": self.context.reinforcement_chat_prompt}
+            )
+
+        return messages

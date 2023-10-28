@@ -77,7 +77,7 @@ class Context:
 
     @property
     def reinforcement_chat_prompt(self):
-        return self.prompts["reinforcement_chat_prompt"]
+        return self.prompts.get("reinforcement_chat_prompt")
 
     @property
     def conversation_summarization_prompt(self):

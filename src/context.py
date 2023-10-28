@@ -11,6 +11,7 @@ class Context:
     def load(self):
         with open(self.context_file, "r") as file:
             self.data = yaml.load(file)
+        self._initialize_conversation_data()
 
     def save(self):
         with open(self.context_file, "w") as file:
@@ -85,3 +86,9 @@ class Context:
     @property
     def memory_integration_prompt(self):
         return self.prompts["memory_integration_prompt"]
+
+    def _initialize_conversation_data(self):
+        self.data.setdefault("conversations", [{}])
+        current_conversation = self.data["conversations"][-1]
+        current_conversation.setdefault("memory", [])
+        current_conversation.setdefault("messages", [])

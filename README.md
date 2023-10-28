@@ -25,7 +25,7 @@ For more information, see the [Configuration](#configuration) section.
 ### Run the application
 
 ```sh
-pipenv run app examples/config.yml
+pipenv run app examples/config.toml
 ```
 
 ### Interact with your bot on Telegram

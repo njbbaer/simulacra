@@ -8,20 +8,18 @@ class ChatExecutor(Executor):
         )
 
     def build_chat_messages(self):
-        messages = [
-            {
-                "role": "system",
-                "content": "\n\n".join(
-                    [
-                        self.context.chat_prompt,
-                        "---",
-                        f"{self.context.get_name('assistant')}'s Memory:",
-                        self.context.current_memory,
-                    ]
-                ),
-            },
-            *self.context.current_messages,
-        ]
+        system_content = [self.context.chat_prompt]
+        if self.context.current_memory:
+            system_content.extend(
+                [
+                    "---",
+                    f"{self.context.get_name('assistant')}'s Memory:",
+                    self.context.current_memory,
+                ]
+            )
+        messages = [{"role": "system", "content": "\n\n".join(system_content)}]
+
+        messages.extend(self.context.current_messages)
 
         if self.context.reinforcement_chat_prompt:
             messages.append(

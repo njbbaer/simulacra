@@ -47,7 +47,7 @@ class Range:
 
 class MemoryIntegrationExecutor(Executor):
     CHUNK_SIZE = Range(2000, 4000)
-    COMPRESSION_RATIO = Range(0.70, 0.95)
+    COMPRESSION_RATIO = Range(0.70, 0.90)
     COMPRESSION_BIAS_TEXT = [
         "much longer than",
         "longer than",

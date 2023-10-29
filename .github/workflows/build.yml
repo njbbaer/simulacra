@@ -21,7 +21,12 @@ jobs:
       run: pipenv install --dev
 
     - name: Run tests
-      run: pipenv run pytest
+      run: pipenv run pytest --cov=src
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     runs-on: ubuntu-latest

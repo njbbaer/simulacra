@@ -5,7 +5,6 @@ name = "pypi"
 
 [scripts]
 app = "python app.py"
-deploy = "ansible-playbook ansible/deploy.yml -i ansible/inventory.yml"
 
 [packages]
 openai = "*"

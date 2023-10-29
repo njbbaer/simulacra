@@ -18,7 +18,6 @@ asyncio = "*"
 tiktoken = "*"
 toml = "*"
 pytz = "*"
-hupper = "*"
 
 [dev-packages]
 pycodestyle = "*"
@@ -29,6 +28,7 @@ flake8-bugbear = "*"
 pre-commit = "*"
 autoflake = "*"
 isort = "*"
+hupper = "*"
 
 [requires]
 python_version = "3.10"

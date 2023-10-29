@@ -28,6 +28,7 @@ autoflake = "*"
 isort = "*"
 hupper = "*"
 pytest-cov = "*"
+codecov = "*"
 
 [requires]
 python_version = "3.10"

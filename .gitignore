@@ -1,9 +1,7 @@
 __pycache__/
+.pytest_cache/
 log.yml
 .env
 .vscode/
-sync/
-backup/
-profile_pics/
 data.csv
-inventory.yml
+.coverage

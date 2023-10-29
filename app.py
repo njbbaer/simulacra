@@ -2,7 +2,6 @@ import argparse
 import multiprocessing
 import os
 
-import hupper
 import toml
 
 from src import TelegramBot
@@ -38,5 +37,7 @@ def main():
 
 if __name__ == "__main__":
     if IS_DEVELOPMENT:
+        import hupper
+
         hupper.start_reloader("app.main")
     main()

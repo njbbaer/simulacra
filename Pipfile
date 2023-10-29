@@ -10,7 +10,6 @@ deploy = "ansible-playbook ansible/deploy.yml -i ansible/inventory.yml"
 [packages]
 openai = "*"
 "ruamel.yaml" = "*"
-backoff = "*"
 argparse = "*"
 pyyaml = "*"
 python-telegram-bot = "*"

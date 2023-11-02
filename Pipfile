@@ -5,6 +5,7 @@ name = "pypi"
 
 [scripts]
 app = "python app.py"
+test = "pytest --cov=src"
 
 [packages]
 openai = "*"

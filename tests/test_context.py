@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import mock_open, patch
+
+import pytest
+
 from src.context import Context
 
 
@@ -84,7 +86,10 @@ def test_new_conversation(loaded_context):
     initial_conversations_count = len(loaded_context.data["conversations"])
     loaded_context.new_conversation(["In the previous conversation..."])
     assert len(loaded_context.data["conversations"]) == initial_conversations_count + 1
-    assert loaded_context.current_conversation["memory"][0] == "In the previous conversation..."
+    assert (
+        loaded_context.current_conversation["memory"][0]
+        == "In the previous conversation..."
+    )
 
 
 def test_get_name(loaded_context):

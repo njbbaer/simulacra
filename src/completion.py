@@ -11,6 +11,7 @@ class Completion(ABC):
 
     MODEL_PRICINGS = {
         "gpt-4": [0.03, 0.06],
+        "gpt-4-0314": [0.03, 0.06],
         "gpt-4-1106-preview": [0.01, 0.02],
         "gpt-3.5-turbo": [0.0015, 0.002],
         "gpt-3.5-turbo-16k": [0.003, 0.004],

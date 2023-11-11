@@ -4,7 +4,7 @@ from .executor import Executor
 class ChatExecutor(Executor):
     async def execute(self):
         return await self._generate_chat_completion(
-            self.build_chat_messages(), {"model": "gpt-4"}
+            self.build_chat_messages(), {"model": self.context.chat_model}
         )
 
     def build_chat_messages(self):

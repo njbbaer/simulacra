@@ -52,6 +52,10 @@ class Context:
         return self.data["prompts"]
 
     @property
+    def parameters(self):
+        return self.data.get("parameters") or {}
+
+    @property
     def current_messages(self):
         return self.current_conversation["messages"]
 
@@ -86,6 +90,10 @@ class Context:
     @property
     def memory_integration_prompt(self):
         return self.prompts["memory_integration_prompt"]
+
+    @property
+    def chat_model(self):
+        return self.parameters.get("chat_model") or "gpt-4"
 
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])

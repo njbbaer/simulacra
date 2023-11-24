@@ -102,7 +102,7 @@ class MemoryIntegrationExecutor(Executor):
     async def _fetch_conversation_summary_completion(self):
         return await self._generate_chat_completion(
             self._build_conversation_summarization_messages(),
-            {"model": "gpt-4", "max_tokens": 1000, "temperature": 0},
+            {"model": "gpt-4-1106-preview", "max_tokens": 1000, "temperature": 0},
         )
 
     async def _fetch_chunk_compression_completion(self, chunk, bias):

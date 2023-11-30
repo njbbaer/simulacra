@@ -4,7 +4,11 @@ from .executor import Executor
 class ChatExecutor(Executor):
     async def execute(self):
         return await self._generate_chat_completion(
-            self.build_chat_messages(), {"model": self.context.chat_model}
+            self.build_chat_messages(),
+            {
+                "model": self.context.chat_model,
+                "max_tokens": 1000,
+            },
         )
 
     def build_chat_messages(self):

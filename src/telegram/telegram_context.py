@@ -1,3 +1,6 @@
+from telegram.error import BadRequest
+
+
 class TelegramContext:
     def __init__(self, app, update, context):
         self.app = app
@@ -13,7 +16,10 @@ class TelegramContext:
         return self.update.message.text
 
     async def send_message(self, text):
-        await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")
+        try:
+            await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")
+        except BadRequest:
+            await self.app.bot.send_message(self.chat_id, text)
 
     async def send_typing_action(self):
         await self.app.bot.send_chat_action(chat_id=self.chat_id, action="typing")

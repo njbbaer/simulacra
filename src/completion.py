@@ -8,11 +8,11 @@ from .logger import Logger
 
 class Completion(ABC):
     API_CALL_TIMEOUT = 120
-
-    MODEL_PRICINGS = {
+    MODEL_PRICES = {
         "gpt-4": [0.03, 0.06],
         "gpt-4-0314": [0.03, 0.06],
         "gpt-4-1106-preview": [0.01, 0.02],
+        "gpt-4-vision-preview": [0.01, 0.02],
         "gpt-3.5-turbo": [0.0015, 0.002],
         "gpt-3.5-turbo-16k": [0.003, 0.004],
         "gpt-3.5-turbo-instruct": [0.0015, 0.002],
@@ -20,7 +20,7 @@ class Completion(ABC):
 
     def __init__(self, response, model):
         self.response = response
-        self.pricing = self.MODEL_PRICINGS[model]
+        self.pricing = self.MODEL_PRICES.get(model, [0, 0])
         self.logger = Logger("log.yml")
         self._validate()
 
@@ -55,7 +55,7 @@ class Completion(ABC):
 
     @property
     def finish_reason(self):
-        return self.choice["finish_reason"]
+        return self.choice.get("finish_reason")
 
     @property
     def cost(self):

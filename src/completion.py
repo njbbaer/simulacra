@@ -1,9 +1,11 @@
 import asyncio
 from abc import ABC, abstractmethod
 
-import openai
+from openai import AsyncOpenAI
 
 from .logger import Logger
+
+aclient = AsyncOpenAI()
 
 
 class Completion(ABC):
@@ -43,19 +45,19 @@ class Completion(ABC):
 
     @property
     def choice(self):
-        return self.response["choices"][0]
+        return self.response.choices[0]
 
     @property
     def prompt_tokens(self):
-        return self.response["usage"]["prompt_tokens"]
+        return self.response.usage.prompt_tokens
 
     @property
     def completion_tokens(self):
-        return self.response["usage"]["completion_tokens"]
+        return self.response.usage.completion_tokens
 
     @property
     def finish_reason(self):
-        return self.choice.get("finish_reason")
+        return self.choice.finish_reason
 
     @property
     def cost(self):
@@ -76,26 +78,22 @@ class Completion(ABC):
 
 
 class ChatCompletion(Completion):
-    COMPLETION_TYPE = openai.ChatCompletion
-
     @staticmethod
     async def _call_api(messages, parameters):
-        api_call = openai.ChatCompletion.acreate(**parameters, messages=messages)
+        api_call = aclient.chat.completions.create(**parameters, messages=messages)
         return await Completion._call_with_timeout(api_call)
 
     @property
     def content(self):
-        return self.choice["message"]["content"]
+        return self.choice.message.content
 
 
 class LegacyCompletion(Completion):
-    COMPLETION_TYPE = openai.Completion
-
     @staticmethod
     async def _call_api(prompt, parameters):
-        api_call = openai.Completion.acreate(**parameters, prompt=prompt)
+        api_call = aclient.completions.create(**parameters, prompt=prompt)
         return await Completion._call_with_timeout(api_call)
 
     @property
     def content(self):
-        return self.choice["text"]
+        return self.choice.text

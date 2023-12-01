@@ -17,10 +17,19 @@ class Context:
         with open(self.context_file, "w") as file:
             yaml.dump(self.data, file)
 
-    def add_message(self, role, message):
-        self.current_conversation["messages"].append(
-            {"role": role, "content": LiteralScalarString(message)}
-        )
+    def add_message(self, role, message, photo_url=None):
+        if photo_url:
+            content = [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": photo_url, "detail": "low"},
+                }
+            ]
+            if message:
+                content.append({"type": "text", "text": LiteralScalarString(message)})
+        else:
+            content = LiteralScalarString(message)
+        self.current_conversation["messages"].append({"role": role, "content": content})
 
     def append_memory(self, text):
         self.current_memory_chunks.append(text)

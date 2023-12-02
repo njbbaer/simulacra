@@ -33,7 +33,10 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("help", self.help_command_handler))
         self.app.add_handler(CommandHandler("start", self.do_nothing))
         self.app.add_handler(
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self.chat_message_handler)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND | filters.PHOTO,
+                self.chat_message_handler,
+            )
         )
         self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
         self.app.add_error_handler(self.error_handler)
@@ -43,7 +46,9 @@ class TelegramBot:
 
     @message_handler
     async def chat_message_handler(self, ctx):
-        await self._chat(ctx, ctx.message_text)
+        photo_url = await ctx.get_photo_url()
+        text = ctx.message.text or ctx.message.caption
+        await self._chat(ctx, text, photo_url)
 
     @message_handler
     async def new_conversation_command_handler(self, ctx):
@@ -81,7 +86,7 @@ class TelegramBot:
 
     @message_handler
     async def remember_command_handler(self, ctx):
-        memory_text = re.search(r"/remember (.*)", ctx.message_text)
+        memory_text = re.search(r"/remember (.*)", ctx.message.text)
         if memory_text:
             self.sim.append_memory(memory_text.group(1))
             await ctx.send_message("`✅ Added to memory`")
@@ -125,12 +130,12 @@ class TelegramBot:
     async def do_nothing(self, *_):
         pass
 
-    async def _chat(self, ctx, user_message):
-        response, action = await self.sim.chat(user_message)
+    async def _chat(self, ctx, user_message, photo_url=None):
+        response, action = await self.sim.chat(user_message, photo_url)
         if action:
             response = f"{response}\n\n_{action}_"
         await ctx.send_message(response)
-        await self._warn_max_size(ctx)
+        # await self._warn_max_size(ctx)
 
     async def _warn_max_size(self, ctx):
         percentage = round(self.sim.estimate_utilization_percentage())

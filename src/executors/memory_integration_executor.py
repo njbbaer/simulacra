@@ -153,7 +153,12 @@ class MemoryIntegrationExecutor(Executor):
     def _format_conversation_history(self):
         def format_message(msg):
             name = self.context.get_name(msg["role"])
-            return f'{name}:\n\n{msg["content"]}'
+            if isinstance(msg["content"], str):
+                return f'{name}:\n\n{msg["content"]}'
+            else:
+                for content in msg["content"]:
+                    if content["type"] == "text":
+                        return f'{name}:\n\n{content["text"]}'
 
         messages = [format_message(msg) for msg in self.context.current_messages]
         return "\n\n".join(messages)

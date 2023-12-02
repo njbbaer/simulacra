@@ -37,6 +37,8 @@ pipenv run app examples/config.toml
 
 Send a message to your bot and it will respond.
 
+Bots can also see and understand images that you send, if using a model that supports this.
+
 Send `/help` to see a list of commands:
 
 ```text

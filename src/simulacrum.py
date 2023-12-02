@@ -10,10 +10,10 @@ class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
 
-    async def chat(self, user_input=None):
+    async def chat(self, user_input, photo_url):
         self.context.load()
         if user_input:
-            self.context.add_message("user", user_input)
+            self.context.add_message("user", user_input, photo_url)
         content = await ChatExecutor(self.context).execute()
         self.context.add_message("assistant", content)
         self.context.save()
@@ -58,9 +58,14 @@ class Simulacrum:
         encoding = tiktoken.encoding_for_model("gpt-4")
         num_request_tokens = BASE_TOKENS
         for message in messages:
-            num_request_tokens += (
-                len(encoding.encode(message["content"])) + BASE_TOKENS_PER_MESSAGE
-            )
+            if isinstance(message["content"], str):
+                text = message["content"]
+            else:
+                for content in message["content"]:
+                    if content["type"] == "text":
+                        text = content["text"]
+                        break
+            num_request_tokens += len(encoding.encode(text)) + BASE_TOKENS_PER_MESSAGE
         return num_request_tokens / (MAX_TOKENS - RESPONSE_TOKENS) * 100
 
     def has_messages(self):

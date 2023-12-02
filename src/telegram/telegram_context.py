@@ -12,8 +12,16 @@ class TelegramContext:
         return self.update.effective_chat.id
 
     @property
-    def message_text(self):
-        return self.update.message.text
+    def message(self):
+        return self.update.message
+
+    async def get_photo_url(self):
+        if not self.message.photo:
+            return None
+
+        photo_file = await self.message.photo[-1].get_file()
+        file = await self.app.bot.get_file(photo_file.file_id)
+        return file.file_path
 
     async def send_message(self, text):
         try:

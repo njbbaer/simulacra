@@ -36,8 +36,7 @@ pipenv run app examples/config.toml
 ### Interact with your bot on Telegram
 
 Send a message to your bot and it will respond.
-
-Bots can also see and understand images that you send, if using a model that supports this.
+Bots can also see and understand images, if the model supports this.
 
 Send `/help` to see a list of commands:
 

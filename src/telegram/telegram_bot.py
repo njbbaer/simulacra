@@ -97,19 +97,19 @@ class TelegramBot:
     async def help_command_handler(self, ctx):
         await ctx.send_message(
             textwrap.dedent(
-                """\
-            *Actions*
-            /new - Start a new conversation
-            /retry - Retry the last response
-            /reply - Reply immediately
-            /undo - Undo the last exchange
-            /clear - Clear the current conversation
-            /remember <text> - Add text to memory
+                """
+                *Actions*
+                /new - Start a new conversation
+                /retry - Retry the last response
+                /reply - Reply immediately
+                /undo - Undo the last exchange
+                /clear - Clear the current conversation
+                /remember <text> - Add text to memory
 
-            *Information*
-            /stats - Show conversation statistics
-            /help - Show this help message
-        """
+                *Information*
+                /stats - Show conversation statistics
+                /help - Show this help message
+                """
             )
         )
 

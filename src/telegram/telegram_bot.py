@@ -135,7 +135,7 @@ class TelegramBot:
         if action:
             response = f"{response}\n\n_{action}_"
         await ctx.send_message(response)
-        # await self._warn_max_size(ctx)
+        await self._warn_max_size(ctx)
 
     async def _warn_max_size(self, ctx):
         percentage = round(self.sim.estimate_utilization_percentage())

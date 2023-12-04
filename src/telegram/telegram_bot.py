@@ -97,19 +97,19 @@ class TelegramBot:
     async def help_command_handler(self, ctx):
         await ctx.send_message(
             textwrap.dedent(
-                """\
-            *Actions*
-            /new - Start a new conversation
-            /retry - Retry the last response
-            /reply - Reply immediately
-            /undo - Undo the last exchange
-            /clear - Clear the current conversation
-            /remember <text> - Add text to memory
+                """
+                *Actions*
+                /new - Start a new conversation
+                /retry - Retry the last response
+                /reply - Reply immediately
+                /undo - Undo the last exchange
+                /clear - Clear the current conversation
+                /remember <text> - Add text to memory
 
-            *Information*
-            /stats - Show conversation statistics
-            /help - Show this help message
-        """
+                *Information*
+                /stats - Show conversation statistics
+                /help - Show this help message
+                """
             )
         )
 
@@ -135,7 +135,7 @@ class TelegramBot:
         if action:
             response = f"{response}\n\n_{action}_"
         await ctx.send_message(response)
-        # await self._warn_max_size(ctx)
+        await self._warn_max_size(ctx)
 
     async def _warn_max_size(self, ctx):
         percentage = round(self.sim.estimate_utilization_percentage())

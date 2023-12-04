@@ -37,10 +37,12 @@ class Context:
     def clear_messages(self, n=None):
         new_messages = [] if n is None else self.current_messages[:-n]
         self.current_conversation["messages"] = new_messages
+        self.current_conversation["cost"] = 0
 
     def new_conversation(self, memory_chunks):
         self.data["conversations"].append(
             {
+                "cost": 0,
                 "memory": [LiteralScalarString(x) for x in memory_chunks],
                 "messages": [],
             }
@@ -49,8 +51,9 @@ class Context:
     def get_name(self, role):
         return self.data["names"][role]
 
-    def add_cost(self, cost):
-        self.data["total_cost"] = self.data.get("total_cost", 0) + cost
+    def add_cost(self, new_cost):
+        self.data["cost"] = self.total_cost + new_cost
+        self.current_conversation["cost"] = self.current_conversation_cost + new_cost
 
     @property
     def current_conversation(self):
@@ -100,8 +103,17 @@ class Context:
     def chat_model(self):
         return self.parameters.get("chat_model") or "gpt-4"
 
+    @property
+    def total_cost(self):
+        return self.data["cost"]
+
+    @property
+    def current_conversation_cost(self):
+        return self.current_conversation["cost"]
+
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]
+        current_conversation.setdefault("cost", 0)
         current_conversation.setdefault("memory", [])
         current_conversation.setdefault("messages", [])

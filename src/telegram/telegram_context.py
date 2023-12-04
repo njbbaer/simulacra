@@ -28,6 +28,9 @@ class TelegramContext:
         if text.count("*") % 2 != 0:
             text = text.rpartition("*")[0]
 
+        # Swap * and _ formatting
+        text = text.translate(str.maketrans("*_", "_*"))
+
         try:
             await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")
         except BadRequest:

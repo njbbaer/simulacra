@@ -81,10 +81,6 @@ class Context:
         return len(self.current_memory)
 
     @property
-    def current_conversation_size(self):
-        return sum(len(item["content"]) for item in self.current_messages)
-
-    @property
     def chat_prompt(self):
         return self.prompts["chat_prompt"]
 

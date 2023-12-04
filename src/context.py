@@ -6,6 +6,9 @@ from .yaml_config import yaml
 class Context:
     def __init__(self, context_file):
         self.context_file = context_file
+        self.last_cost = None
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
         self.load()
 
     def load(self):

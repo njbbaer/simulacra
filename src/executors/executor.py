@@ -12,12 +12,17 @@ class Executor(ABC):
         pass
 
     async def _generate_chat_completion(self, messages, parameters):
-        return await self._generate_completion(messages, parameters, ChatCompletion)
+        completion = await ChatCompletion.generate(messages, parameters)
+        self.context.add_cost(completion.cost)
+        self._set_stats(completion)
+        return completion.content.strip()
 
     async def _generate_legacy_completion(self, prompt, parameters):
-        return await self._generate_completion(prompt, parameters, LegacyCompletion)
-
-    async def _generate_completion(self, content, parameters, completion_type):
-        completion = await completion_type.generate(content, parameters)
+        completion = await LegacyCompletion.generate(prompt, parameters)
         self.context.add_cost(completion.cost)
         return completion.content.strip()
+
+    def _set_stats(self, completion):
+        self.context.last_cost = completion.cost
+        self.context.last_prompt_tokens = completion.prompt_tokens
+        self.context.last_completion_tokens = completion.completion_tokens

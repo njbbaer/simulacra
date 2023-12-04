@@ -76,8 +76,21 @@ class TelegramBot:
 
     @message_handler
     async def stats_command_handler(self, ctx):
-        percentage = round(self.sim.estimate_utilization_percentage())
-        await ctx.send_message(f"`{percentage}% of max conversation size`")
+        lines = []
+        context = self.sim.context
+
+        lines.append("*Conversation*")
+        lines.append(f"`Cost: ${context.current_conversation_cost:.2f}`")
+
+        lines.append("\n*Last Message*")
+        if self.sim.context.last_cost:
+            lines.append(f"`Cost: ${context.last_cost:.2f}`")
+            lines.append(f"`Prompt tokens: {context.last_prompt_tokens}`")
+            lines.append(f"`Completion tokens: {context.last_completion_tokens}`")
+        else:
+            lines.append("`Not available`")
+
+        await ctx.send_message("\n".join(lines))
 
     @message_handler
     async def clear_command_handler(self, ctx):
@@ -134,6 +147,7 @@ class TelegramBot:
         response, action = await self.sim.chat(user_message, photo_url)
         if action:
             response = f"{response}\n\n_{action}_"
+        response = response.translate(str.maketrans("*_", "_*"))
         await ctx.send_message(response)
         await self._warn_max_size(ctx)
 

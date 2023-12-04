@@ -24,6 +24,10 @@ class TelegramContext:
         return file.file_path
 
     async def send_message(self, text):
+        # Attempt to fix broken markdown
+        if text.count("*") % 2 != 0:
+            text = text.rpartition("*")[0]
+
         try:
             await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")
         except BadRequest:

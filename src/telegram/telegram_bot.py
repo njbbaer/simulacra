@@ -52,10 +52,12 @@ class TelegramBot:
 
     @message_handler
     async def new_conversation_command_handler(self, ctx):
-        ctx.chat_id
         if self.sim.has_messages():
-            await ctx.send_message("`⏳ Integrating memory...`")
-            await self.sim.integrate_memory()
+            if self.sim.context.enable_memory:
+                await ctx.send_message("`⏳ Integrating memory...`")
+                await self.sim.new_conversation(integrate_memory=True)
+            else:
+                await self.sim.new_conversation()
             await ctx.send_message("`✅ Ready to chat`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")

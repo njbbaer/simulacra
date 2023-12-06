@@ -53,6 +53,7 @@ class Context:
         return self.data["names"][role]
 
     def add_cost(self, new_cost):
+        self.data.setdefault("cost", 0)
         self.data["cost"] = self.total_cost + new_cost
         self.current_conversation["cost"] = self.current_conversation_cost + new_cost
 
@@ -102,7 +103,7 @@ class Context:
 
     @property
     def chat_model(self):
-        return self.parameters.get("chat_model") or "gpt-4"
+        return self.parameters.get("chat_model", "gpt-4")
 
     @property
     def total_cost(self):
@@ -111,6 +112,10 @@ class Context:
     @property
     def current_conversation_cost(self):
         return self.current_conversation["cost"]
+
+    @property
+    def enable_memory(self):
+        return self.parameters.get("enable_memory", True)
 
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])

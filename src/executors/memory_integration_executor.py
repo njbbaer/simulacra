@@ -100,16 +100,18 @@ class MemoryIntegrationExecutor(Executor):
             f.write(f"{len_chunk},{ratio},{retries},{bias}\n")
 
     async def _fetch_conversation_summary_completion(self):
-        return await self._generate_chat_completion(
+        completion = await self._generate_chat_completion(
             self._build_conversation_summarization_messages(),
             {"model": "gpt-4-1106-preview", "max_tokens": 1000, "temperature": 0},
         )
+        return completion.content.strip()
 
     async def _fetch_chunk_compression_completion(self, chunk, bias):
-        return await self._generate_legacy_completion(
+        completion = await self._generate_legacy_completion(
             self._build_chunk_compression_prompt(chunk, bias),
             {"model": "gpt-3.5-turbo-instruct", "max_tokens": 2000, "temperature": 1},
         )
+        return completion.content.strip()
 
     def _merge_chunks(self, chunks):
         i = 0

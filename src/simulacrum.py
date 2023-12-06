@@ -25,10 +25,13 @@ class Simulacrum:
         action = self._extract_action(content)
         return speech, action
 
-    async def integrate_memory(self):
+    async def new_conversation(self, integrate_memory=False):
         self.context.load()
-        content = await MemoryIntegrationExecutor(self.context).execute()
-        self.context.new_conversation(content)
+        if integrate_memory:
+            memory = await MemoryIntegrationExecutor(self.context).execute()
+        else:
+            memory = self.context.current_memory_chunks
+        self.context.new_conversation(memory)
         self.context.save()
         self.warned_about_cost = False
 

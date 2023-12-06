@@ -9,12 +9,17 @@ from .executors import ChatExecutor, MemoryIntegrationExecutor
 class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
+        self.last_cost = None
+        self.last_prompt_tokens = None
+        self.last_completion_tokens = None
 
     async def chat(self, user_input, photo_url):
         self.context.load()
         if user_input:
             self.context.add_message("user", user_input, photo_url)
-        content = await ChatExecutor(self.context).execute()
+        completion = await ChatExecutor(self.context).execute()
+        content = completion.content.strip()
+        self._set_stats(completion)
         self.context.add_message("assistant", content)
         self.context.save()
         speech = self._extract_speech(content)
@@ -72,6 +77,10 @@ class Simulacrum:
         self.context.load()
         return len(self.context.current_messages) > 0
 
+    def get_current_conversation_cost(self):
+        self.context.load()
+        return self.context.current_conversation["cost"]
+
     def _extract_speech(self, response):
         match = re.search(
             r"<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>", response, re.DOTALL
@@ -81,3 +90,8 @@ class Simulacrum:
     def _extract_action(self, response):
         match = re.search(r"<(?:ACT)>(.*?)</(?:ACT)>", response, re.DOTALL)
         return match.group(1) if match else None
+
+    def _set_stats(self, completion):
+        self.last_cost = completion.cost
+        self.last_prompt_tokens = completion.prompt_tokens
+        self.last_completion_tokens = completion.completion_tokens

@@ -15,12 +15,12 @@ class Executor(ABC):
         completion = await ChatCompletion.generate(messages, parameters)
         self.context.add_cost(completion.cost)
         self._set_stats(completion)
-        return completion.content.strip()
+        return completion
 
     async def _generate_legacy_completion(self, prompt, parameters):
         completion = await LegacyCompletion.generate(prompt, parameters)
         self.context.add_cost(completion.cost)
-        return completion.content.strip()
+        return completion
 
     def _set_stats(self, completion):
         self.context.last_cost = completion.cost

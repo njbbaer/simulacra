@@ -6,9 +6,6 @@ from .yaml_config import yaml
 class Context:
     def __init__(self, context_file):
         self.context_file = context_file
-        self.last_cost = None
-        self.last_prompt_tokens = None
-        self.last_completion_tokens = None
         self.load()
 
     def load(self):
@@ -38,11 +35,12 @@ class Context:
         self.current_memory_chunks.append(text)
 
     def clear_messages(self, n=None):
+        self.current_conversation["cost"] = 0
         new_messages = [] if n is None else self.current_messages[:-n]
         self.current_conversation["messages"] = new_messages
-        self.current_conversation["cost"] = 0
 
     def new_conversation(self, memory_chunks):
+        self.current_conversation["cost"] = 0
         self.data["conversations"].append(
             {
                 "cost": 0,

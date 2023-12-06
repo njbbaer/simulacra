@@ -77,16 +77,15 @@ class TelegramBot:
     @message_handler
     async def stats_command_handler(self, ctx):
         lines = []
-        context = self.sim.context
 
         lines.append("*Conversation*")
-        lines.append(f"`Cost: ${context.current_conversation_cost:.2f}`")
+        lines.append(f"`Cost: ${self.sim.get_current_conversation_cost():.2f}`")
 
         lines.append("\n*Last Message*")
-        if self.sim.context.last_cost:
-            lines.append(f"`Cost: ${context.last_cost:.2f}`")
-            lines.append(f"`Prompt tokens: {context.last_prompt_tokens}`")
-            lines.append(f"`Completion tokens: {context.last_completion_tokens}`")
+        if self.sim.last_cost:
+            lines.append(f"`Cost: ${self.sim.last_cost:.2f}`")
+            lines.append(f"`Prompt tokens: {self.sim.last_prompt_tokens}`")
+            lines.append(f"`Completion tokens: {self.sim.last_completion_tokens}`")
         else:
             lines.append("`Not available`")
 

@@ -148,19 +148,16 @@ class TelegramBot:
             response = f"{response}\n\n_{action}_"
         response = response.translate(str.maketrans("*_", "_*"))
         await ctx.send_message(response)
-        await self._warn_max_size(ctx)
+        await self._warn_high_cost(ctx)
 
-    async def _warn_max_size(self, ctx):
-        percentage = round(self.sim.estimate_utilization_percentage())
-        if percentage >= 70:
-            shape, adverb = (
-                ("🔴", "now")
-                if percentage >= 90
-                else ("🟠", "soon")
-                if percentage >= 80
-                else ("🟡", "when ready")
+    async def _warn_high_cost(self, ctx):
+        if not self.sim.last_cost:
+            return
+
+        if self.sim.last_cost > 0.15:
+            await ctx.send_message("`🔴 Cost is high. Start a new conversation soon.`")
+        elif self.sim.last_cost > 0.10 and not self.sim.warned_about_cost:
+            self.sim.warned_about_cost = True
+            await ctx.send_message(
+                "`🟡 Cost is elevated. Start a new conversation when ready.`"
             )
-            text = (
-                f"`{shape} {percentage}% of max conversation size. Run /new {adverb}.`"
-            )
-            await ctx.send_message(text)

@@ -1,7 +1,5 @@
 import re
 
-import tiktoken
-
 from .context import Context
 from .executors import ChatExecutor, MemoryIntegrationExecutor
 
@@ -12,6 +10,7 @@ class Simulacrum:
         self.last_cost = None
         self.last_prompt_tokens = None
         self.last_completion_tokens = None
+        self.warned_about_cost = False
 
     async def chat(self, user_input, photo_url):
         self.context.load()
@@ -31,6 +30,7 @@ class Simulacrum:
         content = await MemoryIntegrationExecutor(self.context).execute()
         self.context.new_conversation(content)
         self.context.save()
+        self.warned_about_cost = False
 
     def append_memory(self, text):
         self.context.load()
@@ -41,6 +41,7 @@ class Simulacrum:
         self.context.load()
         self.context.clear_messages(n)
         self.context.save()
+        self.warned_about_cost = False
 
     def undo_last_user_message(self):
         self.context.load()
@@ -50,28 +51,6 @@ class Simulacrum:
             if message["role"] == "user":
                 break
         self.context.save()
-
-    def estimate_utilization_percentage(self):
-        MAX_TOKENS = 8192
-        RESPONSE_TOKENS = 500
-        BASE_TOKENS = 3
-        BASE_TOKENS_PER_MESSAGE = 4
-
-        self.context.load()
-        executor = ChatExecutor(self.context)
-        messages = executor.build_chat_messages()
-        encoding = tiktoken.encoding_for_model("gpt-4")
-        num_request_tokens = BASE_TOKENS
-        for message in messages:
-            if isinstance(message["content"], str):
-                text = message["content"]
-            else:
-                for content in message["content"]:
-                    if content["type"] == "text":
-                        text = content["text"]
-                        break
-            num_request_tokens += len(encoding.encode(text)) + BASE_TOKENS_PER_MESSAGE
-        return num_request_tokens / (MAX_TOKENS - RESPONSE_TOKENS) * 100
 
     def has_messages(self):
         self.context.load()

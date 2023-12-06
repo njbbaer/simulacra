@@ -25,8 +25,8 @@ class TelegramContext:
 
     async def send_message(self, text):
         # Attempt to fix broken markdown
-        if text.count("*") % 2 != 0:
-            text = text.rpartition("*")[0]
+        if text.count("_") % 2 != 0 and text.endswith("_"):
+            text = text[:-1]
 
         try:
             await self.app.bot.send_message(self.chat_id, text, parse_mode="Markdown")

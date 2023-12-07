@@ -40,7 +40,6 @@ class Context:
         self.current_conversation["messages"] = new_messages
 
     def new_conversation(self, memory_chunks):
-        self.current_conversation["cost"] = 0
         self.data["conversations"].append(
             {
                 "memory": [LiteralScalarString(x) for x in memory_chunks],

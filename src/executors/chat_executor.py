@@ -21,13 +21,36 @@ class ChatExecutor(Executor):
                     self.context.current_memory,
                 ]
             )
+
         messages = [{"role": "system", "content": "\n\n".join(system_content)}]
-
+        messages.extend(self._build_image_prompt_messages())
         messages.extend(self.context.current_messages)
-
         if self.context.reinforcement_chat_prompt:
             messages.append(
                 {"role": "system", "content": self.context.reinforcement_chat_prompt}
             )
 
+        return messages
+
+    def _build_image_prompt_messages(self):
+        messages = []
+        for image_prompt in self.context.image_prompts:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_prompt["url"],
+                                "detail": "low",
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": image_prompt["text"],
+                        },
+                    ],
+                }
+            )
         return messages

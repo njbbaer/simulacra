@@ -116,6 +116,10 @@ class Context:
     def enable_memory(self):
         return self.parameters.get("enable_memory", True)
 
+    @property
+    def image_prompts(self):
+        return self.prompts.get("image_prompts", [])
+
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]

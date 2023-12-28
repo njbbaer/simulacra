@@ -52,8 +52,8 @@ class Context:
         return self.data["names"][role]
 
     def add_cost(self, new_cost):
-        self.data.setdefault("cost", 0)
-        self.data["cost"] = self.total_cost + new_cost
+        self.data.setdefault("total_cost", 0)
+        self.data["total_cost"] = self.total_cost + new_cost
         self.current_conversation["cost"] = self.current_conversation_cost + new_cost
 
     @property
@@ -106,7 +106,7 @@ class Context:
 
     @property
     def total_cost(self):
-        return self.data["cost"]
+        return self.data["total_cost"]
 
     @property
     def current_conversation_cost(self):
@@ -123,6 +123,6 @@ class Context:
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]
-        current_conversation.setdefault("cost", 0)
+        current_conversation.setdefault("total_cost", 0)
         current_conversation.setdefault("memory", [])
         current_conversation.setdefault("messages", [])

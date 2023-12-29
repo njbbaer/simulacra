@@ -19,6 +19,8 @@ For Docker specific usage, see the [Docker](#docker) section.
 pipenv install
 ```
 
+If you wish to include development dependencies, add `--dev`.
+
 ### Configure your bot
 
 Modify the example configuration file `example/config.toml` with your `TELEGRAM_API_TOKEN` and `TELEGRAM_USERNAME`.

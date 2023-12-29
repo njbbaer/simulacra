@@ -81,10 +81,6 @@ class Context:
         return self.current_conversation["memory"]
 
     @property
-    def current_memory_size(self):
-        return len(self.current_memory)
-
-    @property
     def chat_prompt(self):
         return self.prompts["chat_prompt"]
 
@@ -110,7 +106,7 @@ class Context:
 
     @property
     def current_conversation_cost(self):
-        return self.current_conversation["cost"]
+        return self.current_conversation.get("cost", 0)
 
     @property
     def enable_memory(self):

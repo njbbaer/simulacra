@@ -10,6 +10,8 @@
 
 Simulacra is a platform for building GPT-4 powered Telegram bots with personalities, internal dialogue, and long term memory.
 
+If this project interests you, consider starring it on GitHub.
+
 ## Usage
 
 For Docker specific usage, see the [Docker](#docker) section.

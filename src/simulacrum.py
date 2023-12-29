@@ -12,10 +12,10 @@ class Simulacrum:
         self.last_completion_tokens = None
         self.warned_about_cost = False
 
-    async def chat(self, user_input, photo_url):
+    async def chat(self, user_input, image_url):
         self.context.load()
         if user_input:
-            self.context.add_message("user", user_input, photo_url)
+            self.context.add_message("user", user_input, image_url)
         completion = await ChatExecutor(self.context).execute()
         content = completion.content.strip()
         self._set_stats(completion)

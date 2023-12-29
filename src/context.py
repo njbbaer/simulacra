@@ -17,12 +17,12 @@ class Context:
         with open(self.context_file, "w") as file:
             yaml.dump(self.data, file)
 
-    def add_message(self, role, message, photo_url=None):
-        if photo_url:
+    def add_message(self, role, message, image_url=None):
+        if image_url:
             content = [
                 {
                     "type": "image_url",
-                    "image_url": {"url": photo_url, "detail": "low"},
+                    "image_url": {"url": image_url, "detail": "low"},
                 }
             ]
             if message:

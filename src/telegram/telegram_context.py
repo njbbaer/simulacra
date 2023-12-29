@@ -15,7 +15,7 @@ class TelegramContext:
     def message(self):
         return self.update.message
 
-    async def get_photo_url(self):
+    async def get_image_url(self):
         if not self.message.photo:
             return None
 

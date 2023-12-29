@@ -46,9 +46,9 @@ class TelegramBot:
 
     @message_handler
     async def chat_message_handler(self, ctx):
-        photo_url = await ctx.get_photo_url()
+        image_url = await ctx.get_image_url()
         text = ctx.message.text or ctx.message.caption
-        await self._chat(ctx, text, photo_url)
+        await self._chat(ctx, text, image_url)
 
     @message_handler
     async def new_conversation_command_handler(self, ctx):
@@ -144,8 +144,8 @@ class TelegramBot:
     async def do_nothing(self, *_):
         pass
 
-    async def _chat(self, ctx, user_message, photo_url=None):
-        response, action = await self.sim.chat(user_message, photo_url)
+    async def _chat(self, ctx, user_message, image_url=None):
+        response, action = await self.sim.chat(user_message, image_url)
         if action:
             response = f"{response}\n\n_{action}_"
         response = response.translate(str.maketrans("*_", "_*"))

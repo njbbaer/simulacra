@@ -1,6 +1,7 @@
 # Simulacra
 
 [![build](https://github.com/njbbaer/simulacra/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/njbbaer/simulacra/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/njbbaer/simulacra/graph/badge.svg?token=F6D6YPZLZC)](https://codecov.io/gh/njbbaer/simulacra)
 
 ![OpenAI](https://img.shields.io/badge/OpenAI-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)

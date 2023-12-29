@@ -5,8 +5,6 @@ from openai import AsyncOpenAI
 
 from .logger import Logger
 
-aclient = AsyncOpenAI()
-
 
 class Completion(ABC):
     API_CALL_TIMEOUT = 120
@@ -80,7 +78,9 @@ class Completion(ABC):
 class ChatCompletion(Completion):
     @staticmethod
     async def _call_api(messages, parameters):
-        api_call = aclient.chat.completions.create(**parameters, messages=messages)
+        api_call = AsyncOpenAI().chat.completions.create(
+            **parameters, messages=messages
+        )
         return await Completion._call_with_timeout(api_call)
 
     @property
@@ -91,7 +91,7 @@ class ChatCompletion(Completion):
 class LegacyCompletion(Completion):
     @staticmethod
     async def _call_api(prompt, parameters):
-        api_call = aclient.completions.create(**parameters, prompt=prompt)
+        api_call = AsyncOpenAI().completions.create(**parameters, prompt=prompt)
         return await Completion._call_with_timeout(api_call)
 
     @property

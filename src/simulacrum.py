@@ -69,9 +69,9 @@ class Simulacrum:
 
     def _extract_speech(self, response):
         match = re.search(
-            r"<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>", response, re.DOTALL
+            r"<*(?:MESSAGE|SPEAK)>\s*(.*?)(\s*</>|$)", response, re.DOTALL
         )
-        return match.group(1) if match else response
+        return match.group(1).strip() if match else response
 
     def _set_stats(self, completion):
         self.last_cost = completion.cost

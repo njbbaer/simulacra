@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from .yaml_config import yaml
@@ -42,6 +44,7 @@ class Context:
     def new_conversation(self, memory_chunks):
         self.data["conversations"].append(
             {
+                "name": get_current_timestamp_string(),
                 "memory": [LiteralScalarString(x) for x in memory_chunks],
                 "cost": 0,
                 "messages": [],
@@ -119,6 +122,11 @@ class Context:
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]
+        current_conversation.setdefault("name", get_current_timestamp_string())
         current_conversation.setdefault("cost", 0)
         current_conversation.setdefault("memory", [])
         current_conversation.setdefault("messages", [])
+
+
+def get_current_timestamp_string():
+    return datetime.now().replace(microsecond=0).isoformat()

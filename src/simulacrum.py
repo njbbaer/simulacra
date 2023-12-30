@@ -21,7 +21,7 @@ class Simulacrum:
         self._set_stats(completion)
         self.context.add_message("assistant", content)
         self.context.save()
-        speech = self._extract_speech(content)
+        speech = self._filter_hidden(content)
         return speech
 
     async def new_conversation(self, integrate_memory=False):
@@ -67,11 +67,9 @@ class Simulacrum:
         self.context.load()
         return self.context.current_conversation["cost"]
 
-    def _extract_speech(self, response):
-        match = re.search(
-            r"<*(?:MESSAGE|SPEAK)>\s*(.*?)(\s*</>|$)", response, re.DOTALL
-        )
-        return match.group(1).strip() if match else response
+    def _filter_hidden(self, response):
+        response = re.sub(r"<THINK>.*?</>", "", response, flags=re.DOTALL)
+        return response.strip()
 
     def _set_stats(self, completion):
         self.last_cost = completion.cost

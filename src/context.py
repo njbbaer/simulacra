@@ -119,6 +119,6 @@ class Context:
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]
-        current_conversation.setdefault("total_cost", 0)
+        current_conversation.setdefault("cost", 0)
         current_conversation.setdefault("memory", [])
         current_conversation.setdefault("messages", [])

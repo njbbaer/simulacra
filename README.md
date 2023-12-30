@@ -158,19 +158,3 @@ pipenv run pre-commit install
 ```sh
 pipenv run test
 ```
-
-## Prompt Design
-
-For improved personality driven conversations, we encourage designing prompts that instruct the bot to simulate personalities and engage in internal dialogue.
-
-```text
-❌ I am ...
-❌ You are ...
-✅ You are modeling the mind of ...
-```
-
-To support internal dialogue, the application can filter the LLM's response before providing it to the user. If the LLM uses the suggested XML tag format, only text within `<MESSAGE></MESSAGE>` or `<SPEAK></SPEAK>` tags will be sent to the user. Actions within optional `<ACT></ACT>` tags will be displayed in italics. Other content is considerd to be the bot's internal dialogue and is not shown, but will be preserved in memory. You can see an example of this type of prompt in the `example/context.yml` file. If the LLM does not use this format, the entire response is sent to the user as-is.
-
-This form of prompt design is inspired by [Reflective Linguistic Programming (RLP)](https://arxiv.org/abs/2305.12647) by Fischer, K. A. (2023).
-
-We also suggest defining a short `reinforcement_chat_prompt` in the context file, which is an extra system instruction provided very last to the model to reinforce its personality and instructions. This can be used to overcome the model's tendency to drift away from the bot's declared personality during long conversations where the conversation history and memory are not sufficent to embody the relevant context.

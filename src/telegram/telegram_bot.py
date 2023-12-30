@@ -95,7 +95,7 @@ class TelegramBot:
 
     @message_handler
     async def clear_command_handler(self, ctx):
-        self.sim.clear_messages()
+        self.sim.reset_current_conversation()
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler

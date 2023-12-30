@@ -82,10 +82,17 @@ class TestSimulacrum:
         TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
 
     def test_clear_messages(self, simulacrum_instance):
-        simulacrum_instance.clear_messages()
+        simulacrum_instance.clear_messages(1)
 
         simulacrum_context = simulacrum_instance.context
-        simulacrum_context.clear_messages.assert_called_with(None)
+        simulacrum_context.clear_messages.assert_called_with(1)
+        TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
+
+    def test_reset_current_conversation(self, simulacrum_instance):
+        simulacrum_instance.reset_current_conversation()
+
+        simulacrum_context = simulacrum_instance.context
+        simulacrum_context.reset_current_conversation.assert_called()
         TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
         assert simulacrum_instance.warned_about_cost is False
 

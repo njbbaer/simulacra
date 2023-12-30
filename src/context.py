@@ -37,9 +37,11 @@ class Context:
         self.current_memory_chunks.append(text)
 
     def clear_messages(self, n=None):
+        self.current_conversation["messages"] = self.current_messages[:-n]
+
+    def reset_current_conversation(self):
         self.current_conversation["cost"] = 0
-        new_messages = [] if n is None else self.current_messages[:-n]
-        self.current_conversation["messages"] = new_messages
+        self.current_conversation["messages"] = []
 
     def new_conversation(self, memory_chunks):
         self.data["conversations"].append(

@@ -63,14 +63,15 @@ def test_append_memory(context_instance):
     )
 
 
-def test_clear_messages_no_argument(context_instance):
+def reset_current_conversation(context_instance):
     context_instance.add_message("user", "Message 1")
     context_instance.add_message("bot", "Message 2")
-    context_instance.clear_messages()
-    assert not context_instance.current_messages
+    context_instance.reset_current_conversation()
+    assert context_instance.current_messages == []
+    assert context_instance.current_conversation_cost == 0
 
 
-def test_clear_messages_with_argument(context_instance):
+def test_clear_messages(context_instance):
     context_instance.add_message("user", "Message 1")
     context_instance.add_message("bot", "Message 2")
     context_instance.clear_messages(1)

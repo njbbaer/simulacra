@@ -44,6 +44,11 @@ class Simulacrum:
         self.context.load()
         self.context.clear_messages(n)
         self.context.save()
+
+    def reset_current_conversation(self):
+        self.context.load()
+        self.context.reset_current_conversation()
+        self.context.save()
         self.warned_about_cost = False
 
     def undo_last_user_message(self):

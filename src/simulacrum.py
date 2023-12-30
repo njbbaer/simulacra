@@ -22,8 +22,7 @@ class Simulacrum:
         self.context.add_message("assistant", content)
         self.context.save()
         speech = self._extract_speech(content)
-        action = self._extract_action(content)
-        return speech, action
+        return speech
 
     async def new_conversation(self, integrate_memory=False):
         self.context.load()
@@ -73,10 +72,6 @@ class Simulacrum:
             r"<(?:MESSAGE|SPEAK)>(.*?)</(?:MESSAGE|SPEAK)>", response, re.DOTALL
         )
         return match.group(1) if match else response
-
-    def _extract_action(self, response):
-        match = re.search(r"<(?:ACT)>(.*?)</(?:ACT)>", response, re.DOTALL)
-        return match.group(1) if match else None
 
     def _set_stats(self, completion):
         self.last_cost = completion.cost

@@ -82,14 +82,11 @@ def test_clear_messages_with_argument(context_instance):
 
 def test_new_conversation(context_instance):
     initial_conversations_count = len(context_instance.data["conversations"])
-    context_instance.new_conversation(["In the previous conversation..."])
+    context_instance.new_conversation(["Memory"])
     assert (
         len(context_instance.data["conversations"]) == initial_conversations_count + 1
     )
-    assert (
-        context_instance.current_conversation["memory"][0]
-        == "In the previous conversation..."
-    )
+    assert context_instance.current_conversation["memory"][0] == "Memory"
 
 
 def test_get_name(context_instance):

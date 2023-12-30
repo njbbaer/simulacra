@@ -16,7 +16,7 @@ class TestSimulacrum:
     def mock_chat_executor(self, mocker):
         mock_chat_executor = mocker.patch("src.simulacrum.ChatExecutor")
         mock_chat_executor.return_value.execute = mocker.AsyncMock(
-            return_value=mocker.MagicMock(content="Hello, World!")
+            return_value=mocker.MagicMock(content="Hello")
         )
         return mock_chat_executor
 
@@ -24,7 +24,7 @@ class TestSimulacrum:
     def mock_memory_integration_executor(self, mocker):
         mock_executor = mocker.patch("src.simulacrum.MemoryIntegrationExecutor")
         mock_executor.return_value.execute = mocker.AsyncMock(
-            return_value=["Memory #1", "Memory #2"]
+            return_value=["Memory 1", "Memory 2"]
         )
         return mock_executor
 
@@ -46,10 +46,10 @@ class TestSimulacrum:
 
         simulacrum_context = simulacrum_instance.context
         mock_chat_executor.assert_called_once_with(simulacrum_context)
-        assert speech == "Hello, World!"
+        assert speech == "Hello"
         simulacrum_context.load.assert_called()
         simulacrum_context.add_message.assert_any_call("user", user_input, image_url)
-        simulacrum_context.add_message.assert_called_with("assistant", "Hello, World!")
+        simulacrum_context.add_message.assert_called_with("assistant", "Hello")
         simulacrum_context.save.assert_called()
 
     @pytest.mark.asyncio

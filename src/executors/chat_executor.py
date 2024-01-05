@@ -1,3 +1,7 @@
+import random
+
+import jinja2
+
 from .executor import Executor
 
 
@@ -11,8 +15,21 @@ class ChatExecutor(Executor):
             },
         )
 
+    def build_vars(self):
+        facets = self.context.prompts.get("character_facets", [])
+        adjectives = self.context.prompts.get("character_adjectives", [])
+        return {
+            "character_facets": random.sample(facets, len(facets)),
+            "character_adjectives": ", ".join(
+                random.sample(adjectives, len(adjectives))
+            ),
+        }
+
     def build_chat_messages(self):
-        system_content = [self.context.chat_prompt]
+        chat_template = jinja2.Template(self.context.chat_prompt)
+        rendered_chat_content = chat_template.render(self.build_vars())
+
+        system_content = [rendered_chat_content]
         if self.context.current_memory:
             system_content.extend(
                 [

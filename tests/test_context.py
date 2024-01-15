@@ -95,6 +95,7 @@ def test_get_name(context_instance):
     assert context_instance.get_name("bot") == "Bob"
 
 
-def test_properties(context_instance):
-    assert context_instance.chat_prompt == "You are Alice, speaking to Bob."
-    assert context_instance.reinforcement_chat_prompt == "Remember, you are Alice."
+def test_vars(context_instance):
+    vars = context_instance.vars
+    assert vars["chat_prompt"] == "You are Alice, speaking to Bob."
+    assert vars["reinforcement_chat_prompt"] == "Remember, you are Alice."

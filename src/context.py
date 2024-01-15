@@ -86,26 +86,6 @@ class Context:
         return self.current_conversation["memory"]
 
     @property
-    def chat_prompt(self):
-        return self.vars["chat_prompt"]
-
-    @property
-    def reinforcement_chat_prompt(self):
-        return self.vars.get("reinforcement_chat_prompt")
-
-    @property
-    def conversation_summarization_prompt(self):
-        return self.vars["conversation_summarization_prompt"]
-
-    @property
-    def memory_integration_prompt(self):
-        return self.vars["memory_integration_prompt"]
-
-    @property
-    def chat_model(self):
-        return self.parameters.get("chat_model", "gpt-4")
-
-    @property
     def total_cost(self):
         return self.data["total_cost"]
 

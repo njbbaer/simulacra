@@ -11,7 +11,7 @@ def data():
     names:
       user: Alice
       bot: Bob
-    prompts:
+    vars:
       chat_prompt: "You are Alice, speaking to Bob."
       reinforcement_chat_prompt: "Remember, you are Alice."
     conversations:

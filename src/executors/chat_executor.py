@@ -10,14 +10,14 @@ class ChatExecutor(Executor):
         return await self._generate_chat_completion(
             self.build_chat_messages(),
             {
-                "model": self.context.chat_model,
+                "model": "gpt-4-vision-preview",
                 "max_tokens": 1000,
             },
         )
 
     def build_vars(self):
-        facets = self.context.prompts.get("character_facets", [])
-        adjectives = self.context.prompts.get("character_adjectives", [])
+        facets = self.context.vars.get("character_facets", [])
+        adjectives = self.context.vars.get("character_adjectives", [])
         return {
             "character_facets": random.sample(facets, len(facets)),
             "character_adjectives": ", ".join(

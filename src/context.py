@@ -119,7 +119,7 @@ class Context:
 
     @property
     def image_prompts(self):
-        return self.prompts.get("image_prompts", [])
+        return self.vars.get("image_prompts", [])
 
     def _initialize_conversation_data(self):
         self.data.setdefault("conversations", [{}])

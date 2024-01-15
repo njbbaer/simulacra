@@ -11,7 +11,7 @@
         detail: low
     - type: text
       text: |-
-        {{ message.text }}
+        {{ message.text | indent(8) }}
 {% endfor -%}
 {% for message in messages -%}
 {% if message.image_url -%}
@@ -23,7 +23,7 @@
         detail: low
     - type: text
       text: |-
-        {{ message.content | indent(4) }}
+        {{ message.content | indent(8) }}
 {% else -%}
 - role: {{ message.role }}
   content: |-

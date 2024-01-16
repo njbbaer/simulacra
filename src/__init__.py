@@ -1,5 +1,5 @@
-from .custom_filters import register_filters
 from .telegram import TelegramBot
+from .template_filters import register_filters
 
 register_filters()
 

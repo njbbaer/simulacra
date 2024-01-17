@@ -28,7 +28,6 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("undo", self.undo_command_handler))
         self.app.add_handler(CommandHandler("stats", self.stats_command_handler))
         self.app.add_handler(CommandHandler("clear", self.clear_command_handler))
-        self.app.add_handler(CommandHandler("remember", self.remember_command_handler))
         self.app.add_handler(CommandHandler("help", self.help_command_handler))
         self.app.add_handler(CommandHandler("start", self.do_nothing))
         self.app.add_handler(

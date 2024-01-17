@@ -40,6 +40,7 @@ class Context:
             {
                 "name": get_current_timestamp_string(),
                 "cost": 0,
+                "facts": [],
                 "messages": [],
             }
         )
@@ -48,9 +49,11 @@ class Context:
         return self.data["names"][role]
 
     def add_cost(self, new_cost):
-        self.data.setdefault("total_cost", 0)
         self.data["total_cost"] = self.total_cost + new_cost
         self.current_conversation["cost"] = self.current_conversation_cost + new_cost
+
+    def add_fact(self, fact):
+        self.current_facts.append(fact)
 
     @property
     def current_conversation(self):
@@ -69,22 +72,28 @@ class Context:
         return self.current_conversation["messages"]
 
     @property
-    def total_cost(self):
-        return self.data["total_cost"]
+    def current_conversation_cost(self):
+        return self.current_conversation["cost"]
 
     @property
-    def current_conversation_cost(self):
-        return self.current_conversation.get("cost", 0)
+    def current_facts(self):
+        return self.current_conversation["facts"]
+
+    @property
+    def total_cost(self):
+        return self.data["total_cost"]
 
     @property
     def image_prompts(self):
         return self.prompts.get("image_prompts", [])
 
     def _initialize_conversation_data(self):
+        self.data.setdefault("total_cost", 0)
         self.data.setdefault("conversations", [{}])
         current_conversation = self.data["conversations"][-1]
         current_conversation.setdefault("name", get_current_timestamp_string())
         current_conversation.setdefault("cost", 0)
+        current_conversation.setdefault("facts", [])
         current_conversation.setdefault("messages", [])
 
 

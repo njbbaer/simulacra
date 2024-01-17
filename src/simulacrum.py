@@ -1,7 +1,7 @@
 import re
 
 from .context import Context
-from .executors import ChatExecutor, MemoryIntegrationExecutor
+from .executors import ChatExecutor
 
 
 class Simulacrum:
@@ -24,20 +24,11 @@ class Simulacrum:
         speech = self._filter_hidden(content)
         return speech
 
-    async def new_conversation(self, integrate_memory=False):
+    async def new_conversation(self):
         self.context.load()
-        if integrate_memory:
-            memory = await MemoryIntegrationExecutor(self.context).execute()
-        else:
-            memory = self.context.current_memory_chunks
-        self.context.new_conversation(memory)
+        self.context.new_conversation()
         self.context.save()
         self.warned_about_cost = False
-
-    def append_memory(self, text):
-        self.context.load()
-        self.context.append_memory("\n\n" + text)
-        self.context.save()
 
     def clear_messages(self, n=None):
         self.context.load()

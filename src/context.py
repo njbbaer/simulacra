@@ -28,9 +28,6 @@ class Context:
             }
         )
 
-    def append_memory(self, text):
-        self.current_memory_chunks.append(text)
-
     def clear_messages(self, n=None):
         self.current_conversation["messages"] = self.current_messages[:-n]
 
@@ -38,11 +35,10 @@ class Context:
         self.current_conversation["cost"] = 0
         self.current_conversation["messages"] = []
 
-    def new_conversation(self, memory_chunks):
+    def new_conversation(self):
         self.data["conversations"].append(
             {
                 "name": get_current_timestamp_string(),
-                "memory": [LiteralScalarString(x) for x in memory_chunks],
                 "cost": 0,
                 "messages": [],
             }
@@ -73,24 +69,12 @@ class Context:
         return self.current_conversation["messages"]
 
     @property
-    def current_memory(self):
-        return "\n\n".join(self.current_conversation["memory"])
-
-    @property
-    def current_memory_chunks(self):
-        return self.current_conversation["memory"]
-
-    @property
     def total_cost(self):
         return self.data["total_cost"]
 
     @property
     def current_conversation_cost(self):
         return self.current_conversation.get("cost", 0)
-
-    @property
-    def enable_memory(self):
-        return self.parameters.get("enable_memory", True)
 
     @property
     def image_prompts(self):
@@ -101,7 +85,6 @@ class Context:
         current_conversation = self.data["conversations"][-1]
         current_conversation.setdefault("name", get_current_timestamp_string())
         current_conversation.setdefault("cost", 0)
-        current_conversation.setdefault("memory", [])
         current_conversation.setdefault("messages", [])
 
 

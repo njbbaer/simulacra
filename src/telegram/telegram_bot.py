@@ -1,5 +1,4 @@
 import logging
-import re
 import textwrap
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -53,12 +52,8 @@ class TelegramBot:
     @message_handler
     async def new_conversation_command_handler(self, ctx):
         if self.sim.has_messages():
-            if self.sim.context.enable_memory:
-                await ctx.send_message("`⏳ Integrating memory...`")
-                await self.sim.new_conversation(integrate_memory=True)
-            else:
-                await self.sim.new_conversation()
-            await ctx.send_message("`✅ Ready to chat`")
+            await self.sim.new_conversation()
+            await ctx.send_message("`✅ New conversation started`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 
@@ -99,15 +94,6 @@ class TelegramBot:
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler
-    async def remember_command_handler(self, ctx):
-        memory_text = re.search(r"/remember (.*)", ctx.message.text)
-        if memory_text:
-            self.sim.append_memory(memory_text.group(1))
-            await ctx.send_message("`✅ Added to memory`")
-        else:
-            await ctx.send_message("`❌ No text provided`")
-
-    @message_handler
     async def help_command_handler(self, ctx):
         await ctx.send_message(
             textwrap.dedent(
@@ -118,7 +104,6 @@ class TelegramBot:
                 /reply - Reply immediately
                 /undo - Undo the last exchange
                 /clear - Clear the current conversation
-                /remember <text> - Add text to memory
 
                 *Information*
                 /stats - Show conversation statistics

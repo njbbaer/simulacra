@@ -20,14 +20,6 @@ class TestSimulacrum:
         )
         return mock_chat_executor
 
-    @pytest.fixture
-    def mock_memory_integration_executor(self, mocker):
-        mock_executor = mocker.patch("src.simulacrum.MemoryIntegrationExecutor")
-        mock_executor.return_value.execute = mocker.AsyncMock(
-            return_value=["Memory 1", "Memory 2"]
-        )
-        return mock_executor
-
     @staticmethod
     def assert_context_loaded_and_saved(simulacrum_context):
         simulacrum_context.load.assert_called()
@@ -53,33 +45,14 @@ class TestSimulacrum:
         simulacrum_context.save.assert_called()
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("integrate_memory", [True, False])
-    async def test_new_conversation(
-        self, integrate_memory, mock_memory_integration_executor, simulacrum_instance
-    ):
-        await simulacrum_instance.new_conversation(integrate_memory)
+    async def test_new_conversation(self, simulacrum_instance):
+        await simulacrum_instance.new_conversation()
 
         simulacrum_context = simulacrum_instance.context
-
-        if integrate_memory:
-            mock_memory_integration_executor.assert_called_once_with(simulacrum_context)
-            assert simulacrum_context.new_conversation.called_with(
-                ["Memory #1", "Memory #2"]
-            )
-        else:
-            assert not mock_memory_integration_executor.called
-            assert simulacrum_context.new_conversation.called_with([])
+        assert simulacrum_context.new_conversation.called_with([])
 
         TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
         assert simulacrum_instance.warned_about_cost is False
-
-    def test_append_memory(self, simulacrum_instance):
-        text = "This is a new memory."
-        simulacrum_instance.append_memory(text)
-
-        simulacrum_context = simulacrum_instance.context
-        simulacrum_context.append_memory.assert_called_with("\n\n" + text)
-        TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
 
     def test_clear_messages(self, simulacrum_instance):
         simulacrum_instance.clear_messages(1)

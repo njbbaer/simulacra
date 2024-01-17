@@ -15,8 +15,7 @@ def data():
       chat_prompt: "You are Alice, speaking to Bob."
       reinforcement_chat_prompt: "Remember, you are Alice."
     conversations:
-      - memory: []
-        messages: []
+      - messages: []
     """
 
 
@@ -55,14 +54,6 @@ def test_add_cost(context_instance):
     assert context_instance.data["total_cost"] == 50
 
 
-def test_append_memory(context_instance):
-    context_instance.append_memory("Recall our previous discussion about AI.")
-    assert (
-        context_instance.current_memory_chunks[-1]
-        == "Recall our previous discussion about AI."
-    )
-
-
 def reset_current_conversation(context_instance):
     context_instance.add_message("user", "Message 1")
     context_instance.add_message("assistant", "Message 2")
@@ -83,11 +74,10 @@ def test_clear_messages(context_instance):
 
 def test_new_conversation(context_instance):
     initial_conversations_count = len(context_instance.data["conversations"])
-    context_instance.new_conversation(["Memory"])
+    context_instance.new_conversation()
     assert (
         len(context_instance.data["conversations"]) == initial_conversations_count + 1
     )
-    assert context_instance.current_conversation["memory"][0] == "Memory"
 
 
 def test_get_name(context_instance):

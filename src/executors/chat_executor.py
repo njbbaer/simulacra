@@ -28,13 +28,17 @@ class ChatExecutor(Executor):
         return yaml.safe_load(rendered_str)
 
     def _render_vars(self, vars):
-        for _ in range(10):
+        MAX_ITERATIONS = 10
+
+        for _ in range(MAX_ITERATIONS):
             rendered_vars = self._render_vars_recursive(vars)
             if rendered_vars == vars:
                 break
             vars = rendered_vars
         else:
-            raise RuntimeError("Too many iterations")
+            raise RuntimeError(
+                "Too many iterations resolving vars. Circular reference?"
+            )
         return rendered_vars
 
     def _render_vars_recursive(self, vars, obj=None):

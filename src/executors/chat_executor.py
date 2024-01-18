@@ -24,7 +24,7 @@ class ChatExecutor(Executor):
             {
                 **self.context.vars,
                 "messages": self.context.current_messages,
-                "details": self.context.current_conversation_details,
+                "facts": self.context.current_conversation_facts,
             }
         )
         rendered_str = template.render(rendered_vars)

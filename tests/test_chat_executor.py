@@ -38,7 +38,7 @@ def mock_context(mocker, current_messages, vars):
     mock_instance = mocker.patch("src.context.Context").return_value
     mock_instance.vars = vars
     mock_instance.current_messages = current_messages
-    mock_instance.current_conversation_details = []
+    mock_instance.current_conversation_facts = []
     return mock_instance
 
 

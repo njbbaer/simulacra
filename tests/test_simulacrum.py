@@ -82,11 +82,11 @@ class TestSimulacrum:
         assert simulacrum_context.current_messages == messages[:2]
         TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
 
-    def test_add_conversation_detail(self, simulacrum_instance):
-        simulacrum_instance.add_conversation_detail("A detail")
+    def test_add_conversation_fact(self, simulacrum_instance):
+        simulacrum_instance.add_conversation_fact("A fact")
 
         simulacrum_context = simulacrum_instance.context
-        simulacrum_context.add_conversation_detail.assert_called_with("A detail")
+        simulacrum_context.add_conversation_fact.assert_called_with("A fact")
         TestSimulacrum.assert_context_loaded_and_saved(simulacrum_context)
 
     def test_has_messages(self, simulacrum_instance):

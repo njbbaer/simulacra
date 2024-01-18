@@ -40,7 +40,7 @@ class Context:
             {
                 "name": get_current_timestamp_string(),
                 "cost": 0,
-                "details": [],
+                "facts": [],
                 "messages": [],
             }
         )
@@ -52,8 +52,8 @@ class Context:
         self.data["total_cost"] = self.total_cost + new_cost
         self.current_conversation["cost"] = self.current_conversation_cost + new_cost
 
-    def add_conversation_detail(self, detail):
-        self.current_conversation_details.append(detail)
+    def add_conversation_fact(self, fact):
+        self.current_conversation_facts.append(fact)
 
     @property
     def current_conversation(self):
@@ -76,8 +76,8 @@ class Context:
         return self.current_conversation["cost"]
 
     @property
-    def current_conversation_details(self):
-        return self.current_conversation["details"]
+    def current_conversation_facts(self):
+        return self.current_conversation["facts"]
 
     @property
     def total_cost(self):
@@ -93,7 +93,7 @@ class Context:
         current_conversation = self.data["conversations"][-1]
         current_conversation.setdefault("name", get_current_timestamp_string())
         current_conversation.setdefault("cost", 0)
-        current_conversation.setdefault("details", [])
+        current_conversation.setdefault("facts", [])
         current_conversation.setdefault("messages", [])
 
 

@@ -41,9 +41,9 @@ class Simulacrum:
         self.context.save()
         self.warned_about_cost = False
 
-    def add_conversation_detail(self, detail):
+    def add_conversation_fact(self, fact):
         self.context.load()
-        self.context.add_conversation_detail(detail)
+        self.context.add_conversation_fact(fact)
         self.context.save()
 
     def undo_last_user_message(self):

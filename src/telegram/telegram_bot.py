@@ -27,7 +27,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("retry", self.retry_command_handler))
         self.app.add_handler(CommandHandler("reply", self.reply_command_handler))
         self.app.add_handler(CommandHandler("undo", self.undo_command_handler))
-        self.app.add_handler(CommandHandler("detail", self.add_detail_command_handler))
+        self.app.add_handler(CommandHandler("fact", self.add_fact_command_handler))
         self.app.add_handler(CommandHandler("stats", self.stats_command_handler))
         self.app.add_handler(CommandHandler("clear", self.clear_command_handler))
         self.app.add_handler(CommandHandler("help", self.help_command_handler))
@@ -95,11 +95,11 @@ class TelegramBot:
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler
-    async def add_detail_command_handler(self, ctx):
-        detail_text = re.search(r"/detail (.*)", ctx.message.text)
-        if detail_text:
-            self.sim.add_conversation_detail(detail_text.group(1))
-            await ctx.send_message("`✅ Detail added`")
+    async def add_fact_command_handler(self, ctx):
+        fact_text = re.search(r"/fact (.*)", ctx.message.text)
+        if fact_text:
+            self.sim.add_conversation_fact(fact_text.group(1))
+            await ctx.send_message("`✅ Fact added to conversation`")
         else:
             await ctx.send_message("`❌ No text provided`")
 
@@ -113,7 +113,8 @@ class TelegramBot:
                 /retry - Retry the last response
                 /reply - Reply immediately
                 /undo - Undo the last exchange
-                /clear - Clear the current conversation
+                /clear - Clear the conversation
+                /fact - Add a fact to the conversation
 
                 *Information*
                 /stats - Show conversation statistics

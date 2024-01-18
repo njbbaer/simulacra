@@ -18,8 +18,8 @@ def data():
     conversations:
       - name: 2024-01-01 00:00:00.00
         cost: 0.10
-        facts:
-          - A fact
+        details:
+          - A detail
         messages:
           - role: user
             content: "Hello, Alice!"
@@ -76,7 +76,7 @@ def test_new_conversation(context_instance):
     assert len(context_instance.data["conversations"]) == 2
     assert context_instance.current_conversation["name"]
     assert context_instance.current_conversation["cost"] == 0
-    assert context_instance.current_conversation["facts"] == []
+    assert context_instance.current_conversation["details"] == []
     assert context_instance.current_conversation["messages"] == []
 
 
@@ -91,10 +91,13 @@ def test_vars(context_instance):
     assert vars["reinforcement_chat_prompt"] == "Remember, you are Alice."
 
 
-def test_facts(context_instance):
-    assert context_instance.current_facts == ["A fact"]
+def test_details(context_instance):
+    assert context_instance.current_conversation_details == ["A detail"]
 
 
-def test_add_fact(context_instance):
-    context_instance.add_fact("Another fact")
-    assert context_instance.current_facts == ["A fact", "Another fact"]
+def test_add_conversation_detail(context_instance):
+    context_instance.add_conversation_detail("Another detail")
+    assert context_instance.current_conversation_details == [
+        "A detail",
+        "Another detail",
+    ]

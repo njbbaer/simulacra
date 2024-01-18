@@ -24,9 +24,9 @@ def vars():
         "chat_prompt": dedent(
             """
             You are Alice, speaking to Bob.
-            {%- for thing in list_of_things %}
+            {% for thing in list_of_things %}
               - {{ thing }}
-            {%- endfor %}
+            {% endfor %}
             """
         ).strip(),
         "reinforcement_chat_prompt": "Remember, you are Alice.",
@@ -38,6 +38,7 @@ def mock_context(mocker, current_messages, vars):
     mock_instance = mocker.patch("src.context.Context").return_value
     mock_instance.vars = vars
     mock_instance.current_messages = current_messages
+    mock_instance.current_conversation_details = []
     return mock_instance
 
 

@@ -20,11 +20,14 @@ class ChatExecutor(Executor):
 
     def _build_chat_messages(self):
         template = self._load_chat_template()
-        rendered_vars = self._render_vars(self.context.vars)
-        rendered_str = template.render(
-            **rendered_vars,
-            messages=self.context.current_messages,
+        rendered_vars = self._render_vars(
+            {
+                **self.context.vars,
+                "messages": self.context.current_messages,
+                "details": self.context.current_conversation_details,
+            }
         )
+        rendered_str = template.render(rendered_vars)
         return yaml.safe_load(rendered_str)
 
     def _render_vars(self, vars):
@@ -53,6 +56,8 @@ class ChatExecutor(Executor):
         elif isinstance(obj, list):
             return [self._render_vars_recursive(vars, item) for item in obj]
         elif isinstance(obj, str):
-            return jinja2.Template(obj).render(vars)
+            return jinja2.Template(obj, trim_blocks=True, lstrip_blocks=True).render(
+                vars
+            )
         else:
             raise ValueError(f"Unknown type: {type(obj)}")

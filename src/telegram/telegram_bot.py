@@ -1,4 +1,5 @@
 import logging
+import re
 import textwrap
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -26,6 +27,7 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("retry", self.retry_command_handler))
         self.app.add_handler(CommandHandler("reply", self.reply_command_handler))
         self.app.add_handler(CommandHandler("undo", self.undo_command_handler))
+        self.app.add_handler(CommandHandler("detail", self.add_detail_command_handler))
         self.app.add_handler(CommandHandler("stats", self.stats_command_handler))
         self.app.add_handler(CommandHandler("clear", self.clear_command_handler))
         self.app.add_handler(CommandHandler("help", self.help_command_handler))
@@ -91,6 +93,15 @@ class TelegramBot:
     async def clear_command_handler(self, ctx):
         self.sim.reset_current_conversation()
         await ctx.send_message("🗑️ Current conversation cleared")
+
+    @message_handler
+    async def add_detail_command_handler(self, ctx):
+        detail_text = re.search(r"/detail (.*)", ctx.message.text)
+        if detail_text:
+            self.sim.add_conversation_detail(detail_text.group(1))
+            await ctx.send_message("`✅ Detail added`")
+        else:
+            await ctx.send_message("`❌ No text provided`")
 
     @message_handler
     async def help_command_handler(self, ctx):

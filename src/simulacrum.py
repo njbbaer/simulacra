@@ -41,6 +41,11 @@ class Simulacrum:
         self.context.save()
         self.warned_about_cost = False
 
+    def add_conversation_detail(self, detail):
+        self.context.load()
+        self.context.add_conversation_detail(detail)
+        self.context.save()
+
     def undo_last_user_message(self):
         self.context.load()
         num_messages = len(self.context.current_messages)

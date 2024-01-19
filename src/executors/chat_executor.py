@@ -16,7 +16,7 @@ class ChatExecutor(Executor):
 
     def _load_chat_template(self):
         with open("src/executors/chat_template.yml") as file:
-            return jinja2.Template(file.read())
+            return jinja2.Template(file.read(), trim_blocks=True, lstrip_blocks=True)
 
     def _build_chat_messages(self):
         template = self._load_chat_template()

@@ -7,6 +7,7 @@ import toml
 from src import TelegramBot
 
 IS_DEVELOPMENT = os.environ.get("ENVIRONMENT") == "development"
+CONFIG_FILE = os.environ.get("CONFIG_FILE")
 
 
 def run_bot(bot_config):
@@ -19,7 +20,7 @@ def run_bot(bot_config):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str)
+    parser.add_argument("config_file", type=str, nargs="?", default=CONFIG_FILE)
     return parser.parse_args().config_file
 
 

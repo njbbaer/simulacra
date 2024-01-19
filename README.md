@@ -78,6 +78,8 @@ authorized_users = [ "TELEGRAM_USERNAME" ] # [ "@username", ... ]
 
 ### Context file
 
+**Note: This section no longer reflects the current state of the application.**
+
 The context file is a YAML file that defines a bot's personality prompts, stores its conversation history, and memory.
 
 See `example/context.yml` for a sample context file.

@@ -33,6 +33,7 @@ class Context:
 
     def reset_current_conversation(self):
         self.current_conversation["cost"] = 0
+        self.current_conversation["facts"] = []
         self.current_conversation["messages"] = []
 
     def new_conversation(self):

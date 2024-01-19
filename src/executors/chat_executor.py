@@ -1,6 +1,5 @@
-import random
-
 import jinja2
+import yaml
 
 from .executor import Executor
 
@@ -8,66 +7,57 @@ from .executor import Executor
 class ChatExecutor(Executor):
     async def execute(self):
         return await self._generate_chat_completion(
-            self.build_chat_messages(),
+            self._build_chat_messages(),
             {
                 "model": "gpt-4-vision-preview",
                 "max_tokens": 1000,
             },
         )
 
-    def build_vars(self):
-        facets = self.context.vars.get("character_facets", [])
-        adjectives = self.context.vars.get("character_adjectives", [])
-        return {
-            "character_facets": random.sample(facets, len(facets)),
-            "character_adjectives": ", ".join(
-                random.sample(adjectives, len(adjectives))
-            ),
-        }
+    def _load_chat_template(self):
+        with open("src/executors/chat_template.yml") as file:
+            return jinja2.Template(file.read(), trim_blocks=True, lstrip_blocks=True)
 
-    def build_chat_messages(self):
-        chat_template = jinja2.Template(self.context.chat_prompt)
-        rendered_chat_content = chat_template.render(self.build_vars())
+    def _build_chat_messages(self):
+        template = self._load_chat_template()
+        rendered_vars = self._render_vars(
+            {
+                **self.context.vars,
+                "messages": self.context.current_messages,
+                "facts": self.context.current_conversation_facts,
+            }
+        )
+        rendered_str = template.render(rendered_vars)
+        return yaml.safe_load(rendered_str)
 
-        system_content = [rendered_chat_content]
-        if self.context.current_memory:
-            system_content.extend(
-                [
-                    "---",
-                    f"{self.context.get_name('assistant')}'s Memory:",
-                    self.context.current_memory,
-                ]
+    def _render_vars(self, vars):
+        MAX_ITERATIONS = 10
+
+        for _ in range(MAX_ITERATIONS):
+            rendered_vars = self._render_vars_recursive(vars)
+            if rendered_vars == vars:
+                break
+            vars = rendered_vars
+        else:
+            raise RuntimeError(
+                "Too many iterations resolving vars. Circular reference?"
             )
+        return rendered_vars
 
-        messages = [{"role": "system", "content": "\n\n".join(system_content)}]
-        messages.extend(self._build_image_prompt_messages())
-        messages.extend(self.context.current_messages)
-        if self.context.reinforcement_chat_prompt:
-            messages.append(
-                {"role": "system", "content": self.context.reinforcement_chat_prompt}
+    def _render_vars_recursive(self, vars, obj=None):
+        if obj is None:
+            obj = vars
+
+        if isinstance(obj, dict):
+            return {
+                key: self._render_vars_recursive(vars, value)
+                for key, value in obj.items()
+            }
+        elif isinstance(obj, list):
+            return [self._render_vars_recursive(vars, item) for item in obj]
+        elif isinstance(obj, str):
+            return jinja2.Template(obj, trim_blocks=True, lstrip_blocks=True).render(
+                vars
             )
-
-        return messages
-
-    def _build_image_prompt_messages(self):
-        messages = []
-        for image_prompt in self.context.image_prompts:
-            messages.append(
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_prompt["url"],
-                                "detail": "low",
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": image_prompt["text"],
-                        },
-                    ],
-                }
-            )
-        return messages
+        else:
+            raise ValueError(f"Unknown type: {type(obj)}")

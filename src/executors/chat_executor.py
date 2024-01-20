@@ -1,3 +1,5 @@
+import os
+
 import jinja2
 import yaml
 
@@ -20,15 +22,26 @@ class ChatExecutor(Executor):
 
     def _build_chat_messages(self):
         template = self._load_chat_template()
+        dereferenced_vars = self._dereference_vars(self.context.vars)
         rendered_vars = self._render_vars(
             {
-                **self.context.vars,
+                **dereferenced_vars,
                 "messages": self.context.current_messages,
                 "facts": self.context.current_conversation_facts,
             }
         )
         rendered_str = template.render(rendered_vars)
         return yaml.safe_load(rendered_str)
+
+    def _dereference_vars(self, vars):
+        dereferenced_vars = vars.copy()
+        for key, value in vars.items():
+            if isinstance(value, str) and value.startswith("file:"):
+                file_path = value.split("file:", 1)[1]
+                full_path = os.path.join(self.context.parent_dir, file_path)
+                with open(full_path) as file:
+                    dereferenced_vars[key] = file.read()
+        return dereferenced_vars
 
     def _render_vars(self, vars):
         MAX_ITERATIONS = 10
@@ -60,4 +73,4 @@ class ChatExecutor(Executor):
                 vars
             )
         else:
-            raise ValueError(f"Unknown type: {type(obj)}")
+            return obj

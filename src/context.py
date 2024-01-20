@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from ruamel.yaml.scalarstring import LiteralScalarString
@@ -6,17 +7,17 @@ from .yaml_config import yaml
 
 
 class Context:
-    def __init__(self, context_file):
-        self.context_file = context_file
+    def __init__(self, context_filepath):
+        self.context_filepath = context_filepath
         self.load()
 
     def load(self):
-        with open(self.context_file, "r") as file:
+        with open(self.context_filepath, "r") as file:
             self.data = yaml.load(file)
         self._initialize_conversation_data()
 
     def save(self):
-        with open(self.context_file, "w") as file:
+        with open(self.context_filepath, "w") as file:
             yaml.dump(self.data, file)
 
     def add_message(self, role, message, image_url=None):
@@ -54,7 +55,7 @@ class Context:
         self.current_conversation["cost"] = self.current_conversation_cost + new_cost
 
     def add_conversation_fact(self, fact):
-        self.current_conversation_facts.append(fact)
+        self.current_conversation["facts"].append(fact)
 
     @property
     def current_conversation(self):
@@ -78,7 +79,7 @@ class Context:
 
     @property
     def current_conversation_facts(self):
-        return self.current_conversation["facts"]
+        return self.vars.get("default_facts", []) + self.current_conversation["facts"]
 
     @property
     def total_cost(self):
@@ -87,6 +88,11 @@ class Context:
     @property
     def image_prompts(self):
         return self.vars.get("image_prompts", [])
+
+    @property
+    def parent_dir(self):
+        context_dir = os.path.dirname(self.context_filepath)
+        return os.path.dirname(context_dir)
 
     def _initialize_conversation_data(self):
         self.data.setdefault("total_cost", 0)

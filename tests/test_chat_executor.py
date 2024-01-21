@@ -21,16 +21,21 @@ def current_messages():
 def vars():
     return {
         "list_of_things": ["thing1", "thing2"],
-        "chat_prompt": dedent(
-            """
-            You are Alice, speaking to Bob.
-            {% for thing in list_of_things %}
-              - {{ thing }}
-            {% endfor %}
-            """
-        ).strip(),
+        "chat_prompt": "file:chat_prompt.j2",
         "reinforcement_chat_prompt": "Remember, you are Alice.",
     }
+
+
+@pytest.fixture
+def chat_prompt_file_content():
+    return dedent(
+        """
+        You are Alice, speaking to Bob.
+        {% for thing in list_of_things %}
+          - {{ thing }}
+        {% endfor %}
+        """
+    ).strip()
 
 
 @pytest.fixture
@@ -43,6 +48,19 @@ def mock_context(mocker, current_messages, vars):
 
 
 @pytest.fixture
+def mock_read_chat_prompt(mocker, chat_prompt_file_content):
+    original_open = open
+
+    def mock_open(file, mode="r", *args, **kwargs):
+        if file.endswith("chat_prompt.j2"):
+            return mocker.mock_open(read_data=chat_prompt_file_content).return_value
+        else:
+            return original_open(file, mode, *args, **kwargs)
+
+    mocker.patch("builtins.open", mock_open)
+
+
+@pytest.fixture
 def mock_generate_chat_completion(mocker):
     completion_mock = mocker.Mock()
     completion_mock.cost = 0.25
@@ -52,7 +70,9 @@ def mock_generate_chat_completion(mocker):
 
 
 @pytest.mark.asyncio
-async def test_execute(mock_context, mock_generate_chat_completion):
+async def test_execute(
+    mock_context, mock_generate_chat_completion, mock_read_chat_prompt
+):
     await ChatExecutor(mock_context).execute()
     mock_generate_chat_completion.assert_called_once_with(
         [

@@ -90,9 +90,8 @@ class Context:
         return self.vars.get("image_prompts", [])
 
     @property
-    def parent_dir(self):
-        context_dir = os.path.dirname(self.context_filepath)
-        return os.path.dirname(context_dir)
+    def file_dir(self):
+        return os.path.dirname(self.context_filepath)
 
     def _initialize_conversation_data(self):
         self.data.setdefault("total_cost", 0)

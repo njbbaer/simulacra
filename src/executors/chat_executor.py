@@ -38,7 +38,7 @@ class ChatExecutor(Executor):
         for key, value in vars.items():
             if isinstance(value, str) and value.startswith("file:"):
                 file_path = value.split("file:", 1)[1]
-                full_path = os.path.join(self.context.parent_dir, file_path)
+                full_path = os.path.join(self.context.file_dir, file_path)
                 with open(full_path) as file:
                     dereferenced_vars[key] = file.read()
         return dereferenced_vars

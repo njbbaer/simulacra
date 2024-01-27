@@ -29,7 +29,6 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-
   lint:
     runs-on: ubuntu-latest
     steps:

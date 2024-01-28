@@ -59,19 +59,19 @@ async def test_new_conversation(simulacrum_instance):
     assert simulacrum_instance.warned_about_cost is False
 
 
-def test_clear_messages(simulacrum_instance):
-    simulacrum_instance.clear_messages(1)
+def test_trim_messages(simulacrum_instance):
+    simulacrum_instance.trim_messages(1)
 
     simulacrum_context = simulacrum_instance.context
-    simulacrum_context.clear_messages.assert_called_with(1)
+    simulacrum_context.trim_messages.assert_called_with(1)
     assert_context_loaded_and_saved(simulacrum_context)
 
 
-def test_reset_current_conversation(simulacrum_instance):
-    simulacrum_instance.reset_current_conversation()
+def test_reset_conversation(simulacrum_instance):
+    simulacrum_instance.reset_conversation()
 
     simulacrum_context = simulacrum_instance.context
-    simulacrum_context.reset_current_conversation.assert_called()
+    simulacrum_context.reset_conversation.assert_called()
     assert_context_loaded_and_saved(simulacrum_context)
     assert simulacrum_instance.warned_about_cost is False
 
@@ -83,10 +83,10 @@ def test_undo_last_user_message(simulacrum_instance):
         {"role": "assistant", "content": "How are you?"},
     ]
     simulacrum_context = simulacrum_instance.context
-    simulacrum_context.current_messages = messages
+    simulacrum_context.conversation_messages = messages
 
     simulacrum_instance.undo_last_user_message()
-    assert simulacrum_context.current_messages == messages[:2]
+    assert simulacrum_context.conversation_messages == messages[:2]
     assert_context_loaded_and_saved(simulacrum_context)
 
 
@@ -100,19 +100,21 @@ def test_add_conversation_fact(simulacrum_instance):
 
 def test_has_messages(simulacrum_instance):
     simulacrum_context = simulacrum_instance.context
-    simulacrum_context.current_messages = []
+    simulacrum_context.conversation_messages = []
 
     assert simulacrum_instance.has_messages() is False
     simulacrum_context.load.assert_called()
 
-    simulacrum_context.current_messages = [{"role": "assistant", "content": "Hello!"}]
+    simulacrum_context.conversation_messages = [
+        {"role": "assistant", "content": "Hello!"}
+    ]
 
     assert simulacrum_instance.has_messages() is True
 
 
-def test_get_current_conversation_cost(simulacrum_instance):
+def test_get_conversation_cost(simulacrum_instance):
     simulacrum_context = simulacrum_instance.context
-    simulacrum_context.current_conversation = {"cost": 0.5}
+    simulacrum_context.conversation_cost = 0.5
 
-    assert simulacrum_instance.get_current_conversation_cost() == 0.5
+    assert simulacrum_instance.get_conversation_cost() == 0.5
     simulacrum_context.load.assert_called()

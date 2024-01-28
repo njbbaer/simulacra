@@ -60,7 +60,7 @@ class TelegramBot:
 
     @message_handler
     async def retry_command_handler(self, ctx):
-        self.sim.clear_messages(1)
+        self.sim.trim_messages(1)
         await self._chat(ctx, user_message=None)
 
     @message_handler
@@ -77,7 +77,7 @@ class TelegramBot:
         lines = []
 
         lines.append("*Conversation*")
-        lines.append(f"`Cost: ${self.sim.get_current_conversation_cost():.2f}`")
+        lines.append(f"`Cost: ${self.sim.get_conversation_cost():.2f}`")
 
         lines.append("\n*Last Message*")
         if self.sim.last_cost:
@@ -91,7 +91,7 @@ class TelegramBot:
 
     @message_handler
     async def clear_command_handler(self, ctx):
-        self.sim.reset_current_conversation()
+        self.sim.reset_conversation()
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler

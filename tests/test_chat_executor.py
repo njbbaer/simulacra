@@ -4,7 +4,7 @@ from src.executors.chat_executor import ChatExecutor
 
 
 @pytest.fixture
-def current_messages():
+def conversation_messages():
     return [
         {"role": "assistant", "content": "Hello, Bob."},
         {
@@ -24,11 +24,11 @@ def vars():
 
 
 @pytest.fixture
-def mock_context(mocker, current_messages, vars):
+def mock_context(mocker, conversation_messages, vars):
     mock_instance = mocker.patch("src.context.Context").return_value
     mock_instance.vars = vars
-    mock_instance.current_messages = current_messages
-    mock_instance.current_conversation_facts = []
+    mock_instance.conversation_messages = conversation_messages
+    mock_instance.conversation_facts = []
     return mock_instance
 
 

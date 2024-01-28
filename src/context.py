@@ -1,107 +1,83 @@
 import os
 from datetime import datetime
 
-from ruamel.yaml.scalarstring import LiteralScalarString
-
+from .conversation import Conversation
 from .yaml_config import yaml
 
 
 class Context:
-    def __init__(self, context_filepath):
-        self.context_filepath = context_filepath
-        self.load()
+    def __init__(self, filepath):
+        self._filepath = filepath
 
     def load(self):
-        with open(self.context_filepath, "r") as file:
-            self.data = yaml.load(file)
-        self._initialize_conversation_data()
+        with open(self._filepath, "r") as file:
+            self._data = yaml.load(file)
+        self.load_conversation()
 
     def save(self):
-        with open(self.context_filepath, "w") as file:
-            yaml.dump(self.data, file)
+        with open(self._filepath, "w") as file:
+            yaml.dump(self._data, file)
+        self._conversation.save()
 
     def add_message(self, role, message, image_url=None):
-        self.current_conversation["messages"].append(
-            {
-                "role": role,
-                "content": LiteralScalarString(message),
-                **({"image_url": image_url} if image_url else {}),
-            }
-        )
+        self._conversation.add_message(role, message, image_url)
 
-    def clear_messages(self, n=None):
-        self.current_conversation["messages"] = self.current_messages[:-n]
+    def trim_messages(self, n=None):
+        self._conversation.trim_messages(n)
 
-    def reset_current_conversation(self):
-        self.current_conversation["cost"] = 0
-        self.current_conversation["facts"] = []
-        self.current_conversation["messages"] = []
+    def reset_conversation(self):
+        self._conversation.reset()
 
     def new_conversation(self):
-        self.data["conversations"].append(
-            {
-                "name": get_current_timestamp_string(),
-                "cost": 0,
-                "facts": [],
-                "messages": [],
-            }
-        )
+        self._data["conversation_name"] = self._new_conversation_name()
+        self._load_conversation_by_name(self._data["conversation_name"])
 
-    def get_name(self, role):
-        return self.data["names"][role]
+    def _load_conversation_by_name(self, name):
+        path = f"{self.dir}/conversations/{name}.yml"
+        self._conversation = Conversation(path)
+        self._conversation.load()
 
-    def add_cost(self, new_cost):
-        self.data["total_cost"] = self.total_cost + new_cost
-        self.current_conversation["cost"] = self.current_conversation_cost + new_cost
+    def load_conversation(self):
+        if "conversation_name" in self._data:
+            self._load_conversation_by_name(self._data["conversation_name"])
+        else:
+            self.new_conversation()
+
+    def increment_cost(self, new_cost):
+        self._data["total_cost"] += new_cost
+        self._conversation.increment_cost(new_cost)
 
     def add_conversation_fact(self, fact):
-        self.current_conversation["facts"].append(fact)
+        self._conversation.add_fact(fact)
 
     @property
-    def current_conversation(self):
-        return self.data["conversations"][-1]
+    def conversation_messages(self):
+        return self._conversation.messages
 
     @property
-    def vars(self):
-        return self.data["vars"]
+    def conversation_facts(self):
+        return self._conversation._facts
 
     @property
-    def parameters(self):
-        return self.data.get("parameters") or {}
-
-    @property
-    def current_messages(self):
-        return self.current_conversation["messages"]
-
-    @property
-    def current_conversation_cost(self):
-        return self.current_conversation["cost"]
-
-    @property
-    def current_conversation_facts(self):
-        return self.vars.get("default_facts", []) + self.current_conversation["facts"]
-
-    @property
-    def total_cost(self):
-        return self.data["total_cost"]
-
-    @property
-    def image_prompts(self):
-        return self.vars.get("image_prompts", [])
+    def conversation_cost(self):
+        return self._conversation.cost
 
     @property
     def dir(self):
-        return os.path.dirname(self.context_filepath)
+        return os.path.dirname(self._filepath)
 
-    def _initialize_conversation_data(self):
-        self.data.setdefault("total_cost", 0)
-        self.data.setdefault("conversations", [{}])
-        current_conversation = self.data["conversations"][-1]
-        current_conversation.setdefault("name", get_current_timestamp_string())
-        current_conversation.setdefault("cost", 0)
-        current_conversation.setdefault("facts", [])
-        current_conversation.setdefault("messages", [])
+    @property
+    def vars(self):
+        return self._data["vars"]
 
+    @property
+    def name(self):
+        return self._data["name"]
 
-def get_current_timestamp_string():
-    return datetime.now().replace(microsecond=0).isoformat()
+    @property
+    def _total_cost(self):
+        return self._data["total_cost"]
+
+    def _new_conversation_name(self):
+        timestamp = datetime.now().replace(microsecond=0).isoformat()
+        return f"{self.name}-{timestamp}"

@@ -30,14 +30,14 @@ class Simulacrum:
         self.context.save()
         self.warned_about_cost = False
 
-    def clear_messages(self, n=None):
+    def trim_messages(self, n=None):
         self.context.load()
-        self.context.clear_messages(n)
+        self.context.trim_messages(n)
         self.context.save()
 
-    def reset_current_conversation(self):
+    def reset_conversation(self):
         self.context.load()
-        self.context.reset_current_conversation()
+        self.context.reset_conversation()
         self.context.save()
         self.warned_about_cost = False
 
@@ -48,20 +48,20 @@ class Simulacrum:
 
     def undo_last_user_message(self):
         self.context.load()
-        num_messages = len(self.context.current_messages)
+        num_messages = len(self.context.conversation_messages)
         for _ in range(num_messages):
-            message = self.context.current_messages.pop()
+            message = self.context.conversation_messages.pop()
             if message["role"] == "user":
                 break
         self.context.save()
 
     def has_messages(self):
         self.context.load()
-        return len(self.context.current_messages) > 0
+        return len(self.context.conversation_messages) > 0
 
-    def get_current_conversation_cost(self):
+    def get_conversation_cost(self):
         self.context.load()
-        return self.context.current_conversation["cost"]
+        return self.context.conversation_cost
 
     def _filter_hidden(self, response):
         response = re.sub(r"<THINK>.*?</>", "", response, flags=re.DOTALL)

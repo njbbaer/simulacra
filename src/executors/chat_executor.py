@@ -21,11 +21,11 @@ class ChatExecutor(Executor):
         vars = resolve_vars(
             {
                 **self.context.vars,
-                "facts": self.context.current_conversation_facts,
+                "facts": self.context.conversation_facts,
             },
             self.context.dir,
         )
-        vars["messages"] = self.context.current_messages
+        vars["messages"] = self.context.conversation_messages
         with open(self.TEMPLATE_PATH) as file:
             template = jinja2.Template(
                 file.read(), trim_blocks=True, lstrip_blocks=True

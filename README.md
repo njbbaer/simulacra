@@ -8,9 +8,11 @@
 ![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-Simulacra is a platform for building GPT-4 powered Telegram bots with personalities, internal dialogue, and long term memory.
+Simulacra is a platform for building GPT-4 powered Telegram bots with a template-based personality system.
 
-If this project interests you, consider starring it on GitHub.
+This project is under active development and breaking changes may occur at any time.
+
+If this project interests you, show your support by starring it on GitHub.
 
 ## Usage
 
@@ -168,5 +170,5 @@ New versions are released automatically by GitHub Actions when a new tag is push
 A shortcut script is provided to create a new tag and push it to the repository:
 
 ```sh
-make release version=0.0.0
+make release version=0.0.0 message="Release message"
 ```

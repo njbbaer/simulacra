@@ -160,3 +160,13 @@ pipenv run pre-commit install
 ```sh
 pipenv run test
 ```
+
+### Release a new version
+
+New versions are released automatically by GitHub Actions when a new tag is pushed.
+
+A shortcut script is provided to create a new tag and push it to the repository:
+
+```sh
+make release version=0.0.0
+```

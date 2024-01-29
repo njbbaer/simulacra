@@ -29,17 +29,12 @@ class Context:
         self._conversation.reset()
 
     def new_conversation(self):
-        self._data["conversation_name"] = self._new_conversation_name()
-        self._load_conversation_by_name(self._data["conversation_name"])
-
-    def _load_conversation_by_name(self, name):
-        path = f"{self.dir}/conversations/{name}.yml"
-        self._conversation = Conversation(path)
-        self._conversation.load()
+        self._data["active_conversation"] = self._new_conversation_name()
+        self._load_conversation_by_name(self._data["active_conversation"])
 
     def load_conversation(self):
-        if "conversation_name" in self._data:
-            self._load_conversation_by_name(self._data["conversation_name"])
+        if "active_conversation" in self._data:
+            self._load_conversation_by_name(self._data["active_conversation"])
         else:
             self.new_conversation()
 
@@ -80,4 +75,10 @@ class Context:
 
     def _new_conversation_name(self):
         timestamp = datetime.now().replace(microsecond=0).isoformat()
-        return f"{self.name}-{timestamp}"
+        name = os.path.splitext(os.path.basename(self._filepath))[0]
+        return f"{name}_{timestamp}"
+
+    def _load_conversation_by_name(self, name):
+        path = f"{self.dir}/conversations/{name}.yml"
+        self._conversation = Conversation(path)
+        self._conversation.load()

@@ -17,10 +17,15 @@ class TelegramBot:
         self.app = ApplicationBuilder().token(telegram_token).build()
         self.sim = Simulacrum(context_filepath)
 
+        # Ignore stale messages
         self.app.add_handler(MessageHandler(StaleMessageFilter(), self.do_nothing))
+
+        # Disallow unauthorized users
         self.app.add_handler(
             MessageHandler(~filters.User(username=authorized_users), self.unauthorized)
         )
+
+        # Handle commands
         self.app.add_handler(
             CommandHandler("new", self.new_conversation_command_handler)
         )
@@ -32,12 +37,16 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("clear", self.clear_command_handler))
         self.app.add_handler(CommandHandler("help", self.help_command_handler))
         self.app.add_handler(CommandHandler("start", self.do_nothing))
+
+        # Handle messages
         self.app.add_handler(
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND | filters.PHOTO,
+                (filters.TEXT & ~filters.COMMAND) | filters.PHOTO | filters.VOICE,
                 self.chat_message_handler,
             )
         )
+
+        # Handle unknown messages and errors
         self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
         self.app.add_error_handler(self.error_handler)
 
@@ -47,7 +56,7 @@ class TelegramBot:
     @message_handler
     async def chat_message_handler(self, ctx):
         image_url = await ctx.get_image_url()
-        text = ctx.message.text or ctx.message.caption
+        text = await ctx.get_text()
         await self._chat(ctx, text, image_url)
 
     @message_handler
@@ -75,10 +84,8 @@ class TelegramBot:
     @message_handler
     async def stats_command_handler(self, ctx):
         lines = []
-
         lines.append("*Conversation*")
         lines.append(f"`Cost: ${self.sim.get_conversation_cost():.2f}`")
-
         lines.append("\n*Last Message*")
         if self.sim.last_cost:
             lines.append(f"`Cost: ${self.sim.last_cost:.2f}`")
@@ -86,7 +93,6 @@ class TelegramBot:
             lines.append(f"`Completion tokens: {self.sim.last_completion_tokens}`")
         else:
             lines.append("`Not available`")
-
         await ctx.send_message("\n".join(lines))
 
     @message_handler

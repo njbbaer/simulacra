@@ -8,6 +8,5 @@ release:
 		echo "Error: version format is not correct. It should be 'X.X.X'"; \
 		exit 1; \
 	fi
-	@git tag -a "v$(version)" -m "$message"
+	@git tag -a "v$(version)" -m "Release v$(version)"
 	@git push origin HEAD --tags
-

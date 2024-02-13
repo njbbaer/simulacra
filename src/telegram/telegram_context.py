@@ -20,6 +20,10 @@ class TelegramContext:
     def message(self):
         return self.update.message
 
+    @property
+    def user_name(self):
+        return self.update.message.from_user.first_name
+
     async def get_image_url(self):
         if not self.message.photo:
             return None

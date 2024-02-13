@@ -12,9 +12,10 @@ class Simulacrum:
         self.last_completion_tokens = None
         self.warned_about_cost = False
 
-    async def chat(self, user_input, image_url):
+    async def chat(self, user_input, user_name, image_url):
         self.context.load()
         if user_input:
+            user_input = self._apply_attribution(user_input, user_name)
             self.context.add_message("user", user_input, image_url)
         completion = await ChatExecutor(self.context).execute()
         content = completion.content.strip()
@@ -71,3 +72,11 @@ class Simulacrum:
         self.last_cost = completion.cost
         self.last_prompt_tokens = completion.prompt_tokens
         self.last_completion_tokens = completion.completion_tokens
+
+    def _apply_attribution(self, input, name):
+        attribute_messages = self.context.vars.get("attribute_messages")
+        if attribute_messages and name:
+            if isinstance(attribute_messages, dict) and name in attribute_messages:
+                name = attribute_messages[name]
+            input = f"{name}: {input}"
+        return input

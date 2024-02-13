@@ -147,7 +147,7 @@ class TelegramBot:
         pass
 
     async def _chat(self, ctx, user_message, image_url=None):
-        response = await self.sim.chat(user_message, image_url)
+        response = await self.sim.chat(user_message, ctx.user_name, image_url)
         response = response.translate(str.maketrans("*_", "_*"))
         await ctx.send_message(response)
         await self._warn_high_cost(ctx)

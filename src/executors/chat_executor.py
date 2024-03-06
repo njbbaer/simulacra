@@ -1,23 +1,36 @@
 import jinja2
 import yaml
 
+from ..api_client import ApiClient
+from ..chat_completion import ChatCompletion
 from ..resolve_vars import resolve_vars
-from .executor import Executor
 
 
-class ChatExecutor(Executor):
+class ChatExecutor:
     TEMPLATE_PATH = "src/executors/chat_executor_template.yml"
 
+    def __init__(self, context):
+        self.context = context
+
     async def execute(self):
-        return await self._generate_chat_completion(
-            self._build_chat_messages(),
-            {
-                "model": "gpt-4-vision-preview",
-                "max_tokens": 1000,
-            },
+        client = ApiClient(
+            base_url=self.context.api_url,
+            api_key=self.context.api_key,
+            instruction_template=self.context.instruction_template,
         )
 
-    def _build_chat_messages(self):
+        params = {"max_tokens": 1000}
+        if self.context.model is not None:
+            params["model"] = self.context.model
+
+        completion = await ChatCompletion.generate(
+            client, self._build_messages(), params
+        )
+
+        self.context.increment_cost(completion.cost)
+        return completion
+
+    def _build_messages(self):
         vars = resolve_vars(
             {
                 **self.context.vars,

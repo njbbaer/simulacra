@@ -17,6 +17,7 @@ python-telegram-bot = "*"
 "ruamel.yaml" = "*"
 toml = "*"
 jinja2 = "*"
+httpx = "*"
 
 [dev-packages]
 autoflake = "*"

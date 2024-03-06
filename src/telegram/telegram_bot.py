@@ -156,9 +156,9 @@ class TelegramBot:
         if not self.sim.last_cost:
             return
 
-        if self.sim.last_cost > 0.15:
+        if self.sim.last_cost > 0.20:
             await ctx.send_message("`🔴 Cost is high. Start a new conversation soon.`")
-        elif self.sim.last_cost > 0.10 and not self.sim.warned_about_cost:
+        elif self.sim.last_cost > 0.15 and not self.sim.warned_about_cost:
             self.sim.warned_about_cost = True
             await ctx.send_message(
                 "`🟡 Cost is elevated. Start a new conversation when ready.`"

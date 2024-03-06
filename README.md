@@ -170,5 +170,5 @@ New versions are released automatically by GitHub Actions when a new tag is push
 A shortcut script is provided to create a new tag and push it to the repository:
 
 ```sh
-make release version=0.0.0 message="Release message"
+make release version=0.0.0
 ```

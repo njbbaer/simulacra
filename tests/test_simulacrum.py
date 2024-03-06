@@ -37,7 +37,7 @@ async def test_chat(mock_chat_executor, simulacrum_instance):
     user_input = "Hello"
     image_url = "http://example.com/photo.jpg"
 
-    speech = await simulacrum_instance.chat(user_input, image_url)
+    speech = await simulacrum_instance.chat(user_input, None, image_url)
 
     simulacrum_context = simulacrum_instance.context
     mock_chat_executor.assert_called_once_with(simulacrum_context)

@@ -17,8 +17,6 @@ class ChatCompletion:
     def __init__(self, response, model):
         self.response = response
         self.pricing = self.MODEL_PRICES.get(model, [0, 0])
-        print("#" * 100)
-        print(self.pricing)
         self.logger = Logger("log.yml")
 
         if self.finish_reason == "length":

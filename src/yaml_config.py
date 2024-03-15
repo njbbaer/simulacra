@@ -9,6 +9,9 @@ class NonAliasingRTRepresenter(RoundTripRepresenter):
 
 yaml = YAML()
 
+# Disable automatic line wrapping
+yaml.width = 1000000
+
 # Disable automatic creation of aliases
 yaml.Representer = NonAliasingRTRepresenter
 

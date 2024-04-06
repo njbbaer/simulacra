@@ -76,7 +76,7 @@ async def test_execute(mock_context, mock_generate_chat_completion, mock_resolve
                 },
             ],
         },
-        {"role": "system", "content": "Remember, you are Alice."},
+        {"role": "assistant", "content": "Remember, you are Alice."},
     ]
 
     assert actual_args[2] == {

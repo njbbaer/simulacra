@@ -30,6 +30,8 @@
     {{ message.content | indent(4) }}
 {% endif %}
 {% endfor %}
-- role: system
+{% if reinforcement_chat_prompt %}
+- role: assistant
   content: |-
     {{ reinforcement_chat_prompt | indent(4) }}
+{% endif %}

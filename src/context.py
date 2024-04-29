@@ -78,18 +78,12 @@ class Context:
             return "gpt-4-vision-preview"
 
     @property
-    def api_url(self):
-        return self._data.get("api_url", "https://api.openai.com")
-
-    @property
-    def api_key(self):
-        if self._is_openai():
-            return os.environ.get("OPENAI_API_KEY")
-        return self._data.get("api_key")
-
-    @property
     def instruction_template(self):
         return self._data.get("instruction_template")
+
+    @property
+    def api_provider(self):
+        return self._data.get("api_provider") or "openai"
 
     @property
     def _total_cost(self):
@@ -106,4 +100,4 @@ class Context:
         self._conversation.load()
 
     def _is_openai(self):
-        return self._data.get("api_url") is None
+        return self._data["provider"] == "openai" or self._data.get("provider") is None

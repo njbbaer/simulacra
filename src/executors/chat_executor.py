@@ -14,8 +14,7 @@ class ChatExecutor:
 
     async def execute(self):
         client = ApiClient(
-            base_url=self.context.api_url,
-            api_key=self.context.api_key,
+            name=self.context.api_provider,
             instruction_template=self.context.instruction_template,
         )
 

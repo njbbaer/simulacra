@@ -12,6 +12,7 @@ class ChatCompletion:
         "gpt-3.5-turbo-16k": [0.003, 0.004],
         "gpt-3.5-turbo-instruct": [0.0015, 0.002],
         "anthropic/claude-3-opus:beta": [0.015, 0.075],
+        "meta-llama/llama-3-70b-instruct": [0.0008, 0.0008],
     }
 
     def __init__(self, response, model):

@@ -31,6 +31,7 @@ class TelegramBot:
         )
         self.app.add_handler(CommandHandler("retry", self.retry_command_handler))
         self.app.add_handler(CommandHandler("reply", self.reply_command_handler))
+        self.app.add_handler(CommandHandler("title", self.title_command_handler))
         self.app.add_handler(CommandHandler("undo", self.undo_command_handler))
         self.app.add_handler(CommandHandler("fact", self.add_fact_command_handler))
         self.app.add_handler(CommandHandler("stats", self.stats_command_handler))
@@ -75,6 +76,11 @@ class TelegramBot:
     @message_handler
     async def reply_command_handler(self, ctx):
         await self._chat(ctx, user_message=None)
+
+    @message_handler
+    async def title_command_handler(self, ctx):
+        title = await self.sim.generate_title()
+        await ctx.send_message(title)
 
     @message_handler
     async def undo_command_handler(self, ctx):

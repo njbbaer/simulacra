@@ -1,0 +1,14 @@
+---
+- role: system
+  content: |-
+    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify.
+{% for message in messages %}
+- role: {{ message.role }}
+  content: |-
+    {{ message.content | indent(4) }}
+{% endfor %}
+- role: assistant
+  content: |-
+    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify.
+
+    Title:

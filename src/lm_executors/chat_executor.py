@@ -7,7 +7,7 @@ from ..resolve_vars import resolve_vars
 
 
 class ChatExecutor:
-    TEMPLATE_PATH = "src/executors/chat_executor_template.yml"
+    TEMPLATE_PATH = "src/lm_executors/chat_executor_template.yml"
 
     def __init__(self, context):
         self.context = context
@@ -33,7 +33,7 @@ class ChatExecutor:
         vars = resolve_vars(
             {
                 **self.context.vars,
-                "facts": self.context.conversation_facts,
+                **self._extra_template_vars(),
             },
             self.context.dir,
         )
@@ -44,3 +44,9 @@ class ChatExecutor:
             )
         rendered_str = template.render(vars)
         return yaml.safe_load(rendered_str)
+
+    def _extra_template_vars(self):
+        return {
+            "facts": self.context.conversation_facts,
+            "model": self.context.model,
+        }

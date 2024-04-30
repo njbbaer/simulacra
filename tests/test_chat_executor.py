@@ -1,6 +1,6 @@
 import pytest
 
-from src.executors.chat_executor import ChatExecutor
+from src.lm_executors.chat_executor import ChatExecutor
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def mock_generate_chat_completion(mocker):
 @pytest.fixture
 def mock_resolve_vars(mocker):
     return mocker.patch(
-        "src.executors.chat_executor.resolve_vars", side_effect=lambda vars, _: vars
+        "src.lm_executors.chat_executor.resolve_vars", side_effect=lambda vars, _: vars
     )
 
 

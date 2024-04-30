@@ -1,7 +1,7 @@
 import re
 
 from .context import Context
-from .executors import ChatExecutor
+from .lm_executors import ChatExecutor
 
 
 class Simulacrum:

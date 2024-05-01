@@ -1,7 +1,7 @@
 ---
 - role: system
   content: |-
-    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify.
+    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify. Provide only the slug and nothing else.
 {% for message in messages %}
 - role: {{ message.role }}
   content: |-
@@ -9,6 +9,6 @@
 {% endfor %}
 - role: assistant
   content: |-
-    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify.
+    You are categorizing transcripts. Your goal is to provide a short, factual kebab-case slug to make the conversation easy to identify. Provide only the slug and nothing else.
 
-    Title:
+    Kebab-case slug:

@@ -30,11 +30,11 @@ class Context:
 
     def new_conversation(self):
         self._data["active_conversation"] = self._new_conversation_name()
-        self._load_conversation_by_name(self._data["active_conversation"])
+        self._load_conversation_by_name(self.active_conversation)
 
     def load_conversation(self):
         if "active_conversation" in self._data:
-            self._load_conversation_by_name(self._data["active_conversation"])
+            self._load_conversation_by_name(self.active_conversation)
         else:
             self.new_conversation()
 
@@ -70,6 +70,10 @@ class Context:
         return self._data["name"]
 
     @property
+    def active_conversation(self):
+        return self._data.get("active_conversation")
+
+    @property
     def model(self):
         model = self._data.get("model")
         if model:
@@ -85,9 +89,22 @@ class Context:
     def api_provider(self):
         return self._data.get("api_provider") or "openai"
 
-    @property
-    def _total_cost(self):
-        return self._data["total_cost"]
+    def has_title(self):
+        return len(self.active_conversation.split("_")) >= 3
+
+    def apply_conversation_title(self, title):
+        name_parts = self.active_conversation.split("_")
+        if len(name_parts) >= 3:
+            name_parts[2] = title
+        else:
+            name_parts.append(title)
+        new_name = "_".join(name_parts)
+        os.rename(
+            f"{self.dir}/conversations/{self.active_conversation}.yml",
+            f"{self.dir}/conversations/{new_name}.yml",
+        )
+        self._data["active_conversation"] = new_name
+        self.load_conversation()
 
     def _new_conversation_name(self):
         timestamp = datetime.now().replace(microsecond=0).isoformat()

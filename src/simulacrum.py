@@ -26,6 +26,8 @@ class Simulacrum:
         return speech
 
     async def new_conversation(self):
+        if not self.context.has_title():
+            await self.generate_title()
         self.context.load()
         self.context.new_conversation()
         self.context.save()
@@ -67,7 +69,10 @@ class Simulacrum:
     async def generate_title(self):
         self.context.load()
         completion = await TitleExecutor(self.context).execute()
-        return completion.content
+        title = completion.content.strip()
+        self.context.apply_conversation_title(title)
+        self.context.save()
+        return title
 
     def _filter_hidden(self, response):
         response = re.sub(r"<THINK>.*?</>", "", response, flags=re.DOTALL)

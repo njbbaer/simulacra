@@ -92,20 +92,6 @@ class Context:
     def has_title(self):
         return len(self.active_conversation.split("_")) >= 3
 
-    def apply_conversation_title(self, title):
-        name_parts = self.active_conversation.split("_")
-        if len(name_parts) >= 3:
-            name_parts[2] = title
-        else:
-            name_parts.append(title)
-        new_name = "_".join(name_parts)
-        os.rename(
-            f"{self.dir}/conversations/{self.active_conversation}.yml",
-            f"{self.dir}/conversations/{new_name}.yml",
-        )
-        self._data["active_conversation"] = new_name
-        self.load_conversation()
-
     def _new_conversation_name(self):
         timestamp = datetime.now().replace(microsecond=0).isoformat()
         name = os.path.splitext(os.path.basename(self._filepath))[0]

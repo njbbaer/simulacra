@@ -1,7 +1,7 @@
 import re
 
 from .context import Context
-from .lm_executors import ChatExecutor, TitleExecutor
+from .lm_executors import ChatExecutor
 
 
 class Simulacrum:
@@ -26,8 +26,6 @@ class Simulacrum:
         return speech
 
     async def new_conversation(self):
-        if not self.context.has_title():
-            await self.generate_title()
         self.context.load()
         self.context.new_conversation()
         self.context.save()
@@ -65,14 +63,6 @@ class Simulacrum:
     def get_conversation_cost(self):
         self.context.load()
         return self.context.conversation_cost
-
-    async def generate_title(self):
-        self.context.load()
-        completion = await TitleExecutor(self.context).execute()
-        title = completion.content.strip()
-        self.context.apply_conversation_title(title)
-        self.context.save()
-        return title
 
     def _filter_hidden(self, response):
         response = re.sub(r"<THINK>.*?</>", "", response, flags=re.DOTALL)

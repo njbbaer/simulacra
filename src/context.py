@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from .conversation import Conversation
 from .yaml_config import yaml
@@ -12,7 +11,7 @@ class Context:
     def load(self):
         with open(self._filepath, "r") as file:
             self._data = yaml.load(file)
-        self.load_conversation()
+        self._load_conversation()
 
     def save(self):
         with open(self._filepath, "w") as file:
@@ -29,14 +28,8 @@ class Context:
         self._conversation.reset()
 
     def new_conversation(self):
-        self._data["active_conversation"] = self._new_conversation_name()
-        self._load_conversation_by_name(self.active_conversation)
-
-    def load_conversation(self):
-        if "active_conversation" in self._data:
-            self._load_conversation_by_name(self.active_conversation)
-        else:
-            self.new_conversation()
+        self._data["active_conversation_id"] = self._next_conversation_id()
+        self._load_conversation()
 
     def increment_cost(self, new_cost):
         self._data["total_cost"] += new_cost
@@ -62,6 +55,10 @@ class Context:
         return os.path.dirname(self._filepath)
 
     @property
+    def conversations_dir(self):
+        return f"{self.dir}/conversations"
+
+    @property
     def vars(self):
         return self._data["vars"]
 
@@ -70,8 +67,10 @@ class Context:
         return self._data["name"]
 
     @property
-    def active_conversation(self):
-        return self._data.get("active_conversation")
+    def active_conversation_id(self):
+        return self._data.setdefault(
+            "active_conversation_id", self._next_conversation_id()
+        )
 
     @property
     def model(self):
@@ -89,18 +88,22 @@ class Context:
     def api_provider(self):
         return self._data.get("api_provider") or "openai"
 
-    def has_title(self):
-        return len(self.active_conversation.split("_")) >= 3
-
-    def _new_conversation_name(self):
-        timestamp = datetime.now().replace(microsecond=0).isoformat()
-        name = os.path.splitext(os.path.basename(self._filepath))[0]
-        return f"{name}_{timestamp}"
-
-    def _load_conversation_by_name(self, name):
-        path = f"{self.dir}/conversations/{name}.yml"
+    def _load_conversation(self):
+        path = f"{self.conversations_dir}/{self.name}_{self.active_conversation_id}.yml"
         self._conversation = Conversation(path)
         self._conversation.load()
+
+    def _next_conversation_id(self):
+        base_name = os.path.splitext(os.path.basename(self._filepath))[0]
+        max_id = max(
+            (
+                int(os.path.splitext(file)[0].split("_")[1])
+                for file in os.listdir(self.conversations_dir)
+                if file.startswith(base_name + "_")
+            ),
+            default=0,
+        )
+        return max_id + 1
 
     def _is_openai(self):
         return self._data["provider"] == "openai" or self._data.get("provider") is None

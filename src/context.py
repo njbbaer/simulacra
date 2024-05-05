@@ -28,7 +28,7 @@ class Context:
         self._conversation.reset()
 
     def new_conversation(self):
-        self._data["active_conversation_id"] = self._next_conversation_id()
+        self._data["conversation_id"] = self._next_conversation_id()
         self._load_conversation()
 
     def increment_cost(self, new_cost):
@@ -63,33 +63,27 @@ class Context:
         return self._data["vars"]
 
     @property
-    def name(self):
-        return self._data["name"]
+    def char_name(self):
+        return self._data["char_name"]
 
     @property
-    def active_conversation_id(self):
-        return self._data.setdefault(
-            "active_conversation_id", self._next_conversation_id()
-        )
+    def api_provider(self):
+        return self._data["api_provider"]
 
     @property
     def model(self):
-        model = self._data.get("model")
-        if model:
-            return model
-        if self._is_openai():
-            return "gpt-4-vision-preview"
+        return self._data["model"]
+
+    @property
+    def conversation_id(self):
+        return self._data.setdefault("conversation_id", self._next_conversation_id())
 
     @property
     def instruction_template(self):
         return self._data.get("instruction_template")
 
-    @property
-    def api_provider(self):
-        return self._data.get("api_provider") or "openai"
-
     def _load_conversation(self):
-        path = f"{self.conversations_dir}/{self.name}_{self.active_conversation_id}.yml"
+        path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"
         self._conversation = Conversation(path)
         self._conversation.load()
 
@@ -104,6 +98,3 @@ class Context:
             default=0,
         )
         return max_id + 1
-
-    def _is_openai(self):
-        return self._data["provider"] == "openai" or self._data.get("provider") is None

@@ -38,4 +38,7 @@ class ApiClient:
             url = f"{self.api_url}/v1/chat/completions"
             response = await client.post(url, headers=headers, json=body)
             response.raise_for_status()
-            return response.json()
+            response_json = response.json()
+            if "error" in response_json:
+                raise Exception(response_json["error"]["message"])
+            return response_json

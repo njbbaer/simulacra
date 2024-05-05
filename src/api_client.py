@@ -4,6 +4,7 @@ import httpx
 
 
 class ApiClient:
+    TIMEOUT = 120
     CONFIG = {
         "openai": {
             "api_url": "https://api.openai.com",
@@ -15,30 +16,25 @@ class ApiClient:
         },
     }
 
-    def __init__(self, name, instruction_template=None):
-        self.name = name or "openai"
-        self.instruction_template = instruction_template
-
-    @property
-    def api_url(self):
-        return self.CONFIG[self.name]["api_url"]
-
-    @property
-    def api_key(self):
-        return os.environ.get(self.CONFIG[self.name]["api_key_env"])
+    def __init__(self, provider):
+        self.provider = provider
 
     async def call_api(self, messages, parameters):
         body = {"messages": messages, **parameters}
-        if self.instruction_template:
-            body["instruction_template"] = self.instruction_template
 
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
 
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
             url = f"{self.api_url}/v1/chat/completions"
             response = await client.post(url, headers=headers, json=body)
             response.raise_for_status()
-            response_json = response.json()
-            if "error" in response_json:
-                raise Exception(response_json["error"]["message"])
-            return response_json
+            return response.json()
+
+    @property
+    def api_url(self):
+        return self.CONFIG[self.provider]["api_url"]
+
+    @property
+    def api_key(self):
+        var = self.CONFIG[self.provider]["api_key_env"]
+        return os.environ.get(var)

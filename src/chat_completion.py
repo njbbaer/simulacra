@@ -2,7 +2,6 @@ from .logger import Logger
 
 
 class ChatCompletion:
-    API_CALL_TIMEOUT = 120
     MODEL_PRICES = {
         "gpt-4": [0.03, 0.06],
         "gpt-4-0314": [0.03, 0.06],
@@ -20,15 +19,21 @@ class ChatCompletion:
         self.pricing = self.MODEL_PRICES.get(model, [0, 0])
         self.logger = Logger("log.yml")
 
-        if self.finish_reason == "length":
-            raise Exception("Response exceeded maximum length")
-
     @classmethod
     async def generate(cls, client, content, parameters):
         response = await client.call_api(content, parameters)
         completion = cls(response, parameters.get("model"))
+        completion.validate()
         completion.logger.log(parameters, content, completion.content)
         return completion
+
+    def validate(self):
+        if self.error_message:
+            raise Exception(self.error_message)
+        if self.finish_reason == "length":
+            raise Exception("Response exceeded maximum length")
+        if self.content == "":
+            raise Exception("Response was empty")
 
     @property
     def choice(self):
@@ -55,3 +60,7 @@ class ChatCompletion:
         return (self.prompt_tokens / 1000 * self.pricing[0]) + (
             self.completion_tokens / 1000 * self.pricing[1]
         )
+
+    @property
+    def error_message(self):
+        return self.response.get("error", {}).get("message", "")

@@ -13,10 +13,7 @@ class ChatExecutor:
         self.context = context
 
     async def execute(self):
-        client = ApiClient(
-            name=self.context.api_provider,
-            instruction_template=self.context.instruction_template,
-        )
+        client = ApiClient(self.context.api_provider)
 
         params = {"max_tokens": 1000}
         if self.context.model is not None:

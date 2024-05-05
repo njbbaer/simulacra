@@ -78,10 +78,6 @@ class Context:
     def conversation_id(self):
         return self._data.setdefault("conversation_id", self._next_conversation_id())
 
-    @property
-    def instruction_template(self):
-        return self._data.get("instruction_template")
-
     def _load_conversation(self):
         path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"
         self._conversation = Conversation(path)

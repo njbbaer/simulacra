@@ -1,4 +1,5 @@
 import os
+import re
 
 from .conversation import Conversation
 from .yaml_config import yaml
@@ -84,12 +85,11 @@ class Context:
         self._conversation.load()
 
     def _next_conversation_id(self):
-        base_name = os.path.splitext(os.path.basename(self._filepath))[0]
         max_id = max(
             (
                 int(os.path.splitext(file)[0].split("_")[1])
                 for file in os.listdir(self.conversations_dir)
-                if file.startswith(base_name + "_")
+                if re.match(rf"^{self.char_name}_\d+\.yml$", file)
             ),
             default=0,
         )

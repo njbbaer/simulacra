@@ -80,6 +80,7 @@ class Context:
         return self._data.setdefault("conversation_id", self._next_conversation_id())
 
     def _load_conversation(self):
+        os.makedirs(self.conversations_dir, exist_ok=True)
         path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"
         self._conversation = Conversation(path)
         self._conversation.load()

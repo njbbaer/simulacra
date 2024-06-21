@@ -7,9 +7,7 @@ from .lm_executors import ChatExecutor
 class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
-        self.last_cost = None
-        self.last_prompt_tokens = None
-        self.last_completion_tokens = None
+        self.last_completion = None
         self.warned_about_cost = False
 
     async def chat(self, user_input, user_name, image_url):
@@ -19,7 +17,7 @@ class Simulacrum:
             self.context.add_message("user", user_input, image_url)
         completion = await ChatExecutor(self.context).execute()
         content = completion.content.strip()
-        self._set_stats(completion)
+        self.last_completion = completion
         self.context.add_message("assistant", content)
         self.context.save()
         speech = self._filter_hidden(content)
@@ -67,11 +65,6 @@ class Simulacrum:
     def _filter_hidden(self, response):
         response = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL)
         return response.strip()
-
-    def _set_stats(self, completion):
-        self.last_cost = completion.cost
-        self.last_prompt_tokens = completion.prompt_tokens
-        self.last_completion_tokens = completion.completion_tokens
 
     def _apply_attribution(self, input, name):
         attribute_messages = self.context.vars.get("attribute_messages")

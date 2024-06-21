@@ -87,10 +87,11 @@ class TelegramBot:
         lines.append("*Conversation*")
         lines.append(f"`Cost: ${self.sim.get_conversation_cost():.2f}`")
         lines.append("\n*Last Message*")
-        if self.sim.last_cost:
-            lines.append(f"`Cost: ${self.sim.last_cost:.2f}`")
-            lines.append(f"`Prompt tokens: {self.sim.last_prompt_tokens}`")
-            lines.append(f"`Completion tokens: {self.sim.last_completion_tokens}`")
+        last_completion = self.sim.last_completion
+        if last_completion:
+            lines.append(f"`Cost: ${last_completion.cost:.2f}`")
+            lines.append(f"`Prompt tokens: {last_completion.prompt_tokens}`")
+            lines.append(f"`Completion tokens: {last_completion.completion_tokens}`")
         else:
             lines.append("`Not available`")
         await ctx.send_message("\n".join(lines))
@@ -150,16 +151,17 @@ class TelegramBot:
         response = await self.sim.chat(user_message, ctx.user_name, image_url)
         response = response.translate(str.maketrans("*_", "_*"))
         await ctx.send_message(response)
-        await self._warn_high_cost(ctx)
+        await self._warn_cost(ctx)
 
-    async def _warn_high_cost(self, ctx):
-        if not self.sim.last_cost:
+    async def _warn_cost(self, ctx, threshold_high=0.15, threshold_elevated=0.10):
+        cost = self.sim.last_completion.cost
+        if not cost:
             return
 
-        if self.sim.last_cost > 0.20:
-            await ctx.send_message("`🔴 Cost is high. Start a new conversation soon.`")
-        elif self.sim.last_cost > 0.15 and not self.sim.warned_about_cost:
-            self.sim.warned_about_cost = True
+        if cost > threshold_high:
+            await ctx.send_message("🔴 Cost is high. Start a new conversation soon.")
+        elif cost > threshold_elevated and not self.sim.cost_warning_sent:
+            self.sim.cost_warning_sent = True
             await ctx.send_message(
-                "`🟡 Cost is elevated. Start a new conversation when ready.`"
+                "🟡 Cost is elevated. Start a new conversation when ready."
             )

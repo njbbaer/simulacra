@@ -2,27 +2,15 @@ from .logger import Logger
 
 
 class ChatCompletion:
-    MODEL_PRICES = {
-        "gpt-4": [0.03, 0.06],
-        "gpt-4-0314": [0.03, 0.06],
-        "gpt-4-1106-preview": [0.01, 0.02],
-        "gpt-4-vision-preview": [0.01, 0.02],
-        "gpt-3.5-turbo": [0.0015, 0.002],
-        "gpt-3.5-turbo-16k": [0.003, 0.004],
-        "gpt-3.5-turbo-instruct": [0.0015, 0.002],
-        "anthropic/claude-3-opus:beta": [0.015, 0.075],
-        "meta-llama/llama-3-70b-instruct": [0.0008, 0.0008],
-    }
-
-    def __init__(self, response, model):
+    def __init__(self, response, pricing):
         self.response = response
-        self.pricing = self.MODEL_PRICES.get(model, [0, 0])
+        self.pricing = pricing
         self.logger = Logger("log.yml")
 
     @classmethod
-    async def generate(cls, client, content, parameters):
+    async def generate(cls, client, content, parameters, pricing=None):
         response = await client.call_api(content, parameters)
-        completion = cls(response, parameters.get("model"))
+        completion = cls(response, pricing)
         completion.validate()
         completion.logger.log(parameters, content, completion.content)
         return completion
@@ -57,9 +45,11 @@ class ChatCompletion:
 
     @property
     def cost(self):
-        return (self.prompt_tokens / 1000 * self.pricing[0]) + (
-            self.completion_tokens / 1000 * self.pricing[1]
-        )
+        if self.pricing:
+            return (self.prompt_tokens / 1_000_000 * self.pricing[0]) + (
+                self.completion_tokens / 1_000_000 * self.pricing[1]
+            )
+        return 0
 
     @property
     def error_message(self):

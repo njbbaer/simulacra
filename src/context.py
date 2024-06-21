@@ -79,6 +79,10 @@ class Context:
     def conversation_id(self):
         return self._data.setdefault("conversation_id", self._next_conversation_id())
 
+    @property
+    def pricing(self):
+        return self._data.get("pricing", None)
+
     def _load_conversation(self):
         os.makedirs(self.conversations_dir, exist_ok=True)
         path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"

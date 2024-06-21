@@ -20,7 +20,10 @@ class ChatExecutor:
             params["model"] = self.context.model
 
         completion = await ChatCompletion.generate(
-            client, self._build_messages(), params
+            client=client,
+            content=self._build_messages(),
+            parameters=params,
+            pricing=self.context.pricing,
         )
 
         self.context.increment_cost(completion.cost)

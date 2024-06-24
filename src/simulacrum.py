@@ -8,7 +8,7 @@ class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
         self.last_completion = None
-        self.warned_about_cost = False
+        self.cost_warning_sent = False
 
     async def chat(self, user_input, user_name, image_url):
         self.context.load()
@@ -27,7 +27,7 @@ class Simulacrum:
         self.context.load()
         self.context.new_conversation()
         self.context.save()
-        self.warned_about_cost = False
+        self.cost_warning_sent = False
 
     def trim_messages(self, n=None):
         self.context.load()
@@ -38,7 +38,7 @@ class Simulacrum:
         self.context.load()
         self.context.reset_conversation()
         self.context.save()
-        self.warned_about_cost = False
+        self.cost_warning_sent = False
 
     def add_conversation_fact(self, fact):
         self.context.load()

@@ -63,7 +63,7 @@ class Simulacrum:
         return self.context.conversation_cost
 
     def _filter_hidden(self, response):
-        response = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL)
+        response = re.sub(r"<(think|note)>.*?</\1>", "", response, flags=re.DOTALL)
         return response.strip()
 
     def _apply_attribution(self, input, name):

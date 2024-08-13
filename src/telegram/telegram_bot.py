@@ -2,11 +2,16 @@ import logging
 import re
 import textwrap
 
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+# fmt: off
+from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler,
+                          filters)
 
 from ..simulacrum import Simulacrum
 from ..telegram.filters import StaleMessageFilter
 from ..telegram.message_handler import message_handler
+
+# fmt: on
+
 
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)
@@ -149,7 +154,7 @@ class TelegramBot:
 
     async def _chat(self, ctx, user_message, image_url=None):
         response = await self.sim.chat(user_message, ctx.user_name, image_url)
-        response = response.translate(str.maketrans("*_", "_*"))
+        response = response.replace("(", "_(").replace(")", ")_")
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 

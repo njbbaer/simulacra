@@ -16,11 +16,11 @@ class Simulacrum:
             user_input = self._apply_attribution(user_input, user_name)
             self.context.add_message("user", user_input, image_url)
         completion = await ChatExecutor(self.context).execute()
-        content = completion.content.strip()
+        content = self._strip_tag(completion.content.strip(), "note")
         self.last_completion = completion
         self.context.add_message("assistant", content)
         self.context.save()
-        speech = self._filter_hidden(content)
+        speech = self._strip_tag(content, "think")
         return speech
 
     async def new_conversation(self):
@@ -62,9 +62,10 @@ class Simulacrum:
         self.context.load()
         return self.context.conversation_cost
 
-    def _filter_hidden(self, response):
-        response = re.sub(r"<(think|note)>.*?</\1>", "", response, flags=re.DOTALL)
-        return response.strip()
+    def _strip_tag(self, content, tag):
+        content = re.sub(rf"<{tag}.*?>.*?</{tag}>", "", content, flags=re.DOTALL)
+        content = re.sub(r"\n{3,}", "\n\n", content)
+        return content.strip()
 
     def _apply_attribution(self, input, name):
         attribute_messages = self.context.vars.get("attribute_messages")

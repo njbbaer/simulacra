@@ -14,7 +14,7 @@ class APIClient(ABC):
         self.api_key = os.environ.get(self.ENV_KEY)
         self.logger = Logger("log.yml")
 
-    async def call_api(self, messages, parameters, pricing):
+    async def request_completion(self, messages, parameters, pricing):
         body = self.prepare_body(messages, parameters)
         async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
             response = await client.post(

@@ -18,7 +18,7 @@ class ChatExecutor:
         if self.context.model is not None:
             params["model"] = self.context.model
 
-        completion = await client.call_api(
+        completion = await client.request_completion(
             messages=self._build_messages(),
             parameters=params,
             pricing=self.context.pricing,

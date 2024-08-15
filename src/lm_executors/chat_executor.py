@@ -1,7 +1,7 @@
 import jinja2
 import yaml
 
-from ..api_client import ApiClient
+from ..api_client import APIClient
 from ..chat_completion import ChatCompletion
 from ..resolve_vars import resolve_vars
 
@@ -13,7 +13,7 @@ class ChatExecutor:
         self.context = context
 
     async def execute(self):
-        client = ApiClient(self.context.api_provider)
+        client = APIClient.create(self.context.api_provider)
 
         params = {"max_tokens": 1000}
         if self.context.model is not None:

@@ -14,6 +14,13 @@ class APIClient(ABC):
         self.api_key = os.environ.get(self.ENV_KEY)
         self.logger = Logger("log.yml")
 
+    @staticmethod
+    def create(client_type):
+        clients = {"openrouter": OpenRouterAPIClient, "anthropic": AnthropicAPIClient}
+        if client_type not in clients:
+            raise ValueError(f"Unsupported client type: {client_type}")
+        return clients[client_type]()
+
     async def request_completion(self, messages, parameters, pricing):
         body = self.prepare_body(messages, parameters)
         async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
@@ -36,13 +43,6 @@ class APIClient(ABC):
     @abstractmethod
     def create_completion(self, response, pricing):
         pass
-
-    @staticmethod
-    def create(client_type):
-        clients = {"openrouter": OpenRouterAPIClient, "anthropic": AnthropicAPIClient}
-        if client_type not in clients:
-            raise ValueError(f"Unsupported client type: {client_type}")
-        return clients[client_type]()
 
 
 class OpenRouterAPIClient(APIClient):

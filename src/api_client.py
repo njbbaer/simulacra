@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import httpx
 
 from .chat_completion import AnthropicChatCompletion, OpenRouterChatCompletion
+from .logger import Logger
 
 
 class APIClient(ABC):
@@ -11,6 +12,7 @@ class APIClient(ABC):
 
     def __init__(self):
         self.api_key = os.environ.get(self.ENV_KEY)
+        self.logger = Logger("log.yml")
 
     async def call_api(self, body):
         async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
@@ -41,7 +43,9 @@ class OpenRouterAPIClient(APIClient):
     async def call_api(self, messages, parameters, pricing):
         body = {"messages": messages, **parameters}
         response = await super().call_api(body)
-        return OpenRouterChatCompletion(response, pricing)
+        completion = OpenRouterChatCompletion(response, pricing)
+        self.logger.log(parameters, messages, completion.content)
+        return completion
 
     def get_headers(self):
         return {"Authorization": f"Bearer {self.api_key}"}
@@ -52,10 +56,12 @@ class AnthropicAPIClient(APIClient):
     ENV_KEY = "ANTHROPIC_API_KEY"
 
     async def call_api(self, messages, parameters, pricing):
-        messages, system = self._transform_messages(messages)
-        body = {"messages": messages, "system": system, **parameters}
+        other_messages, system = self._transform_messages(messages)
+        body = {"messages": other_messages, "system": system, **parameters}
         response = await super().call_api(body)
-        return AnthropicChatCompletion(response, pricing)
+        completion = AnthropicChatCompletion(response, pricing)
+        self.logger.log(parameters, messages, completion.content)
+        return completion
 
     def get_headers(self):
         return {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"}

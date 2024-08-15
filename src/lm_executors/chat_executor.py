@@ -2,7 +2,6 @@ import jinja2
 import yaml
 
 from ..api_client import APIClient
-from ..chat_completion import ChatCompletion
 from ..resolve_vars import resolve_vars
 
 
@@ -19,9 +18,8 @@ class ChatExecutor:
         if self.context.model is not None:
             params["model"] = self.context.model
 
-        completion = await ChatCompletion.generate(
-            client=client,
-            content=self._build_messages(),
+        completion = await client.call_api(
+            messages=self._build_messages(),
             parameters=params,
             pricing=self.context.pricing,
         )

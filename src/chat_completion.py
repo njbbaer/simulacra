@@ -1,18 +1,8 @@
-from .logger import Logger
-
-
 class ChatCompletion:
     def __init__(self, response, pricing):
         self.response = response
         self.pricing = pricing
-        self.logger = Logger("log.yml")
-
-    @classmethod
-    async def generate(cls, client, content, parameters, pricing=None):
-        completion = await client.call_api(content, parameters, pricing)
-        completion.validate()
-        completion.logger.log(parameters, content, completion.content)
-        return completion
+        self.validate()
 
     def validate(self):
         if self.error_message:
@@ -46,7 +36,7 @@ class AnthropicChatCompletion(ChatCompletion):
 
     @property
     def prompt_tokens(self):
-        return self.response["usage"]["prompt_tokens"]
+        return self.response["usage"]["input_tokens"]
 
     @property
     def completion_tokens(self):

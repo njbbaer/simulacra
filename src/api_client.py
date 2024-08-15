@@ -14,66 +14,70 @@ class APIClient(ABC):
         self.api_key = os.environ.get(self.ENV_KEY)
         self.logger = Logger("log.yml")
 
-    async def call_api(self, body):
+    async def call_api(self, messages, parameters, pricing):
+        body = self.prepare_body(messages, parameters)
         async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
             response = await client.post(
                 self.API_URL, headers=self.get_headers(), json=body
             )
             response.raise_for_status()
-            return response.json()
+            completion = self.create_completion(response.json(), pricing)
+            self.logger.log(parameters, messages, completion.content)
+            return completion
 
     @abstractmethod
     def get_headers(self):
         pass
 
+    @abstractmethod
+    def prepare_body(self, messages, parameters):
+        pass
+
+    @abstractmethod
+    def create_completion(self, response, pricing):
+        pass
+
     @staticmethod
     def create(client_type):
-        if client_type == "openrouter":
-            return OpenRouterAPIClient()
-        elif client_type == "anthropic":
-            return AnthropicAPIClient()
-        else:
+        clients = {"openrouter": OpenRouterAPIClient, "anthropic": AnthropicAPIClient}
+        if client_type not in clients:
             raise ValueError(f"Unsupported client type: {client_type}")
+        return clients[client_type]()
 
 
 class OpenRouterAPIClient(APIClient):
     API_URL = "https://openrouter.ai/api/v1/chat/completions"
     ENV_KEY = "OPENROUTER_API_KEY"
 
-    async def call_api(self, messages, parameters, pricing):
-        body = {"messages": messages, **parameters}
-        response = await super().call_api(body)
-        completion = OpenRouterChatCompletion(response, pricing)
-        self.logger.log(parameters, messages, completion.content)
-        return completion
-
     def get_headers(self):
         return {"Authorization": f"Bearer {self.api_key}"}
+
+    def prepare_body(self, messages, parameters):
+        return {"messages": messages, **parameters}
+
+    def create_completion(self, response, pricing):
+        return OpenRouterChatCompletion(response, pricing)
 
 
 class AnthropicAPIClient(APIClient):
     API_URL = "https://api.anthropic.com/v1/messages"
     ENV_KEY = "ANTHROPIC_API_KEY"
 
-    async def call_api(self, messages, parameters, pricing):
-        other_messages, system = self._transform_messages(messages)
-        body = {"messages": other_messages, "system": system, **parameters}
-        response = await super().call_api(body)
-        completion = AnthropicChatCompletion(response, pricing)
-        self.logger.log(parameters, messages, completion.content)
-        return completion
-
     def get_headers(self):
         return {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"}
 
+    def prepare_body(self, messages, parameters):
+        other_messages, system = self._transform_messages(messages)
+        return {"messages": other_messages, "system": system, **parameters}
+
+    def create_completion(self, response, pricing):
+        return AnthropicChatCompletion(response, pricing)
+
     def _transform_messages(self, original_messages):
-        messages = []
-        system = []
-
-        for message in original_messages:
-            if message["role"] == "system":
-                system.append({"type": "text", "text": message["content"]})
-            else:
-                messages.append(message)
-
+        messages = [msg for msg in original_messages if msg["role"] != "system"]
+        system = [
+            {"type": "text", "text": msg["content"]}
+            for msg in original_messages
+            if msg["role"] == "system"
+        ]
         return messages, system

@@ -1,19 +1,8 @@
-from .logger import Logger
-
-
 class ChatCompletion:
     def __init__(self, response, pricing):
         self.response = response
         self.pricing = pricing
-        self.logger = Logger("log.yml")
-
-    @classmethod
-    async def generate(cls, client, content, parameters, pricing=None):
-        response = await client.call_api(content, parameters)
-        completion = cls(response, pricing)
-        completion.validate()
-        completion.logger.log(parameters, content, completion.content)
-        return completion
+        self.validate()
 
     def validate(self):
         if self.error_message:
@@ -23,6 +12,42 @@ class ChatCompletion:
         if self.content == "":
             raise Exception("Response was empty")
 
+    @property
+    def cost(self):
+        if self.pricing:
+            return (self.prompt_tokens / 1_000_000 * self.pricing[0]) + (
+                self.completion_tokens / 1_000_000 * self.pricing[1]
+            )
+        return 0
+
+    @property
+    def error_message(self):
+        return self.response.get("error", {}).get("message", "")
+
+
+class AnthropicChatCompletion(ChatCompletion):
+    @property
+    def choice(self):
+        return self.response["content"][0]
+
+    @property
+    def content(self):
+        return self.choice["text"]
+
+    @property
+    def prompt_tokens(self):
+        return self.response["usage"]["input_tokens"]
+
+    @property
+    def completion_tokens(self):
+        return self.response["usage"]["output_tokens"]
+
+    @property
+    def finish_reason(self):
+        return self.response["stop_reason"]
+
+
+class OpenRouterChatCompletion(ChatCompletion):
     @property
     def choice(self):
         return self.response["choices"][0]
@@ -42,15 +67,3 @@ class ChatCompletion:
     @property
     def finish_reason(self):
         return self.choice["finish_reason"]
-
-    @property
-    def cost(self):
-        if self.pricing:
-            return (self.prompt_tokens / 1_000_000 * self.pricing[0]) + (
-                self.completion_tokens / 1_000_000 * self.pricing[1]
-            )
-        return 0
-
-    @property
-    def error_message(self):
-        return self.response.get("error", {}).get("message", "")

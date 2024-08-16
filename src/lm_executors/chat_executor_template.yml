@@ -2,17 +2,6 @@
 - role: system
   content: |-
     {{ chat_prompt | indent(4) }}
-{% for message in image_prompts %}
-- role: system
-  content:
-    - type: image_url
-      image_url:
-        url: {{ message.url }}
-        detail: low
-    - type: text
-      text: |-
-        {{ message.text | indent(8) }}
-{% endfor %}
 {% for message in messages %}
 {% if message.image_url %}
 - role: {{ message.role }}

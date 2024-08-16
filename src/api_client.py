@@ -64,7 +64,11 @@ class AnthropicAPIClient(APIClient):
     ENV_KEY = "ANTHROPIC_API_KEY"
 
     def get_headers(self):
-        return {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"}
+        return {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
+        }
 
     def prepare_body(self, messages, parameters):
         other_messages, system = self._transform_messages(messages)
@@ -75,9 +79,9 @@ class AnthropicAPIClient(APIClient):
 
     def _transform_messages(self, original_messages):
         messages = [msg for msg in original_messages if msg["role"] != "system"]
-        system = [
-            {"type": "text", "text": msg["content"]}
-            for msg in original_messages
-            if msg["role"] == "system"
-        ]
+        system = []
+        for msg in original_messages:
+            if msg["role"] == "system":
+                system.extend(msg["content"])
+
         return messages, system

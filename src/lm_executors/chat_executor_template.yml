@@ -1,7 +1,18 @@
 ---
+{% for artifact in artifacts %}
 - role: system
-  content: |-
-    {{ chat_prompt | indent(4) }}
+  content:
+    - type: text
+      text: |-
+        {{ artifact | indent(8) }}
+      cache_control: 
+        type: ephemeral
+{% endfor %}
+- role: system
+  content:
+    - type: text
+      text: |-
+        {{ chat_prompt | indent(8) }}
 {% for message in messages %}
 {% if message.image_url %}
 - role: {{ message.role }}
@@ -20,7 +31,9 @@
 {% endif %}
 {% endfor %}
 {% if reinforcement_chat_prompt %}
-- role: {{ 'system' if not model.startswith('anthropic/') else 'assistant' }}
-  content: |-
-    {{ reinforcement_chat_prompt | indent(4) }}
+- role: {{ 'system' if not 'claude' in model else 'assistant' }}
+  content:
+    - type: text
+      text: |-
+        {{ reinforcement_chat_prompt | indent(8) }}
 {% endif %}

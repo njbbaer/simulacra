@@ -88,18 +88,26 @@ class TelegramBot:
 
     @message_handler
     async def stats_command_handler(self, ctx):
-        lines = []
-        lines.append("*Conversation*")
-        lines.append(f"`Cost: ${self.sim.get_conversation_cost():.2f}`")
-        lines.append("\n*Last Message*")
-        last_completion = self.sim.last_completion
-        if last_completion:
-            lines.append(f"`Cost: ${last_completion.cost:.2f}`")
-            lines.append(f"`Prompt tokens: {last_completion.prompt_tokens}`")
-            lines.append(f"`Completion tokens: {last_completion.completion_tokens}`")
+        conversation_cost = (
+            f"*Conversation*\n`Cost: ${self.sim.get_conversation_cost():.2f}`"
+        )
+
+        last_message_stats = "*Last Message*\n"
+        if self.sim.last_completion:
+            lc = self.sim.last_completion
+            last_message_stats += "\n".join(
+                [
+                    f"`Cost: ${lc.cost:.2f}`",
+                    f"`Prompt tokens: {lc.prompt_tokens}`",
+                    f"`Completion tokens: {lc.completion_tokens}`",
+                    f"`Cache creation tokens: {lc.cache_creation_input_tokens}`",
+                    f"`Cache read tokens: {lc.cache_read_input_tokens}`",
+                ]
+            )
         else:
-            lines.append("`Not available`")
-        await ctx.send_message("\n".join(lines))
+            last_message_stats += "`Not available`"
+
+        await ctx.send_message(f"{conversation_cost}\n\n{last_message_stats}")
 
     @message_handler
     async def clear_command_handler(self, ctx):

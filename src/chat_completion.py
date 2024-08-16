@@ -24,6 +24,14 @@ class ChatCompletion:
     def error_message(self):
         return self.response.get("error", {}).get("message", "")
 
+    @property
+    def cache_creation_input_tokens(self):
+        return 0
+
+    @property
+    def cache_read_input_tokens(self):
+        return 0
+
 
 class AnthropicChatCompletion(ChatCompletion):
     @property
@@ -41,6 +49,14 @@ class AnthropicChatCompletion(ChatCompletion):
     @property
     def completion_tokens(self):
         return self.response["usage"]["output_tokens"]
+
+    @property
+    def cache_creation_input_tokens(self):
+        return self.response["usage"]["cache_creation_input_tokens"]
+
+    @property
+    def cache_read_input_tokens(self):
+        return self.response["usage"]["cache_read_input_tokens"]
 
     @property
     def finish_reason(self):

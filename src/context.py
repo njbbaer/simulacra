@@ -22,9 +22,6 @@ class Context:
     def add_message(self, role, message, image_url=None):
         self._conversation.add_message(role, message, image_url)
 
-    def trim_messages(self, n=None):
-        self._conversation.trim_messages(n)
-
     def reset_conversation(self):
         self._conversation.reset()
 

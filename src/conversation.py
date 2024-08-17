@@ -29,9 +29,6 @@ class Conversation:
             }
         )
 
-    def trim_messages(self, n=None):
-        self._data["messages"] = self.messages[:-n]
-
     def reset(self):
         self._data = {
             "cost": 0,

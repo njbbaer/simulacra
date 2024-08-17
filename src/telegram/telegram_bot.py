@@ -74,7 +74,8 @@ class TelegramBot:
 
     @message_handler
     async def retry_command_handler(self, ctx):
-        self.sim.trim_messages(1)
+        if self.sim.last_message_role == "assistant":
+            self.sim.undo_last_messages_by_role("assistant")
         await self._chat(ctx, user_message=None)
 
     @message_handler
@@ -83,7 +84,7 @@ class TelegramBot:
 
     @message_handler
     async def undo_command_handler(self, ctx):
-        self.sim.undo_last_user_message()
+        self.sim.undo_last_messages_by_role("user")
         await ctx.send_message("🗑️ Last message undone")
 
     @message_handler

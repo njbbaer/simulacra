@@ -82,4 +82,4 @@ class OpenRouterChatCompletion(ChatCompletion):
 
     @property
     def finish_reason(self):
-        return self.choice["finish_reason"]
+        return self.choice.get("finish_reason")

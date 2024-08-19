@@ -17,11 +17,11 @@ class Simulacrum:
             self.context.add_message("user", user_input, image_url)
         self.context.save()
         completion = await ChatExecutor(self.context).execute()
-        content = self._strip_tag(completion.content.strip(), "note")
+        content = self._strip_tag(completion.content.strip(), "playwright")
         self.last_completion = completion
         self.context.add_message("assistant", content)
         self.context.save()
-        speech = self._strip_tag(content, "think")
+        speech = self._strip_tag(content, "thinking")
         return speech
 
     async def new_conversation(self):

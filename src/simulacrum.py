@@ -60,6 +60,7 @@ class Simulacrum:
 
     @property
     def last_message_role(self):
+        self.context.load()
         return self.context.conversation_messages[-1]["role"]
 
     def _strip_tag(self, content, tag):

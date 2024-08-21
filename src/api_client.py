@@ -23,14 +23,17 @@ class APIClient(ABC):
 
     async def request_completion(self, messages, parameters, pricing):
         body = self.prepare_body(messages, parameters)
-        async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
-            response = await client.post(
-                self.API_URL, headers=self.get_headers(), json=body
-            )
-            response.raise_for_status()
-            completion = self.create_completion(response.json(), pricing)
-            self.logger.log(parameters, messages, completion.content)
-            return completion
+        try:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
+                response = await client.post(
+                    self.API_URL, headers=self.get_headers(), json=body
+                )
+                response.raise_for_status()
+                completion = self.create_completion(response.json(), pricing)
+                self.logger.log(parameters, messages, completion.content)
+                return completion
+        except httpx.ReadTimeout:
+            raise Exception("Request timed out")
 
     @abstractmethod
     def get_headers(self):

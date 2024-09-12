@@ -31,17 +31,20 @@ class TelegramBot:
         )
 
         # Handle commands
-        self.app.add_handler(
-            CommandHandler("new", self.new_conversation_command_handler)
-        )
-        self.app.add_handler(CommandHandler("retry", self.retry_command_handler))
-        self.app.add_handler(CommandHandler("reply", self.reply_command_handler))
-        self.app.add_handler(CommandHandler("undo", self.undo_command_handler))
-        self.app.add_handler(CommandHandler("fact", self.add_fact_command_handler))
-        self.app.add_handler(CommandHandler("stats", self.stats_command_handler))
-        self.app.add_handler(CommandHandler("clear", self.clear_command_handler))
-        self.app.add_handler(CommandHandler("help", self.help_command_handler))
-        self.app.add_handler(CommandHandler("start", self.do_nothing))
+        command_handlers = [
+            (["new"], self.new_conversation_command_handler),
+            (["retry", "r"], self.retry_command_handler),
+            (["reply", "rep"], self.reply_command_handler),
+            (["undo", "u"], self.undo_command_handler),
+            (["fact", "f"], self.add_fact_command_handler),
+            (["stats", "s"], self.stats_command_handler),
+            (["clear", "c"], self.clear_command_handler),
+            (["help", "h"], self.help_command_handler),
+            (["start"], self.do_nothing),
+        ]
+        for commands, handler in command_handlers:
+            for cmd in commands:
+                self.app.add_handler(CommandHandler(cmd, handler))
 
         # Handle messages
         self.app.add_handler(

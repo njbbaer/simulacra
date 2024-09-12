@@ -32,7 +32,7 @@ class TelegramBot:
 
         # Handle commands
         command_handlers = [
-            (["new"], self.new_conversation_command_handler),
+            (["new", "n"], self.new_conversation_command_handler),
             (["retry", "r"], self.retry_command_handler),
             (["reply", "rep"], self.reply_command_handler),
             (["undo", "u"], self.undo_command_handler),

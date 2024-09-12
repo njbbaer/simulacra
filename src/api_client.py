@@ -8,7 +8,7 @@ from .logger import Logger
 
 
 class APIClient(ABC):
-    TIMEOUT = 60
+    TIMEOUT = 30
 
     def __init__(self):
         self.api_key = os.environ.get(self.ENV_KEY)

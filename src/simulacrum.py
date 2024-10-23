@@ -17,10 +17,11 @@ class Simulacrum:
             self.context.add_message("user", user_input, image_url)
         self.context.save()
         completion = await ChatExecutor(self.context).execute()
-        content = self._strip_tag(completion.content.strip(), "playwright")
         self.last_completion = completion
+        content = completion.content.strip()
         self.context.add_message("assistant", content)
         self.context.save()
+        content = self._strip_tag(content, "playwright")
         speech = self._strip_tag(content, "think")
         return speech
 

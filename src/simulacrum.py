@@ -21,7 +21,7 @@ class Simulacrum:
         self.last_completion = completion
         self.context.add_message("assistant", content)
         self.context.save()
-        speech = self._strip_tag(content, "thinking")
+        speech = self._strip_tag(content, "think")
         return speech
 
     async def new_conversation(self):

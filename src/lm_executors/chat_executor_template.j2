@@ -14,21 +14,17 @@
       text: |-
         {{ chat_prompt | indent(8) }}
 {% for message in messages %}
-{% if message.image_url %}
 - role: {{ message.role }}
   content:
+    {% if message.image_url %}
     - type: image_url
       image_url:
         url: {{ message.image_url }}
         detail: low
+    {% endif %}
     - type: text
       text: |-
         {{ message.content | indent(8) }}
-{% else %}
-- role: {{ message.role }}
-  content: |-
-    {{ message.content | indent(4) }}
-{% endif %}
 {% endfor %}
 {% if reinforcement_chat_prompt %}
 - role: {{ 'system' if not 'claude' in model else 'assistant' }}

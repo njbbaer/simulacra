@@ -6,7 +6,7 @@ from ..resolve_vars import resolve_vars
 
 
 class ChatExecutor:
-    TEMPLATE_PATH = "src/lm_executors/chat_executor_template.yml"
+    TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
 
     def __init__(self, context):
         self.context = context

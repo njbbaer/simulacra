@@ -41,5 +41,11 @@ class ChatCompletion:
         return self.response["details"]["cache_discount"]
 
     @property
+    def cache_discount_string(self):
+        sign = "-" if self.cache_discount < 0 else ""
+        amount = f"${abs(self.cache_discount):.2f}"
+        return f"{sign}{amount}"
+
+    @property
     def cost(self):
         return self.response["details"]["total_cost"]

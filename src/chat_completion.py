@@ -25,11 +25,7 @@ class ChatCompletion:
         return self.response.get("error", {}).get("message", "")
 
     @property
-    def cache_creation_input_tokens(self):
-        return 0
-
-    @property
-    def cache_read_input_tokens(self):
+    def cache_discount(self):
         return 0
 
 
@@ -45,18 +41,6 @@ class AnthropicChatCompletion(ChatCompletion):
     @property
     def prompt_tokens(self):
         return self.response["usage"]["input_tokens"]
-
-    @property
-    def completion_tokens(self):
-        return self.response["usage"]["output_tokens"]
-
-    @property
-    def cache_creation_input_tokens(self):
-        return self.response["usage"]["cache_creation_input_tokens"]
-
-    @property
-    def cache_read_input_tokens(self):
-        return self.response["usage"]["cache_read_input_tokens"]
 
     @property
     def finish_reason(self):
@@ -83,3 +67,11 @@ class OpenRouterChatCompletion(ChatCompletion):
     @property
     def finish_reason(self):
         return self.choice.get("finish_reason")
+
+    @property
+    def cache_discount(self):
+        return self.response["details"]["cache_discount"]
+
+    @property
+    def cost(self):
+        return self.response["details"]["total_cost"]

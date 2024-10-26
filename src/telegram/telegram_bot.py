@@ -104,8 +104,7 @@ class TelegramBot:
                     f"`Cost: ${lc.cost:.2f}`",
                     f"`Prompt tokens: {lc.prompt_tokens}`",
                     f"`Completion tokens: {lc.completion_tokens}`",
-                    f"`Cache creation tokens: {lc.cache_creation_input_tokens}`",
-                    f"`Cache read tokens: {lc.cache_read_input_tokens}`",
+                    f"`Cache discount: ${lc.cache_discount:.2f}`",
                 ]
             )
         else:

@@ -2,7 +2,7 @@ import os
 
 import httpx
 
-from .chat_completion import OpenRouterChatCompletion
+from .chat_completion import ChatCompletion
 from .logger import Logger
 
 
@@ -25,7 +25,7 @@ class OpenRouterAPIClient:
         body = self.prepare_body(messages, parameters)
         try:
             completion_data = await self.get_completion_data(body)
-            completion = OpenRouterChatCompletion(completion_data, pricing)
+            completion = ChatCompletion(completion_data, pricing)
             self.logger.log(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout:

@@ -1,7 +1,7 @@
 import jinja2
 import yaml
 
-from ..api_client import APIClient
+from ..api_client import OpenRouterAPIClient
 from ..resolve_vars import resolve_vars
 
 
@@ -12,9 +12,9 @@ class ChatExecutor:
         self.context = context
 
     async def execute(self):
-        client = APIClient.create(self.context.api_provider)
+        client = OpenRouterAPIClient()
 
-        params = {"max_tokens": 1000}
+        params = {"max_tokens": 1024}
         if self.context.model is not None:
             params["model"] = self.context.model
 

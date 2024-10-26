@@ -13,58 +13,6 @@ class ChatCompletion:
             raise Exception("Response was empty")
 
     @property
-    def cost(self):
-        if self.pricing:
-            return (self.prompt_tokens / 1_000_000 * self.pricing[0]) + (
-                self.completion_tokens / 1_000_000 * self.pricing[1]
-            )
-        return 0
-
-    @property
-    def error_message(self):
-        return self.response.get("error", {}).get("message", "")
-
-    @property
-    def cache_creation_input_tokens(self):
-        return 0
-
-    @property
-    def cache_read_input_tokens(self):
-        return 0
-
-
-class AnthropicChatCompletion(ChatCompletion):
-    @property
-    def choice(self):
-        return self.response["content"][0]
-
-    @property
-    def content(self):
-        return self.choice["text"]
-
-    @property
-    def prompt_tokens(self):
-        return self.response["usage"]["input_tokens"]
-
-    @property
-    def completion_tokens(self):
-        return self.response["usage"]["output_tokens"]
-
-    @property
-    def cache_creation_input_tokens(self):
-        return self.response["usage"]["cache_creation_input_tokens"]
-
-    @property
-    def cache_read_input_tokens(self):
-        return self.response["usage"]["cache_read_input_tokens"]
-
-    @property
-    def finish_reason(self):
-        return self.response["stop_reason"]
-
-
-class OpenRouterChatCompletion(ChatCompletion):
-    @property
     def choice(self):
         return self.response["choices"][0]
 
@@ -83,3 +31,21 @@ class OpenRouterChatCompletion(ChatCompletion):
     @property
     def finish_reason(self):
         return self.choice.get("finish_reason")
+
+    @property
+    def error_message(self):
+        return self.response.get("error", {}).get("message", "")
+
+    @property
+    def cache_discount(self):
+        return self.response["details"]["cache_discount"]
+
+    @property
+    def cache_discount_string(self):
+        sign = "-" if self.cache_discount < 0 else ""
+        amount = f"${abs(self.cache_discount):.2f}"
+        return f"{sign}{amount}"
+
+    @property
+    def cost(self):
+        return self.response["details"]["total_cost"]

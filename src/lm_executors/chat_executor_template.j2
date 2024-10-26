@@ -25,6 +25,10 @@
     - type: text
       text: |-
         {{ message.content | indent(8) }}
+      {% if loop.index in [(messages|length), (messages|length - 2)] %}
+      cache_control: 
+        type: ephemeral
+      {% endif %}
 {% endfor %}
 {% if reinforcement_chat_prompt %}
 - role: {{ 'system' if not 'claude' in model else 'assistant' }}

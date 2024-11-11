@@ -37,6 +37,7 @@ class TelegramBot:
             (["continue", "co"], self.continue_command_handler),
             (["undo", "u"], self.undo_command_handler),
             (["fact", "f"], self.add_fact_command_handler),
+            (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
             (["clear", "cl"], self.clear_command_handler),
             (["help", "h"], self.help_command_handler),
@@ -119,12 +120,15 @@ class TelegramBot:
 
     @message_handler
     async def add_fact_command_handler(self, ctx):
-        fact_text = re.search(r"/fact (.*)", ctx.message.text)
-        if fact_text:
-            self.sim.add_conversation_fact(fact_text.group(1))
-            await ctx.send_message("`✅ Fact added to conversation`")
-        else:
-            await ctx.send_message("`❌ No text provided`")
+        await self._process_text_after_command(
+            ctx, self.sim.add_conversation_fact, "`✅ Fact added to conversation`"
+        )
+
+    @message_handler
+    async def apply_instruction_command_handler(self, ctx):
+        await self._process_text_after_command(
+            ctx, self.sim.apply_instruction, "`✅ Instruction applied to next response`"
+        )
 
     @message_handler
     async def help_command_handler(self, ctx):
@@ -181,3 +185,11 @@ class TelegramBot:
             await ctx.send_message(
                 "🟡 Cost is elevated. Start a new conversation when ready."
             )
+
+    async def _process_text_after_command(self, ctx, action_method, success_message):
+        command_text = re.search(r"/\w+\s+(.*)", ctx.message.text)
+        if command_text:
+            action_method(command_text.group(1))
+            await ctx.send_message(success_message)
+        else:
+            await ctx.send_message("`❌ No text provided`")

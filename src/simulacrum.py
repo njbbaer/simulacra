@@ -1,4 +1,5 @@
 import re
+import textwrap
 
 from .context import Context
 from .lm_executors import ChatExecutor
@@ -9,11 +10,12 @@ class Simulacrum:
         self.context = Context(context_file)
         self.last_completion = None
         self.cost_warning_sent = False
+        self.instruction_text = None
 
     async def chat(self, user_input, user_name, image_url):
         self.context.load()
         if user_input:
-            user_input = self._apply_attribution(user_input, user_name)
+            user_input = self._inject_instruction(user_input)
             self.context.add_message("user", user_input, image_url)
         self.context.save()
         completion = await ChatExecutor(self.context).execute()
@@ -37,10 +39,13 @@ class Simulacrum:
         self.context.save()
         self.cost_warning_sent = False
 
-    def add_conversation_fact(self, fact):
+    def add_conversation_fact(self, fact_text):
         self.context.load()
-        self.context.add_conversation_fact(fact)
+        self.context.add_conversation_fact(fact_text)
         self.context.save()
+
+    def apply_instruction(self, instruction_text):
+        self.instruction_text = instruction_text
 
     def undo_last_messages_by_role(self, role):
         self.context.load()
@@ -69,10 +74,16 @@ class Simulacrum:
         content = re.sub(r"\n{3,}", "\n\n", content)
         return content.strip()
 
-    def _apply_attribution(self, input, name):
-        attribute_messages = self.context.vars.get("attribute_messages")
-        if attribute_messages and name:
-            if isinstance(attribute_messages, dict) and name in attribute_messages:
-                name = attribute_messages[name]
-            input = f"{name}: {input}"
-        return input
+    def _inject_instruction(self, text):
+        if self.instruction_text:
+            text = textwrap.dedent(
+                f"""
+                {text}
+
+                <instruct>
+                {self.instruction_text}
+                </instruct>
+                """
+            )
+            self.instruction_text = None
+        return text

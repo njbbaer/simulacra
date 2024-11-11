@@ -140,9 +140,9 @@ class TelegramBot:
                 /retry - Retry the last response
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
-                /fact - Add a fact to the conversation
                 /continue - Request another response
-
+                /fact (...) - Add a fact to the conversation
+                /instruct (...) - Apply an instruction
                 *Information*
                 /stats - Show conversation statistics
                 /help - Show this help message

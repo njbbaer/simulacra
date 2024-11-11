@@ -34,11 +34,11 @@ class TelegramBot:
         command_handlers = [
             (["new", "n"], self.new_conversation_command_handler),
             (["retry", "r"], self.retry_command_handler),
-            (["reply", "rep"], self.reply_command_handler),
+            (["continue", "co"], self.continue_command_handler),
             (["undo", "u"], self.undo_command_handler),
             (["fact", "f"], self.add_fact_command_handler),
             (["stats", "s"], self.stats_command_handler),
-            (["clear", "c"], self.clear_command_handler),
+            (["clear", "cl"], self.clear_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self.do_nothing),
         ]
@@ -82,7 +82,7 @@ class TelegramBot:
         await self._chat(ctx, user_message=None)
 
     @message_handler
-    async def reply_command_handler(self, ctx):
+    async def continue_command_handler(self, ctx):
         await self._chat(ctx, user_message=None)
 
     @message_handler
@@ -134,10 +134,10 @@ class TelegramBot:
                 *Actions*
                 /new - Start a new conversation
                 /retry - Retry the last response
-                /reply - Reply immediately
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
                 /fact - Add a fact to the conversation
+                /continue - Request another response
 
                 *Information*
                 /stats - Show conversation statistics

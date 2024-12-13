@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import httpx
@@ -7,12 +8,8 @@ from .logger import Logger
 
 
 class OpenRouterAPIClient:
-    API_URL = "https://openrouter.ai/api/v1/chat/completions"
-    ENV_KEY = "OPENROUTER_API_KEY"
-    TIMEOUT = 30
-
     def __init__(self):
-        self.api_key = os.environ.get(self.ENV_KEY)
+        self.api_key = os.environ.get("OPENROUTER_API_KEY")
         self.logger = Logger("log.yml")
 
     def get_headers(self):
@@ -24,32 +21,36 @@ class OpenRouterAPIClient:
     async def request_completion(self, messages, parameters, pricing):
         body = self.prepare_body(messages, parameters)
         try:
-            completion_data = await self.get_completion_data(body)
+            completion_data = await self._fetch_completion_data(body)
             completion = ChatCompletion(completion_data, pricing)
             self.logger.log(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout:
             raise Exception("Request timed out")
 
-    async def get_completion_data(self, body):
-        async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
+    async def _fetch_completion_data(self, body):
+        async with httpx.AsyncClient(timeout=30) as client:
             completion_response = await client.post(
-                self.API_URL, headers=self.get_headers(), json=body
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=self.get_headers(),
+                json=body,
             )
             completion_response.raise_for_status()
             completion_data = completion_response.json()
             if "error" in completion_data:
                 raise Exception(completion_data["error"])
 
-            details_data = await self._poll_details(client, completion_data["id"])
+            details_data = await self._fetch_details(completion_data["id"])
             return {**completion_data, "details": details_data["data"]}
 
-    async def _poll_details(self, client, generation_id, max_attempts=10):
+    async def _fetch_details(self, generation_id: str):
         details_url = f"https://openrouter.ai/api/v1/generation?id={generation_id}"
-
-        for _ in range(max_attempts):
-            details_response = await client.get(details_url, headers=self.get_headers())
-            if details_response.status_code == 200:
-                return details_response.json()
-
-        raise TimeoutError("Details not available after maximum attempts")
+        async with httpx.AsyncClient(timeout=3) as client:
+            for _ in range(10):
+                try:
+                    response = await client.get(details_url, headers=self.get_headers())
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPError:
+                    await asyncio.sleep(0.5)
+            raise Exception("Details request timed out")

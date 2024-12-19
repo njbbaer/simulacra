@@ -39,7 +39,7 @@ class TelegramBot:
             (["fact", "f"], self.add_fact_command_handler),
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
-            (["clear", "cl"], self.clear_command_handler),
+            (["clear", "c"], self.clear_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self.do_nothing),
         ]

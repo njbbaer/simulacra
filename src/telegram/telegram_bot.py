@@ -50,7 +50,10 @@ class TelegramBot:
         # Handle messages
         self.app.add_handler(
             MessageHandler(
-                (filters.TEXT & ~filters.COMMAND) | filters.PHOTO | filters.VOICE,
+                (filters.TEXT & ~filters.COMMAND)
+                | filters.PHOTO
+                | filters.VOICE
+                | filters.ATTACHMENT,
                 self.chat_message_handler,
             )
         )
@@ -65,8 +68,9 @@ class TelegramBot:
     @message_handler
     async def chat_message_handler(self, ctx):
         image_url = await ctx.get_image_url()
+        pdf_string = await ctx.get_pdf_string()
         text = await ctx.get_text()
-        await self._chat(ctx, text, image_url)
+        await self._chat(ctx, text, image_url, documents=[pdf_string])
 
     @message_handler
     async def new_conversation_command_handler(self, ctx):
@@ -167,8 +171,8 @@ class TelegramBot:
     async def do_nothing(self, *_):
         pass
 
-    async def _chat(self, ctx, user_message, image_url=None):
-        response = await self.sim.chat(user_message, ctx.user_name, image_url)
+    async def _chat(self, ctx, user_message, image_url=None, documents=None):
+        response = await self.sim.chat(user_message, image_url, documents)
         response = response.replace("(", "_(").replace(")", ")_")
         await ctx.send_message(response)
         await self._warn_cost(ctx)

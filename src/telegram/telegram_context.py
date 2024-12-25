@@ -1,6 +1,9 @@
 import os
 import uuid
+from io import BytesIO
 
+import httpx
+import pdfplumber
 from openai import AsyncOpenAI
 
 from telegram.error import BadRequest
@@ -29,8 +32,19 @@ class TelegramContext:
             return None
 
         photo_file = await self.message.photo[-1].get_file()
-        file = await self.app.bot.get_file(photo_file.file_id)
-        return file.file_path
+        return photo_file.file_path
+
+    async def get_pdf_string(self):
+        if not self.message.document:
+            return None
+
+        document = await self.message.document.get_file()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(document.file_path)
+            response.raise_for_status()
+            binary_data = BytesIO(response.content)
+            with pdfplumber.open(binary_data) as pdf:
+                return "\n".join(page.extract_text() for page in pdf.pages)
 
     async def get_text(self):
         if self.message.voice:

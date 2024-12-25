@@ -12,8 +12,11 @@ class Simulacrum:
         self.cost_warning_sent = False
         self.instruction_text = None
 
-    async def chat(self, user_input, user_name, image_url):
+    async def chat(self, user_input, image_url, documents):
         self.context.load()
+        if documents:
+            for document in documents:
+                user_input = self._append_document(user_input, document)
         if user_input:
             user_input = self._inject_instruction(user_input)
             self.context.add_message("user", user_input, image_url)
@@ -87,3 +90,16 @@ class Simulacrum:
             )
             self.instruction_text = None
         return text
+
+    @staticmethod
+    def _append_document(text, document):
+        if not document:
+            return text
+
+        return textwrap.dedent(
+            f"\nBEGIN DOCUMENT\n"
+            f"\n{document}\n"
+            f"\nEND DOCUMENT\n"
+            f"\n---\n"
+            f"\n{text}"
+        )

@@ -18,6 +18,7 @@ python-telegram-bot = "*"
 toml = "*"
 jinja2 = "*"
 httpx = "*"
+pdfplumber = "*"
 
 [dev-packages]
 autoflake = "*"

@@ -1,12 +1,12 @@
 import os
 import uuid
-from io import BytesIO
 
 import httpx
-import pdfplumber
 from openai import AsyncOpenAI
 
 from telegram.error import BadRequest
+
+from ..utilities import parse_pdf
 
 
 class TelegramContext:
@@ -42,9 +42,7 @@ class TelegramContext:
         async with httpx.AsyncClient() as client:
             response = await client.get(document.file_path)
             response.raise_for_status()
-            binary_data = BytesIO(response.content)
-            with pdfplumber.open(binary_data) as pdf:
-                return "\n".join(page.extract_text() for page in pdf.pages)
+            return parse_pdf(response.content)
 
     async def get_text(self):
         if self.message.voice:

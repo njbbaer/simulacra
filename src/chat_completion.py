@@ -9,7 +9,7 @@ class ChatCompletion:
             raise Exception(self.error_message)
         if self.finish_reason == "length":
             raise Exception("Response exceeded maximum length")
-        if self.content == "":
+        if not self.content:
             raise Exception("Response was empty")
 
     @property

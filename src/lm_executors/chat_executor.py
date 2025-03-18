@@ -15,7 +15,7 @@ class ChatExecutor:
     async def execute(self):
         client = OpenRouterAPIClient()
 
-        params = {"max_tokens": 1024}
+        params = {"max_tokens": 2048}
         if self.context.model is not None:
             params["model"] = self.context.model
 

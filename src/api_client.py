@@ -45,7 +45,7 @@ class OpenRouterAPIClient:
 
     async def _fetch_details(self, generation_id: str):
         details_url = f"https://openrouter.ai/api/v1/generation?id={generation_id}"
-        async with httpx.AsyncClient(timeout=3) as client:
+        async with httpx.AsyncClient(timeout=5) as client:
             for _ in range(10):
                 try:
                     response = await client.get(details_url, headers=self.get_headers())

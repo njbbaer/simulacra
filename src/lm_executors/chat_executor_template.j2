@@ -1,13 +1,4 @@
 ---
-{% for artifact in artifacts %}
-- role: system
-  content:
-    - type: text
-      text: |-
-        {{ artifact | indent(8) }}
-      cache_control: 
-        type: ephemeral
-{% endfor %}
 - role: system
   content:
     - type: text

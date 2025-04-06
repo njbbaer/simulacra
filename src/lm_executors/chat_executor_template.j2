@@ -17,8 +17,10 @@
       text: |-
         {{ message.content | indent(8) }}
       {% if loop.index in [(messages|length), (messages|length - 2)] %}
+      {% if 'claude' in model %}
       cache_control: 
         type: ephemeral
+      {% endif %}
       {% endif %}
 {% endfor %}
 {% if reinforcement_chat_prompt %}

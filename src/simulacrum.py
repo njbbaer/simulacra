@@ -3,6 +3,7 @@ import textwrap
 
 from .context import Context
 from .lm_executors import ChatExecutor
+from .progressive_book import ProgressiveBook
 
 
 class Simulacrum:
@@ -66,6 +67,15 @@ class Simulacrum:
     def get_conversation_cost(self):
         self.context.load()
         return self.context.conversation_cost
+
+    def progress_book(self, query):
+        self.context.load()
+        book_path = self.context.progressive_book_path
+        book = ProgressiveBook(book_path)
+        book_chunk = book.progress(query)
+        self.context.add_message("user", book_chunk)
+        self.context.save()
+        return book_chunk
 
     @property
     def last_message_role(self):

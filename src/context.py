@@ -80,6 +80,13 @@ class Context:
     def pricing(self):
         return self._data.get("pricing", None)
 
+    @property
+    def progressive_book_path(self):
+        path = self._data.get("progressive_book_path", None)
+        if path:
+            return os.path.join(self.dir, path)
+        return None
+
     def _load_conversation(self):
         os.makedirs(self.conversations_dir, exist_ok=True)
         path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"

@@ -19,8 +19,8 @@ class Context:
             yaml.dump(self._data, file)
         self._conversation.save()
 
-    def add_message(self, role, message, image_url=None):
-        self._conversation.add_message(role, message, image_url)
+    def add_message(self, role, message, image_url=None, metadata=None):
+        self._conversation.add_message(role, message, image_url, metadata)
 
     def reset_conversation(self):
         self._conversation.reset()
@@ -81,10 +81,18 @@ class Context:
         return self._data.get("pricing", None)
 
     @property
-    def progressive_book_path(self):
-        path = self._data.get("progressive_book_path", None)
+    def book_path(self):
+        path = self._data.get("book_path", None)
         if path:
             return os.path.join(self.dir, path)
+        return None
+
+    @property
+    def last_book_position(self):
+        for message in reversed(self.conversation_messages):
+            metadata = message.get("metadata", {})
+            if "end_idx" in metadata:
+                return metadata["end_idx"]
         return None
 
     def _load_conversation(self):

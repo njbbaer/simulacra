@@ -1,9 +1,9 @@
 import re
 import textwrap
 
+from .book_reader import BookReader
 from .context import Context
 from .lm_executors import ChatExecutor
-from .progressive_book import ProgressiveBook
 
 
 class Simulacrum:
@@ -70,10 +70,10 @@ class Simulacrum:
 
     def progress_book(self, query):
         self.context.load()
-        book_path = self.context.progressive_book_path
-        book = ProgressiveBook(book_path)
-        book_chunk = book.progress(query)
-        self.context.add_message("user", book_chunk)
+        book = BookReader(self.context.book_path)
+        start_idx = self.context.last_book_position or 0
+        book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
+        self.context.add_message("user", book_chunk, metadata={"end_idx": end_idx})
         self.context.save()
         return book_chunk
 

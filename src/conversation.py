@@ -20,12 +20,13 @@ class Conversation:
         with open(self._filepath, "w") as file:
             yaml.dump(self._data, file)
 
-    def add_message(self, role, message, image_url=None):
+    def add_message(self, role, message, image_url=None, metadata=None):
         self.messages.append(
             {
                 "role": role,
                 "content": LiteralScalarString(message),
                 **({"image_url": image_url} if image_url else {}),
+                **({"metadata": metadata} if metadata else {}),
             }
         )
 

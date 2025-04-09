@@ -40,7 +40,7 @@ class TelegramBot:
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
             (["clear", "c"], self.clear_command_handler),
-            (["progress", "p"], self.progress_book_command_handler),
+            (["syncbook", "sb"], self.sync_book_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self.do_nothing),
         ]
@@ -148,7 +148,7 @@ class TelegramBot:
                 /continue - Request another response
                 /fact (...) - Add a fact to the conversation
                 /instruct (...) - Apply an instruction
-                /progress (...) - Read a book chunk
+                /syncbook (...) - Sync current book position
                 *Information*
                 /stats - Show conversation statistics
                 /help - Show this help message
@@ -171,11 +171,11 @@ class TelegramBot:
             await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
 
     @message_handler
-    async def progress_book_command_handler(self, ctx):
+    async def sync_book_command_handler(self, ctx):
         input_text = await ctx.get_text()
-        book_chunk = self.sim.progress_book(input_text)
+        book_chunk = self.sim.sync_book(input_text)
         num_words = len(book_chunk.split())
-        await ctx.send_message(f"📖 Read {num_words} words")
+        await ctx.send_message(f"📖 Synced {num_words} words")
 
     async def do_nothing(self, *_):
         pass

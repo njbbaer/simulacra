@@ -10,7 +10,7 @@ class BookReader:
         end_idx = self._find_position(query)
 
         if start_idx >= end_idx:
-            raise Exception("Match found before current position")
+            raise Exception("Match cannot be before latest position")
 
         chunk = self.text[start_idx:end_idx].strip()
         return chunk, end_idx

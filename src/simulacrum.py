@@ -68,7 +68,7 @@ class Simulacrum:
         self.context.load()
         return self.context.conversation_cost
 
-    def progress_book(self, query):
+    def sync_book(self, query):
         self.context.load()
         book = BookReader(self.context.book_path)
         start_idx = self.context.last_book_position or 0

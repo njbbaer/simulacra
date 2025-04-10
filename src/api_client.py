@@ -1,10 +1,16 @@
 import asyncio
 import os
 
+import backoff
 import httpx
 
 from .chat_completion import ChatCompletion
 from .logger import Logger
+
+
+class RateLimitExceeded(Exception):
+    def __init__(self, message="API rate limit exceeded"):
+        super().__init__(message)
 
 
 class OpenRouterAPIClient:
@@ -28,6 +34,7 @@ class OpenRouterAPIClient:
         except httpx.ReadTimeout:
             raise Exception("Request timed out")
 
+    @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=5)
     async def _fetch_completion_data(self, body):
         async with httpx.AsyncClient(timeout=30) as client:
             completion_response = await client.post(
@@ -37,9 +44,10 @@ class OpenRouterAPIClient:
             )
             completion_response.raise_for_status()
             completion_data = completion_response.json()
+
             if "error" in completion_data:
                 if completion_data["error"].get("code") == 429:
-                    raise Exception("Rate limit exceeded")
+                    raise RateLimitExceeded()
                 raise Exception(completion_data["error"])
 
             details_data = await self._fetch_details(completion_data["id"])

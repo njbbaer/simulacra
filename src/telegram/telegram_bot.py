@@ -200,7 +200,7 @@ class TelegramBot:
 
     async def _process_text_after_command(self, ctx, action_method, success_message):
         if ctx.command_body:
-            action_method(ctx.command_body.group(1))
+            action_method(ctx.command_body)
             await ctx.send_message(success_message)
         else:
             await ctx.send_message("`❌ No text provided`")

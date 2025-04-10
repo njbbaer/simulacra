@@ -173,7 +173,8 @@ class TelegramBot:
     async def sync_book_command_handler(self, ctx):
         book_chunk = self.sim.sync_book(ctx.command_body)
         num_words = len(book_chunk.split())
-        await ctx.send_message(f"📖 Synced {num_words} words")
+        chunk_sample = " ".join(book_chunk.split()[-10:])
+        await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
 
     async def do_nothing(self, *_):
         pass

@@ -25,7 +25,7 @@ class BookReader:
     def _find_position(self, query):
         choices_with_positions = [
             (self.text[i : i + len(query)], i)
-            for i in range(0, len(self.text), len(query) // 2)
+            for i in range(0, len(self.text), max(1, len(query) // 2))
         ]
         choices = [chunk for chunk, _ in choices_with_positions]
         best_match = process.extractOne(query, choices)

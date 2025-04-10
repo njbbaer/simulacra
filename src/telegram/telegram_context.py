@@ -30,7 +30,8 @@ class TelegramContext:
 
     @property
     def command_body(self):
-        return re.search(r"/\w+\s+(.*)", self.message.text).group(1)
+        match = re.search(r"/\w+\s+(.*)", self.message.text)
+        return match.group(1) if match else None
 
     async def get_image_url(self):
         if not self.message.photo:

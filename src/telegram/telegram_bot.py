@@ -1,5 +1,4 @@
 import logging
-import re
 import textwrap
 
 # fmt: off
@@ -172,8 +171,7 @@ class TelegramBot:
 
     @message_handler
     async def sync_book_command_handler(self, ctx):
-        input_text = await ctx.get_text()
-        book_chunk = self.sim.sync_book(input_text)
+        book_chunk = self.sim.sync_book(ctx.command_body)
         num_words = len(book_chunk.split())
         await ctx.send_message(f"📖 Synced {num_words} words")
 
@@ -200,9 +198,8 @@ class TelegramBot:
             )
 
     async def _process_text_after_command(self, ctx, action_method, success_message):
-        command_text = re.search(r"/\w+\s+(.*)", ctx.message.text)
-        if command_text:
-            action_method(command_text.group(1))
+        if ctx.command_body:
+            action_method(ctx.command_body.group(1))
             await ctx.send_message(success_message)
         else:
             await ctx.send_message("`❌ No text provided`")

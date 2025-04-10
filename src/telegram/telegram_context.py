@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 
 import httpx
@@ -26,6 +27,10 @@ class TelegramContext:
     @property
     def user_name(self):
         return self.update.message.from_user.first_name
+
+    @property
+    def command_body(self):
+        return re.search(r"/\w+\s+(.*)", self.message.text)
 
     async def get_image_url(self):
         if not self.message.photo:

@@ -1,5 +1,4 @@
 import logging
-import re
 import textwrap
 
 # fmt: off
@@ -40,6 +39,7 @@ class TelegramBot:
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
             (["clear", "c"], self.clear_command_handler),
+            (["syncbook", "sb"], self.sync_book_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self.do_nothing),
         ]
@@ -147,6 +147,7 @@ class TelegramBot:
                 /continue - Request another response
                 /fact (...) - Add a fact to the conversation
                 /instruct (...) - Apply an instruction
+                /syncbook (...) - Sync current book position
                 *Information*
                 /stats - Show conversation statistics
                 /help - Show this help message
@@ -167,6 +168,13 @@ class TelegramBot:
         logger.error(ctx.context.error, exc_info=True)
         if ctx.update:
             await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
+
+    @message_handler
+    async def sync_book_command_handler(self, ctx):
+        book_chunk = self.sim.sync_book(ctx.command_body)
+        num_words = len(book_chunk.split())
+        chunk_sample = " ".join(book_chunk.split()[-10:])
+        await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
 
     async def do_nothing(self, *_):
         pass
@@ -191,9 +199,8 @@ class TelegramBot:
             )
 
     async def _process_text_after_command(self, ctx, action_method, success_message):
-        command_text = re.search(r"/\w+\s+(.*)", ctx.message.text)
-        if command_text:
-            action_method(command_text.group(1))
+        if ctx.command_body:
+            action_method(ctx.command_body)
             await ctx.send_message(success_message)
         else:
             await ctx.send_message("`❌ No text provided`")

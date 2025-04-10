@@ -19,6 +19,7 @@ toml = "*"
 jinja2 = "*"
 httpx = "*"
 pdfplumber = "*"
+thefuzz = "*"
 
 [dev-packages]
 autoflake = "*"

@@ -1,6 +1,7 @@
 import re
 import textwrap
 
+from .book_reader import BookReader
 from .context import Context
 from .lm_executors import ChatExecutor
 
@@ -66,6 +67,16 @@ class Simulacrum:
     def get_conversation_cost(self):
         self.context.load()
         return self.context.conversation_cost
+
+    def sync_book(self, query):
+        self.context.load()
+        book = BookReader(self.context.book_path)
+        start_idx = self.context.last_book_position or 0
+        book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
+        message_content = f"<book_continuation>\n{book_chunk}\n</book_continuation>"
+        self.context.add_message("user", message_content, metadata={"end_idx": end_idx})
+        self.context.save()
+        return book_chunk
 
     @property
     def last_message_role(self):

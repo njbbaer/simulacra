@@ -124,15 +124,19 @@ class TelegramBot:
 
     @message_handler
     async def add_fact_command_handler(self, ctx):
-        await self._process_text_after_command(
-            ctx, self.sim.add_conversation_fact, "`✅ Fact added to conversation`"
-        )
+        if ctx.command_body:
+            self.sim.add_conversation_fact(ctx.command_body)
+            await ctx.send_message("`✅ Fact added to conversation`")
+        else:
+            await ctx.send_message("`❌ No text provided`")
 
     @message_handler
     async def apply_instruction_command_handler(self, ctx):
-        await self._process_text_after_command(
-            ctx, self.sim.apply_instruction, "`✅ Instruction applied to next response`"
-        )
+        if ctx.command_body:
+            self.sim.apply_instruction(ctx.command_body)
+            await ctx.send_message("`✅ Instruction applied to next response`")
+        else:
+            await ctx.send_message("`❌ No text provided`")
 
     @message_handler
     async def help_command_handler(self, ctx):
@@ -197,10 +201,3 @@ class TelegramBot:
             await ctx.send_message(
                 "🟡 Cost is elevated. Start a new conversation when ready."
             )
-
-    async def _process_text_after_command(self, ctx, action_method, success_message):
-        if ctx.command_body:
-            action_method(ctx.command_body)
-            await ctx.send_message(success_message)
-        else:
-            await ctx.send_message("`❌ No text provided`")

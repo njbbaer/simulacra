@@ -7,7 +7,10 @@ class BookReader:
         self._load()
 
     def next_chunk(self, query, start_idx=0):
-        end_idx = self._find_position(query)
+        if query and query.strip() != "":
+            end_idx = self._find_position(query)
+        else:
+            end_idx = len(self.text)
 
         if start_idx >= end_idx:
             raise Exception("Match cannot be before latest position")

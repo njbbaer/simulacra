@@ -38,6 +38,8 @@ class OpenRouterAPIClient:
             completion_response.raise_for_status()
             completion_data = completion_response.json()
             if "error" in completion_data:
+                if completion_data["error"].get("code") == 429:
+                    raise Exception("Rate limit exceeded")
                 raise Exception(completion_data["error"])
 
             details_data = await self._fetch_details(completion_data["id"])

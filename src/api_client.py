@@ -34,7 +34,7 @@ class OpenRouterAPIClient:
         except httpx.ReadTimeout:
             raise Exception("Request timed out")
 
-    @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=5)
+    @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=10)
     async def _fetch_completion_data(self, body):
         async with httpx.AsyncClient(timeout=30) as client:
             completion_response = await client.post(

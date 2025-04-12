@@ -5,7 +5,6 @@ name = "pypi"
 
 [scripts]
 app = "python app.py"
-test = "pytest --cov=src"
 
 [packages]
 argparse = "*"
@@ -31,11 +30,6 @@ hupper = "*"
 isort = "*"
 pre-commit = "*"
 pycodestyle = "*"
-pytest = "*"
-pytest-asyncio = "*"
-pytest-cov = "*"
-pytest-mock = "*"
-pytest-icdiff = "*"
 
 [requires]
 python_version = "3.12"

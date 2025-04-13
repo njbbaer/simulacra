@@ -42,7 +42,7 @@ class Context:
 
     @property
     def conversation_facts(self):
-        return self._conversation._facts
+        return self._conversation.facts
 
     @property
     def conversation_cost(self):

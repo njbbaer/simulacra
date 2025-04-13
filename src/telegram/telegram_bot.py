@@ -2,8 +2,7 @@ import logging
 import textwrap
 
 # fmt: off
-from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler,
-                          filters)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 from ..simulacrum import Simulacrum
 from ..telegram.filters import StaleMessageFilter

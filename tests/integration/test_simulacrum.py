@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from src.simulacrum import Simulacrum
@@ -57,9 +59,42 @@ def mock_openrouter(httpx_mock):
 @pytest.mark.asyncio
 async def test_simulacrum_chat(simulacrum, mock_openrouter):
     await simulacrum.chat("Hello", None, None)
-    assert mock_openrouter.get_requests(
-        url="https://openrouter.ai/api/v1/chat/completions"
-    )
+
+    # Verify the OpenRouter LLM completion request
+    request = mock_openrouter.get_requests(
+        url="https://openrouter.ai/api/v1/chat/completions",
+    )[0]
+    actual_body = json.loads(request.content)
+    expected_body = {
+        "model": "anthropic/claude-3.7-sonnet",
+        "max_tokens": 8192,
+        "messages": [
+            {
+                "role": "system",
+                "content": [
+                    {
+                        "text": "Say something!",
+                        "type": "text",
+                    },
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": "Hello",
+                        "type": "text",
+                        "cache_control": {
+                            "type": "ephemeral",
+                        },
+                    },
+                ],
+            },
+        ],
+    }
+    assert actual_body == expected_body
+
+    # Verify the OpenRouter cost tracking request
     assert mock_openrouter.get_requests(
         url="https://openrouter.ai/api/v1/generation?id=gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
     )

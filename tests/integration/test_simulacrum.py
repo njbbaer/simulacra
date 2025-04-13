@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from ruamel.yaml import YAML
 
 from src.simulacrum import Simulacrum
 from src.yaml_config import yaml
@@ -13,16 +14,21 @@ def custom_fs(fs):
 
 
 @pytest.fixture
-def simulacrum_context(custom_fs):
-    context_path = "context.yml"
-    context_data = {
-        "char_name": "my-character",
-        "model": "anthropic/claude-3.7-sonnet",
-        "total_cost": 0,
+def context_data():
+    return {
+        "char_name": "test",
+        "model": "anthropic/claude",
+        "total_cost": 0.0,
+        "pricing": [1, 2],
         "vars": {
             "chat_prompt": "Say something!",
         },
     }
+
+
+@pytest.fixture
+def simulacrum_context(custom_fs, context_data):
+    context_path = "context.yml"
     with open(context_path, "w") as f:
         yaml.dump(context_data, f)
     return context_path
@@ -34,39 +40,48 @@ def simulacrum(simulacrum_context):
 
 
 @pytest.fixture
-def mock_openrouter(httpx_mock):
-    gen_id = "gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
+def generation_id():
+    return "gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
+
+
+@pytest.fixture
+def mock_completion_response(generation_id):
+    return {
+        "id": generation_id,
+        "choices": [
+            {
+                "message": {
+                    "content": "Something",
+                },
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def mock_cost_response():
+    return {"data": {"total_cost": 0.1}}
+
+
+@pytest.fixture
+def mock_openrouter(
+    httpx_mock, generation_id, mock_completion_response, mock_cost_response
+):
     httpx_mock.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",
-        json={
-            "id": gen_id,
-            "choices": [
-                {
-                    "message": {
-                        "content": "Something",
-                    },
-                }
-            ],
-        },
+        json=mock_completion_response,
     )
     httpx_mock.add_response(
-        url=f"https://openrouter.ai/api/v1/generation?id={gen_id}",
-        json={"data": {"total_cost": 0.01}},
+        url=f"https://openrouter.ai/api/v1/generation?id={generation_id}",
+        json=mock_cost_response,
     )
     return httpx_mock
 
 
-@pytest.mark.asyncio
-async def test_simulacrum_chat(simulacrum, mock_openrouter):
-    await simulacrum.chat("Hello", None, None)
-
-    # Verify the OpenRouter LLM completion request
-    request = mock_openrouter.get_requests(
-        url="https://openrouter.ai/api/v1/chat/completions",
-    )[0]
-    actual_body = json.loads(request.content)
-    expected_body = {
-        "model": "anthropic/claude-3.7-sonnet",
+@pytest.fixture
+def expected_request_body():
+    return {
+        "model": "anthropic/claude",
         "max_tokens": 8192,
         "messages": [
             {
@@ -92,9 +107,34 @@ async def test_simulacrum_chat(simulacrum, mock_openrouter):
             },
         ],
     }
-    assert actual_body == expected_body
 
-    # Verify the OpenRouter cost tracking request
+
+@pytest.mark.asyncio
+async def test_simulacrum_chat(
+    simulacrum,
+    mock_openrouter,
+    context_data,
+    generation_id,
+    expected_request_body,
+):
+    await simulacrum.chat("Hello", None, None)
+
+    # Verify OpenRouter LLM completion request
+    request = mock_openrouter.get_requests(
+        url="https://openrouter.ai/api/v1/chat/completions",
+    )[0]
+    actual_body = json.loads(request.content)
+    assert actual_body == expected_request_body
+
+    # Verify OpenRouter cost tracking request
     assert mock_openrouter.get_requests(
-        url="https://openrouter.ai/api/v1/generation?id=gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
+        url=f"https://openrouter.ai/api/v1/generation?id={generation_id}"
     )
+
+    # Verify contents of context data file
+    with open("context.yml", "r") as f:
+        expected_context_data = context_data.copy()
+        expected_context_data["conversation_id"] = 1
+        expected_context_data["total_cost"] = 0.1
+        new_context_data = YAML(typ="safe").load(f)
+        assert new_context_data == expected_context_data

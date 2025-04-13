@@ -36,6 +36,7 @@ pytest-asyncio = "*"
 pyfakefs = "*"
 pytest-httpx = "*"
 pytest-cov = "*"
+flake8-pyproject = "*"
 
 [requires]
 python_version = "3.12"

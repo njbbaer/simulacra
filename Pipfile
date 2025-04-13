@@ -5,6 +5,7 @@ name = "pypi"
 
 [scripts]
 app = "python app.py"
+test = "pytest"
 
 [packages]
 argparse = "*"
@@ -30,6 +31,10 @@ hupper = "*"
 isort = "*"
 pre-commit = "*"
 pycodestyle = "*"
+pytest = "*"
+pytest-asyncio = "*"
+pyfakefs = "*"
+pytest-httpx = "*"
 
 [requires]
 python_version = "3.12"

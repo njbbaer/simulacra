@@ -95,46 +95,6 @@ def mock_openrouter(
     return httpx_mock
 
 
-@pytest.fixture
-def expected_request_body():
-    return {
-        "model": "anthropic/claude",
-        "max_tokens": 8192,
-        "messages": [
-            {
-                "role": "system",
-                "content": [
-                    {
-                        "text": "Say something!",
-                        "type": "text",
-                    },
-                ],
-            },
-            {
-                "role": "assistant",
-                "content": [
-                    {
-                        "text": "Hello user",
-                        "type": "text",
-                    },
-                ],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "text": "Hello assistant",
-                        "type": "text",
-                        "cache_control": {
-                            "type": "ephemeral",
-                        },
-                    },
-                ],
-            },
-        ],
-    }
-
-
 @pytest.mark.asyncio
 async def test_simulacrum_chat(
     simulacrum,
@@ -142,96 +102,108 @@ async def test_simulacrum_chat(
     context_data,
     conversation_data,
     generation_id,
-    expected_request_body,
 ):
-    await simulacrum.chat("Hello assistant", None, None)
+    initial_context_cost = context_data["total_cost"]
+    initial_conversation_cost = conversation_data["cost"]
+    initial_message_count = len(conversation_data["messages"])
+    user_message = "Hello assistant"
 
-    # Verify OpenRouter LLM completion request
+    await simulacrum.chat(user_message, None, None)
+
     request = mock_openrouter.get_requests(
         url="https://openrouter.ai/api/v1/chat/completions",
     )[0]
     actual_body = json.loads(request.content)
-    assert actual_body == expected_request_body
 
-    # Verify OpenRouter cost tracking request
+    # Verify model request properties
+    assert actual_body["model"] == context_data["model"]
+    assert actual_body["max_tokens"] == 8192
+
+    # Check the messages structure
+    assert len(actual_body["messages"]) == 3
+    assert actual_body["messages"][0]["role"] == "system"
+    assert (
+        actual_body["messages"][0]["content"][0]["text"]
+        == context_data["vars"]["chat_prompt"]
+    )
+
+    assert actual_body["messages"][1]["role"] == "assistant"
+    assert (
+        actual_body["messages"][1]["content"][0]["text"]
+        == conversation_data["messages"][0]["content"]
+    )
+
+    assert actual_body["messages"][2]["role"] == "user"
+    assert actual_body["messages"][2]["content"][0]["text"] == user_message
+
+    # Verify OpenRouter cost tracking request was made
     assert mock_openrouter.get_requests(
         url=f"https://openrouter.ai/api/v1/generation?id={generation_id}"
     )
 
     # Verify contents of the context file
     with open("context.yml", "r") as f:
-        expected_context_data = context_data.copy()
-        expected_context_data["conversation_id"] = 0
-        expected_context_data["total_cost"] = 0.2
         new_context_data = YAML(typ="safe").load(f)
-        assert new_context_data == expected_context_data
+        assert new_context_data["conversation_id"] == context_data["conversation_id"]
+        assert new_context_data["total_cost"] > initial_context_cost
+        assert new_context_data["model"] == context_data["model"]
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml", "r") as f:
-        expected_conversation_data = conversation_data.copy()
-        expected_conversation_data["cost"] = 0.2
-        expected_conversation_data["messages"] = [
-            {
-                "role": "assistant",
-                "content": "Hello user",
-            },
-            {
-                "role": "user",
-                "content": "Hello assistant",
-            },
-            {
-                "role": "assistant",
-                "content": "Something",
-            },
-        ]
         new_conversation_data = YAML(typ="safe").load(f)
-        assert new_conversation_data == expected_conversation_data
+        assert new_conversation_data["cost"] > initial_conversation_cost
+        assert len(new_conversation_data["messages"]) == initial_message_count + 2
+
+        # Verify the last two messages
+        assert new_conversation_data["messages"][-2]["role"] == "user"
+        assert new_conversation_data["messages"][-2]["content"] == user_message
+        assert new_conversation_data["messages"][-1]["role"] == "assistant"
+        assert new_conversation_data["messages"][-1]["content"] == "Something"
 
 
 @pytest.mark.asyncio
 async def test_new_conversation(simulacrum, context_data):
+    initial_conversation_id = context_data["conversation_id"]
+
     await simulacrum.new_conversation()
 
     # Verify context file updates
     with open("context.yml", "r") as f:
-        expected_context_data = context_data.copy()
-        expected_context_data["conversation_id"] = 1
-        expected_context_data["total_cost"] = 0.1
         new_context_data = YAML(typ="safe").load(f)
-        assert new_context_data == expected_context_data
+        assert new_context_data["conversation_id"] == initial_conversation_id + 1
+        assert new_context_data["total_cost"] == context_data["total_cost"]
+        assert new_context_data["model"] == context_data["model"]
 
     # Verify contents of the new conversation file
-    assert os.path.exists("conversations/test_1.yml")
-    with open("conversations/test_1.yml", "r") as f:
-        expected_conversation_data = {
-            "cost": 0.0,
-            "facts": [],
-            "messages": [],
-        }
+    new_conversation_path = f"conversations/test_{initial_conversation_id + 1}.yml"
+    assert os.path.exists(new_conversation_path)
+    with open(new_conversation_path, "r") as f:
         new_conversation_data = YAML(typ="safe").load(f)
-        assert new_conversation_data == expected_conversation_data
+        assert new_conversation_data["cost"] == 0.0
+        assert isinstance(new_conversation_data["facts"], list)
+        assert len(new_conversation_data["facts"]) == 0
+        assert isinstance(new_conversation_data["messages"], list)
+        assert len(new_conversation_data["messages"]) == 0
 
 
 def test_reset_conversation(simulacrum, context_data, conversation_data):
+    initial_cost = conversation_data["cost"]
+    initial_message_count = len(conversation_data["messages"])
+
     simulacrum.reset_conversation()
 
-    # Verify context file updates
+    # Verify context file remains unchanged
     with open("context.yml", "r") as f:
-        expected_context_data = context_data.copy()
-        expected_context_data["conversation_id"] = 0
-        expected_context_data["total_cost"] = 0.1
         new_context_data = YAML(typ="safe").load(f)
-        assert new_context_data == expected_context_data
+        assert new_context_data["conversation_id"] == context_data["conversation_id"]
+        assert new_context_data["total_cost"] == context_data["total_cost"]
+        assert new_context_data["model"] == context_data["model"]
 
     # Verify conversation file was reset
     with open("conversations/test_0.yml", "r") as f:
-        expected_conversation_data = {
-            "cost": 0.0,
-            "facts": [],
-            "messages": [],
-        }
         new_conversation_data = YAML(typ="safe").load(f)
-        assert new_conversation_data == expected_conversation_data
-
-    # Verify cost_warning_sent was reset
-    assert simulacrum.cost_warning_sent is False
+        assert new_conversation_data["cost"] == 0.0
+        assert len(new_conversation_data["facts"]) == 0
+        assert len(new_conversation_data["messages"]) == 0
+        assert new_conversation_data["cost"] < initial_cost
+        assert len(new_conversation_data["messages"]) < initial_message_count

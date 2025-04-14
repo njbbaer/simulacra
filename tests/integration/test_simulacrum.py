@@ -168,3 +168,26 @@ async def test_simulacrum_chat(
         ]
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data == expected_conversation_data
+
+
+@pytest.mark.asyncio
+async def test_new_conversation(simulacrum, context_data):
+    await simulacrum.new_conversation()
+
+    # Verify context file updates
+    with open("context.yml", "r") as f:
+        expected_context_data = context_data.copy()
+        expected_context_data["conversation_id"] = 1
+        new_context_data = YAML(typ="safe").load(f)
+        assert new_context_data == expected_context_data
+
+    # Verify contents of the new conversation file
+    assert os.path.exists("conversations/test_1.yml")
+    with open("conversations/test_1.yml", "r") as f:
+        expected_conversation_data = {
+            "cost": 0.0,
+            "facts": [],
+            "messages": [],
+        }
+        new_conversation_data = YAML(typ="safe").load(f)
+        assert new_conversation_data == expected_conversation_data

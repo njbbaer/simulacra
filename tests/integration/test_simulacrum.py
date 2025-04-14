@@ -20,7 +20,7 @@ def context_data():
         "char_name": "test",
         "model": "anthropic/claude",
         "conversation_id": 0,
-        "total_cost": 0.0,
+        "total_cost": 0.1,
         "pricing": [1, 2],
         "vars": {
             "chat_prompt": "Say something!",
@@ -31,9 +31,14 @@ def context_data():
 @pytest.fixture
 def conversation_data():
     return {
-        "cost": 0.0,
+        "cost": 0.1,
         "facts": [],
-        "messages": [],
+        "messages": [
+            {
+                "role": "assistant",
+                "content": "Hello user",
+            },
+        ],
     }
 
 
@@ -106,10 +111,19 @@ def expected_request_body():
                 ],
             },
             {
+                "role": "assistant",
+                "content": [
+                    {
+                        "text": "Hello user",
+                        "type": "text",
+                    },
+                ],
+            },
+            {
                 "role": "user",
                 "content": [
                     {
-                        "text": "Hello",
+                        "text": "Hello assistant",
                         "type": "text",
                         "cache_control": {
                             "type": "ephemeral",
@@ -130,7 +144,7 @@ async def test_simulacrum_chat(
     generation_id,
     expected_request_body,
 ):
-    await simulacrum.chat("Hello", None, None)
+    await simulacrum.chat("Hello assistant", None, None)
 
     # Verify OpenRouter LLM completion request
     request = mock_openrouter.get_requests(
@@ -148,18 +162,22 @@ async def test_simulacrum_chat(
     with open("context.yml", "r") as f:
         expected_context_data = context_data.copy()
         expected_context_data["conversation_id"] = 0
-        expected_context_data["total_cost"] = 0.1
+        expected_context_data["total_cost"] = 0.2
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data == expected_context_data
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml", "r") as f:
         expected_conversation_data = conversation_data.copy()
-        expected_conversation_data["cost"] = 0.1
+        expected_conversation_data["cost"] = 0.2
         expected_conversation_data["messages"] = [
             {
+                "role": "assistant",
+                "content": "Hello user",
+            },
+            {
                 "role": "user",
-                "content": "Hello",
+                "content": "Hello assistant",
             },
             {
                 "role": "assistant",
@@ -178,6 +196,7 @@ async def test_new_conversation(simulacrum, context_data):
     with open("context.yml", "r") as f:
         expected_context_data = context_data.copy()
         expected_context_data["conversation_id"] = 1
+        expected_context_data["total_cost"] = 0.1
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data == expected_context_data
 
@@ -191,3 +210,28 @@ async def test_new_conversation(simulacrum, context_data):
         }
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data == expected_conversation_data
+
+
+def test_reset_conversation(simulacrum, context_data, conversation_data):
+    simulacrum.reset_conversation()
+
+    # Verify context file updates
+    with open("context.yml", "r") as f:
+        expected_context_data = context_data.copy()
+        expected_context_data["conversation_id"] = 0
+        expected_context_data["total_cost"] = 0.1
+        new_context_data = YAML(typ="safe").load(f)
+        assert new_context_data == expected_context_data
+
+    # Verify conversation file was reset
+    with open("conversations/test_0.yml", "r") as f:
+        expected_conversation_data = {
+            "cost": 0.0,
+            "facts": [],
+            "messages": [],
+        }
+        new_conversation_data = YAML(typ="safe").load(f)
+        assert new_conversation_data == expected_conversation_data
+
+    # Verify cost_warning_sent was reset
+    assert simulacrum.cost_warning_sent is False

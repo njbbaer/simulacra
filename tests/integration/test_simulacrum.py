@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from ruamel.yaml import YAML
@@ -18,6 +19,7 @@ def context_data():
     return {
         "char_name": "test",
         "model": "anthropic/claude",
+        "conversation_id": 0,
         "total_cost": 0.0,
         "pricing": [1, 2],
         "vars": {
@@ -27,16 +29,26 @@ def context_data():
 
 
 @pytest.fixture
-def simulacrum_context(custom_fs, context_data):
-    context_path = "context.yml"
-    with open(context_path, "w") as f:
+def conversation_data():
+    return {
+        "cost": 0.0,
+        "facts": [],
+        "messages": [],
+    }
+
+
+@pytest.fixture
+def simulacrum_context(custom_fs, context_data, conversation_data):
+    with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
-    return context_path
+    os.makedirs("conversations", exist_ok=True)
+    with open("conversations/test_0.yml", "w") as f:
+        yaml.dump(conversation_data, f)
 
 
 @pytest.fixture
 def simulacrum(simulacrum_context):
-    return Simulacrum(simulacrum_context)
+    return Simulacrum("context.yml")
 
 
 @pytest.fixture
@@ -114,6 +126,7 @@ async def test_simulacrum_chat(
     simulacrum,
     mock_openrouter,
     context_data,
+    conversation_data,
     generation_id,
     expected_request_body,
 ):
@@ -131,10 +144,27 @@ async def test_simulacrum_chat(
         url=f"https://openrouter.ai/api/v1/generation?id={generation_id}"
     )
 
-    # Verify contents of context data file
+    # Verify contents of the context file
     with open("context.yml", "r") as f:
         expected_context_data = context_data.copy()
-        expected_context_data["conversation_id"] = 1
+        expected_context_data["conversation_id"] = 0
         expected_context_data["total_cost"] = 0.1
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data == expected_context_data
+
+    # Verify contents of the conversation file
+    with open("conversations/test_0.yml", "r") as f:
+        expected_conversation_data = conversation_data.copy()
+        expected_conversation_data["cost"] = 0.1
+        expected_conversation_data["messages"] = [
+            {
+                "role": "user",
+                "content": "Hello",
+            },
+            {
+                "role": "assistant",
+                "content": "Something",
+            },
+        ]
+        new_conversation_data = YAML(typ="safe").load(f)
+        assert new_conversation_data == expected_conversation_data

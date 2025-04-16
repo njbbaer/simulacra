@@ -21,7 +21,7 @@ class TelegramBot:
         self.sim = Simulacrum(context_filepath)
 
         # Ignore stale messages
-        self.app.add_handler(MessageHandler(StaleMessageFilter(), self.do_nothing))
+        self.app.add_handler(MessageHandler(StaleMessageFilter(), self._do_nothing))
 
         # Disallow unauthorized users
         self.app.add_handler(
@@ -40,7 +40,7 @@ class TelegramBot:
             (["clear", "c"], self.clear_command_handler),
             (["syncbook", "sb"], self.sync_book_command_handler),
             (["help", "h"], self.help_command_handler),
-            (["start"], self.do_nothing),
+            (["start"], self._do_nothing),
         ]
         for commands, handler in command_handlers:
             for cmd in commands:
@@ -179,7 +179,7 @@ class TelegramBot:
         chunk_sample = " ".join(book_chunk.split()[-10:])
         await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
 
-    async def do_nothing(self, *_):
+    async def _do_nothing(self, *_):
         pass
 
     async def _chat(self, ctx, user_message, image_url=None, documents=None):

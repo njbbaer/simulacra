@@ -2,48 +2,48 @@ class ChatCompletion:
     def __init__(self, response, pricing):
         self.response = response
         self.pricing = pricing
-        self.validate()
+        self._validate()
 
-    def validate(self):
-        if self.error_message:
+    def _validate(self):
+        if self._error_message:
             raise Exception(self.error_message)
-        if self.finish_reason == "length":
+        if self._finish_reason == "length":
             raise Exception("Response exceeded maximum length")
         if not self.content:
             raise Exception("Response was empty")
 
     @property
-    def choice(self):
+    def _choice(self):
         return self.response["choices"][0]
 
     @property
     def content(self):
-        return self.choice["message"]["content"]
+        return self._choice["message"]["content"]
 
     @property
-    def prompt_tokens(self):
+    def _prompt_tokens(self):
         return self.response["usage"]["prompt_tokens"]
 
     @property
-    def completion_tokens(self):
+    def _completion_tokens(self):
         return self.response["usage"]["completion_tokens"]
 
     @property
-    def finish_reason(self):
-        return self.choice.get("finish_reason")
+    def _finish_reason(self):
+        return self._choice.get("finish_reason")
 
     @property
-    def error_message(self):
+    def _error_message(self):
         return self.response.get("error", {}).get("message", "")
 
     @property
-    def cache_discount(self):
+    def _cache_discount(self):
         return self.response["details"]["cache_discount"]
 
     @property
     def cache_discount_string(self):
-        sign = "-" if self.cache_discount < 0 else ""
-        amount = f"${abs(self.cache_discount):.2f}"
+        sign = "-" if self._cache_discount < 0 else ""
+        amount = f"${abs(self._cache_discount):.2f}"
         return f"{sign}{amount}"
 
     @property

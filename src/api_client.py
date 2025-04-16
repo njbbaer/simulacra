@@ -18,14 +18,14 @@ class OpenRouterAPIClient:
         self.api_key = os.environ.get("OPENROUTER_API_KEY")
         self.logger = Logger("log.yml")
 
-    def get_headers(self):
+    def _get_headers(self):
         return {"Authorization": f"Bearer {self.api_key}"}
 
-    def prepare_body(self, messages, parameters):
+    def _prepare_body(self, messages, parameters):
         return {"messages": messages, **parameters}
 
     async def request_completion(self, messages, parameters, pricing):
-        body = self.prepare_body(messages, parameters)
+        body = self._prepare_body(messages, parameters)
         try:
             completion_data = await self._fetch_completion_data(body)
             completion = ChatCompletion(completion_data, pricing)
@@ -39,7 +39,7 @@ class OpenRouterAPIClient:
         async with httpx.AsyncClient(timeout=30) as client:
             completion_response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
-                headers=self.get_headers(),
+                headers=self._get_headers(),
                 json=body,
             )
             completion_response.raise_for_status()
@@ -58,7 +58,9 @@ class OpenRouterAPIClient:
         async with httpx.AsyncClient(timeout=3) as client:
             for _ in range(10):
                 try:
-                    response = await client.get(details_url, headers=self.get_headers())
+                    response = await client.get(
+                        details_url, headers=self._get_headers()
+                    )
                     response.raise_for_status()
                     return response.json()
                 except httpx.HTTPError:

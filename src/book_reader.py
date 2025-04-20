@@ -1,4 +1,4 @@
-from thefuzz import process
+import rapidfuzz
 
 
 class BookReader:
@@ -23,18 +23,9 @@ class BookReader:
             self.text = f.read()
 
     def _find_position(self, query):
-        choices_with_positions = [
-            (self.text[i : i + len(query)], i)
-            for i in range(0, len(self.text), max(1, len(query) // 2))
-        ]
-        choices = [chunk for chunk, _ in choices_with_positions]
-        best_match = process.extractOne(query, choices)
-        matched_text, score = best_match
-
-        if score < 80:
+        match = rapidfuzz.fuzz.partial_ratio_alignment(query, self.text)
+        if match.score < 80:
             raise Exception("No match found in text")
 
-        index = choices.index(matched_text)
-        position = choices_with_positions[index][1]
-        end_position = self.text.find("\n", position)
+        end_position = self.text.find("\n", match.dest_end)
         return end_position

@@ -1,3 +1,4 @@
+import copy
 import os
 
 import jinja2
@@ -39,33 +40,54 @@ class ChatExecutor:
         return yaml.safe_load(rendered_str)
 
     def _resolve_vars(self):
-        template_vars = self._template_vars()
+        """
+        Resolves nested Jinja templates within the context variables.
+        It iteratively renders templates using the state from the previous pass
+        until no more changes occur, handling interdependencies.
+        """
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True, autoescape=False)
+        resolved_vars = self._template_vars()
+        max_passes = 10  # Safety limit
 
-        def load_file(filepath):
-            full_path = os.path.abspath(os.path.join(self.context.dir, filepath))
-            with open(full_path) as f:
-                content = f.read()
-                template = env.from_string(content)
-                return template.render(**template_vars)
+        # Use a container to hold the current state so nested functions can reference it
+        context_container = [resolved_vars]
 
-        env.globals["load"] = load_file
+        for _ in range(max_passes):
+            previous_vars_state = copy.deepcopy(resolved_vars)
+            context_container[0] = resolved_vars
 
-        def resolve_recursive(obj):
-            if isinstance(obj, dict):
-                return {k: resolve_recursive(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [resolve_recursive(i) for i in obj]
-            elif isinstance(obj, str):
-                template = env.from_string(obj)
-                return template.render(**template_vars)
-            return obj
+            def load_file(filepath):
+                full_path = os.path.abspath(os.path.join(self.context.dir, filepath))
+                with open(full_path) as f:
+                    content = f.read()
+                    template = env.from_string(content)
+                    return template.render(**context_container[0])
 
-        return resolve_recursive(template_vars)
+            env.globals["load"] = load_file
+
+            def resolve_recursive_pass(obj):
+                if isinstance(obj, dict):
+                    return {k: resolve_recursive_pass(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [resolve_recursive_pass(i) for i in obj]
+                elif isinstance(obj, str):
+                    if "{{" in obj and "}}" in obj:
+                        template = env.from_string(obj)
+                        return template.render(**context_container[0])
+                    else:
+                        return obj
+                return obj
+
+            resolved_vars = resolve_recursive_pass(context_container[0])
+
+            if resolved_vars == previous_vars_state:
+                return resolved_vars
+
+        raise RuntimeError("Variable resolution did not converge")
 
     def _template_vars(self):
         return {
-            **self.context.vars,
+            **copy.deepcopy(self.context.vars),
             "facts": self.context.conversation_facts,
             "model": self.context.model,
         }

@@ -1,7 +1,6 @@
 class ChatCompletion:
-    def __init__(self, response, pricing):
+    def __init__(self, response):
         self.response = response
-        self.pricing = pricing
         self._validate()
 
     def _validate(self):

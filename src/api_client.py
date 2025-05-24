@@ -27,11 +27,11 @@ class OpenRouterAPIClient:
             body["provider"] = {"only": [provider]}
         return body
 
-    async def request_completion(self, messages, parameters, pricing, provider=None):
+    async def request_completion(self, messages, parameters, provider=None):
         body = self._prepare_body(messages, parameters, provider)
         try:
             completion_data = await self._fetch_completion_data(body)
-            completion = ChatCompletion(completion_data, pricing)
+            completion = ChatCompletion(completion_data)
             self.logger.log(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout:

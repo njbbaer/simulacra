@@ -23,7 +23,6 @@ class ChatExecutor:
         completion = await client.request_completion(
             messages=self._build_messages(),
             parameters=params,
-            pricing=self.context.pricing,
             provider=self.context.provider,
         )
 

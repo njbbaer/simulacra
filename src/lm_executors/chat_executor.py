@@ -24,6 +24,7 @@ class ChatExecutor:
             messages=self._build_messages(),
             parameters=params,
             pricing=self.context.pricing,
+            provider=self.context.provider,
         )
 
         self.context.increment_cost(completion.cost)

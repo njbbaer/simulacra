@@ -21,11 +21,14 @@ class OpenRouterAPIClient:
     def _get_headers(self):
         return {"Authorization": f"Bearer {self.api_key}"}
 
-    def _prepare_body(self, messages, parameters):
-        return {"messages": messages, **parameters}
+    def _prepare_body(self, messages, parameters, provider=None):
+        body = {"messages": messages, **parameters}
+        if provider:
+            body["provider"] = {"only": [provider]}
+        return body
 
-    async def request_completion(self, messages, parameters, pricing):
-        body = self._prepare_body(messages, parameters)
+    async def request_completion(self, messages, parameters, pricing, provider=None):
+        body = self._prepare_body(messages, parameters, provider)
         try:
             completion_data = await self._fetch_completion_data(body)
             completion = ChatCompletion(completion_data, pricing)

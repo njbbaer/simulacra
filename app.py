@@ -10,7 +10,7 @@ from src import TelegramBot
 dotenv.load_dotenv()
 
 IS_DEVELOPMENT = os.environ.get("ENVIRONMENT") == "development"
-CONFIG_FILE = os.environ.get("CONFIG_FILE")
+CONFIG_FILEPATH = os.environ.get("CONFIG_FILEPATH")
 
 
 def _run_bot(bot_config):
@@ -23,7 +23,7 @@ def _run_bot(bot_config):
 
 def _get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, nargs="?", default=CONFIG_FILE)
+    parser.add_argument("config_file", type=str, nargs="?", default=CONFIG_FILEPATH)
     return parser.parse_args().config_file
 
 

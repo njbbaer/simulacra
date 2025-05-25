@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- Run tests: `pipenv run pytest`
+- Run tests: `uv run pytest`
 
 ## Guidelines
 

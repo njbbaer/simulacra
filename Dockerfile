@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY . /app
 
-RUN pip install pipenv && \
-    pipenv install --deploy --ignore-pipfile
+RUN pip install uv
+RUN uv sync --frozen --no-dev
 
-CMD ["sh", "-c", "pipenv run python app.py $CONFIG_FILEPATH"]
+CMD ["sh", "-c", "uv run python app.py $CONFIG_FILEPATH"]

@@ -5,3 +5,4 @@ log.yml
 .vscode/
 data.csv
 .coverage
+.venv/

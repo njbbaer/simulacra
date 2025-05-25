@@ -2,9 +2,12 @@ import argparse
 import multiprocessing
 import os
 
+import dotenv
 import toml
 
 from src import TelegramBot
+
+dotenv.load_dotenv()
 
 IS_DEVELOPMENT = os.environ.get("ENVIRONMENT") == "development"
 CONFIG_FILE = os.environ.get("CONFIG_FILE")

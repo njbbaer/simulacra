@@ -18,10 +18,10 @@ If this project interests you, show your support by starring it on GitHub.
 
 For Docker specific usage, see the [Docker](#docker) section.
 
-### Install dependencies with Pipenv
+### Install dependencies with uv
 
 ```sh
-pipenv install
+uv install
 ```
 
 If you wish to include development dependencies, add `--dev`.
@@ -37,7 +37,7 @@ For more information, see the [Configuration](#configuration) section.
 ### Run the application
 
 ```sh
-pipenv run app examples/config.toml
+uv run app examples/config.toml
 ```
 
 ### Interact with your bot on Telegram
@@ -154,13 +154,13 @@ Note: Development mode can only run a single bot at once.
 Install pre-commit hooks to run code formatting and linting before committing:
 
 ```sh
-pipenv run pre-commit install
+uv run pre-commit install
 ```
 
 ### Run tests
 
 ```sh
-pipenv run test
+uv run pytest
 ```
 
 ### Release a new version

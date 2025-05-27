@@ -8,7 +8,7 @@ class ChatCompletion:
 
     def _validate(self) -> None:
         if self._error_message:
-            raise Exception(self.error_message)
+            raise Exception(self._error_message)
         if self._finish_reason == "length":
             raise Exception("Response exceeded maximum length")
         if not self.content:

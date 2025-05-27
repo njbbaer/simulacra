@@ -31,7 +31,7 @@ class TelegramBot:
 
         # Disallow unauthorized users
         self.app.add_handler(
-            MessageHandler(~filters.User(username=authorized_users), self.unauthorized)
+            MessageHandler(~filters.User(username=authorized_users), self.unauthorized)  # type: ignore
         )
 
         # Handle commands
@@ -50,7 +50,7 @@ class TelegramBot:
         ]
         for commands, handler in command_handlers:
             for cmd in commands:
-                self.app.add_handler(CommandHandler(cmd, handler))
+                self.app.add_handler(CommandHandler(cmd, handler))  # type: ignore
 
         # Handle messages
         self.app.add_handler(
@@ -59,13 +59,13 @@ class TelegramBot:
                 | filters.PHOTO
                 | filters.VOICE
                 | filters.ATTACHMENT,
-                self.chat_message_handler,
+                self.chat_message_handler,  # type: ignore
             )
         )
 
         # Handle unknown messages and errors
-        self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
-        self.app.add_error_handler(self.error_handler)
+        self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))  # type: ignore
+        self.app.add_error_handler(self.error_handler)  # type: ignore
 
     def run(self) -> None:
         self.app.run_polling()
@@ -75,7 +75,8 @@ class TelegramBot:
         image_url = await ctx.get_image_url()
         pdf_string = await ctx.get_pdf_string()
         text = await ctx.get_text()
-        await self._chat(ctx, text, image_url, documents=[pdf_string])
+        documents = [pdf_string] if pdf_string else []
+        await self._chat(ctx, text, image_url, documents=documents)
 
     @message_handler
     async def new_conversation_command_handler(self, ctx: TelegramContext) -> None:
@@ -182,7 +183,8 @@ class TelegramBot:
 
     @message_handler
     async def sync_book_command_handler(self, ctx: TelegramContext) -> None:
-        book_chunk = self.sim.sync_book(ctx.command_body)
+        query = ctx.command_body or ""
+        book_chunk = self.sim.sync_book(query)
         num_words = len(book_chunk.split())
         chunk_sample = " ".join(book_chunk.split()[-10:])
         await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
@@ -203,6 +205,8 @@ class TelegramBot:
         await self._warn_cost(ctx)
 
     async def _warn_cost(self, ctx: TelegramContext) -> None:
+        if not self.sim.last_completion:
+            return
         cost = self.sim.last_completion.cost
         total_cost = self.sim.get_conversation_cost()
         warnings = []

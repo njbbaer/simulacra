@@ -26,7 +26,7 @@ class BookReader:
 
     def _find_position(self, query: str) -> int:
         match = rapidfuzz.fuzz.partial_ratio_alignment(query, self.text)
-        if match.score < 80:
+        if match is None or match.score < 80:
             raise Exception("No match found in text")
 
         end_position = self.text.find("\n", match.dest_end)

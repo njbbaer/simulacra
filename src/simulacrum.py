@@ -3,6 +3,7 @@ import textwrap
 from typing import List, Optional
 
 from .book_reader import BookReader
+from .chat_completion import ChatCompletion
 from .context import Context
 from .lm_executors import ChatExecutor
 
@@ -10,8 +11,8 @@ from .lm_executors import ChatExecutor
 class Simulacrum:
     def __init__(self, context_file: str) -> None:
         self.context = Context(context_file)
-        self.last_completion = None
-        self.instruction_text = None
+        self.last_completion: Optional[ChatCompletion] = None
+        self.instruction_text: Optional[str] = None
 
     async def chat(
         self,
@@ -108,7 +109,7 @@ class Simulacrum:
         return text
 
     @staticmethod
-    def _append_document(text: Optional[str], document: str) -> str:
+    def _append_document(text: Optional[str], document: str) -> Optional[str]:
         if not document:
             return text
 

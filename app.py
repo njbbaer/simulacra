@@ -30,6 +30,8 @@ def _get_args() -> Optional[str]:
 
 def main() -> None:
     config_file = _get_args()
+    if config_file is None:
+        raise ValueError("Config file is required")
     configs = toml.load(open(config_file, "r"))
     bot_configs = configs.get("simulacra", [])
 
@@ -42,7 +44,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     if IS_DEVELOPMENT:
-        import hupper
+        import hupper  # type: ignore
 
         hupper.start_reloader("app.main")
     main()

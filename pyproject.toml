@@ -38,8 +38,7 @@ dev = [
 
 [tool.flake8]
 exclude = [".venv"]
-max-line-length = 80
-extend-select = ["B950"]
+max-line-length = 88
 extend-ignore = ["E203", "E501", "E701"]
 
 [tool.isort]

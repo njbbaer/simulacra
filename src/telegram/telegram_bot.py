@@ -20,6 +20,7 @@ class TelegramBot:
     def __init__(self, context_filepath, telegram_token, authorized_users):
         self.app = ApplicationBuilder().token(telegram_token).build()
         self.sim = Simulacrum(context_filepath)
+        self.last_warned_cost = 0
 
         # Ignore stale messages
         self.app.add_handler(MessageHandler(StaleMessageFilter(), self._do_nothing))
@@ -76,6 +77,7 @@ class TelegramBot:
     async def new_conversation_command_handler(self, ctx):
         if self.sim.has_messages():
             await self.sim.new_conversation()
+            self.last_warned_cost = 0
             await ctx.send_message("`✅ New conversation started`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
@@ -120,6 +122,7 @@ class TelegramBot:
     @message_handler
     async def clear_command_handler(self, ctx):
         self.sim.reset_conversation()
+        self.last_warned_cost = 0
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler
@@ -198,8 +201,8 @@ class TelegramBot:
             symbol = "🔴" if cost > 0.25 else "🟡"
             warnings.append(f"{symbol} Last message cost: ${cost:.2f}")
 
-        if total_cost > self.sim.cost_threshold_warned + 1.0:
-            self.sim.cost_threshold_warned = math.floor(total_cost)
+        if total_cost > self.last_warned_cost + 1.0:
+            self.last_warned_cost = math.floor(total_cost)
             symbol = "🔴" if total_cost > 3.0 else "🟡"
             warnings.append(f"{symbol} Conversation cost: ${total_cost:.2f}")
 

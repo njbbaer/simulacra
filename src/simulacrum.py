@@ -10,7 +10,6 @@ class Simulacrum:
     def __init__(self, context_file):
         self.context = Context(context_file)
         self.last_completion = None
-        self.cost_threshold_warned = 0
         self.instruction_text = None
 
     async def chat(self, user_input, image_url, documents):
@@ -35,13 +34,11 @@ class Simulacrum:
         self.context.load()
         self.context.new_conversation()
         self.context.save()
-        self.cost_threshold_warned = False
 
     def reset_conversation(self):
         self.context.load()
         self.context.reset_conversation()
         self.context.save()
-        self.cost_threshold_warned = False
 
     def add_conversation_fact(self, fact_text):
         self.context.load()

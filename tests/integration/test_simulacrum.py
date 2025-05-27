@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any, Dict
 
 import pytest
 from ruamel.yaml import YAML
@@ -15,7 +16,7 @@ def custom_fs(fs):
 
 
 @pytest.fixture
-def context_data():
+def context_data() -> Dict[str, Any]:
     return {
         "char_name": "test",
         "model": "anthropic/claude",
@@ -29,7 +30,7 @@ def context_data():
 
 
 @pytest.fixture
-def conversation_data():
+def conversation_data() -> Dict[str, Any]:
     return {
         "cost": 0.1,
         "facts": [],
@@ -43,7 +44,9 @@ def conversation_data():
 
 
 @pytest.fixture
-def simulacrum_context(custom_fs, context_data, conversation_data):
+def simulacrum_context(
+    custom_fs, context_data: Dict[str, Any], conversation_data: Dict[str, Any]
+) -> None:
     with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
     os.makedirs("conversations", exist_ok=True)
@@ -52,17 +55,17 @@ def simulacrum_context(custom_fs, context_data, conversation_data):
 
 
 @pytest.fixture
-def simulacrum(simulacrum_context):
+def simulacrum(simulacrum_context) -> Simulacrum:
     return Simulacrum("context.yml")
 
 
 @pytest.fixture
-def generation_id():
+def generation_id() -> str:
     return "gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
 
 
 @pytest.fixture
-def mock_completion_response(generation_id):
+def mock_completion_response(generation_id: str) -> Dict[str, Any]:
     return {
         "id": generation_id,
         "choices": [
@@ -76,13 +79,16 @@ def mock_completion_response(generation_id):
 
 
 @pytest.fixture
-def mock_cost_response():
+def mock_cost_response() -> Dict[str, Any]:
     return {"data": {"total_cost": 0.1}}
 
 
 @pytest.fixture
 def mock_openrouter(
-    httpx_mock, generation_id, mock_completion_response, mock_cost_response
+    httpx_mock,
+    generation_id: str,
+    mock_completion_response: Dict[str, Any],
+    mock_cost_response: Dict[str, Any],
 ):
     httpx_mock.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",
@@ -97,12 +103,12 @@ def mock_openrouter(
 
 @pytest.mark.asyncio
 async def test_simulacrum_chat(
-    simulacrum,
+    simulacrum: Simulacrum,
     mock_openrouter,
-    context_data,
-    conversation_data,
-    generation_id,
-):
+    context_data: Dict[str, Any],
+    conversation_data: Dict[str, Any],
+    generation_id: str,
+) -> None:
     initial_context_cost = context_data["total_cost"]
     initial_conversation_cost = conversation_data["cost"]
     initial_message_count = len(conversation_data["messages"])
@@ -162,7 +168,9 @@ async def test_simulacrum_chat(
 
 
 @pytest.mark.asyncio
-async def test_new_conversation(simulacrum, context_data):
+async def test_new_conversation(
+    simulacrum: Simulacrum, context_data: Dict[str, Any]
+) -> None:
     initial_conversation_id = context_data["conversation_id"]
 
     await simulacrum.new_conversation()
@@ -186,7 +194,11 @@ async def test_new_conversation(simulacrum, context_data):
         assert len(new_conversation_data["messages"]) == 0
 
 
-def test_reset_conversation(simulacrum, context_data, conversation_data):
+def test_reset_conversation(
+    simulacrum: Simulacrum,
+    context_data: Dict[str, Any],
+    conversation_data: Dict[str, Any],
+) -> None:
     initial_cost = conversation_data["cost"]
     initial_message_count = len(conversation_data["messages"])
 

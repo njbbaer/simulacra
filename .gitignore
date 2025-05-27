@@ -6,3 +6,4 @@ log.yml
 data.csv
 .coverage
 .venv/
+.mypy_cache/

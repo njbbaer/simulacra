@@ -1,19 +1,21 @@
 import copy
 import os
+from typing import Any, Dict, List
 
 import jinja2
 import yaml
 
 from ..api_client import OpenRouterAPIClient
+from ..chat_completion import ChatCompletion
 
 
 class ChatExecutor:
     TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         self.context = context
 
-    async def execute(self):
+    async def execute(self) -> ChatCompletion:
         client = OpenRouterAPIClient()
 
         params = {"max_tokens": 8192}
@@ -29,7 +31,7 @@ class ChatExecutor:
         self.context.increment_cost(completion.cost)
         return completion
 
-    def _build_messages(self):
+    def _build_messages(self) -> List[Dict[str, Any]]:
         resolved_vars = self._resolve_vars()
         resolved_vars["messages"] = self.context.conversation_messages
         with open(self.TEMPLATE_PATH) as file:
@@ -39,7 +41,7 @@ class ChatExecutor:
         rendered_str = template.render(resolved_vars)
         return yaml.safe_load(rendered_str)
 
-    def _resolve_vars(self):
+    def _resolve_vars(self) -> Dict[str, Any]:
         """
         Resolves nested Jinja templates within the context variables.
         It iteratively renders templates using the state from the previous pass
@@ -56,7 +58,7 @@ class ChatExecutor:
             previous_vars_state = copy.deepcopy(resolved_vars)
             context_container[0] = resolved_vars
 
-            def load_file(filepath):
+            def load_file(filepath: str) -> str:
                 full_path = os.path.abspath(os.path.join(self.context.dir, filepath))
                 with open(full_path) as f:
                     content = f.read()
@@ -65,7 +67,7 @@ class ChatExecutor:
 
             env.globals["load"] = load_file
 
-            def resolve_recursive_pass(obj):
+            def resolve_recursive_pass(obj: Any) -> Any:
                 if isinstance(obj, dict):
                     return {k: resolve_recursive_pass(v) for k, v in obj.items()}
                 elif isinstance(obj, list):
@@ -85,7 +87,7 @@ class ChatExecutor:
 
         raise RuntimeError("Variable resolution did not converge")
 
-    def _template_vars(self):
+    def _template_vars(self) -> Dict[str, Any]:
         return {
             **copy.deepcopy(self.context.vars),
             "facts": self.context.conversation_facts,

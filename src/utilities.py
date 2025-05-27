@@ -4,7 +4,7 @@ from io import BytesIO
 import pdfplumber
 
 
-def parse_pdf(content):
+def parse_pdf(content: bytes) -> str:
     binary_data = BytesIO(content)
     with pdfplumber.open(binary_data) as pdf:
         text = "\n".join(page.extract_text() for page in pdf.pages)

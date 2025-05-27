@@ -18,7 +18,7 @@
         {{ message.content | indent(8) }}
       {% if loop.index in [(messages|length), (messages|length - 2)] %}
       {% if 'claude' in model %}
-      cache_control: 
+      cache_control:
         type: ephemeral
       {% endif %}
       {% endif %}

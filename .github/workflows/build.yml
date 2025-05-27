@@ -52,7 +52,7 @@ jobs:
 
     - name: Run Flake8
       run: uv run flake8
-    
+
     - name: Run isort
       run: uv run isort --check-only .
 

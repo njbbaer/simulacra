@@ -1,4 +1,5 @@
 import io
+from typing import Any, Dict
 
 from ruamel.yaml.scalarstring import LiteralScalarString
 
@@ -6,10 +7,10 @@ from .yaml_config import yaml
 
 
 class Logger:
-    def __init__(self, filepath):
+    def __init__(self, filepath: str) -> None:
         self.filepath = filepath
 
-    def log(self, parameters, content, response):
+    def log(self, parameters: Dict[str, Any], content: Any, response: str) -> None:
         buffer = io.StringIO()
         yaml.dump(
             {
@@ -23,7 +24,7 @@ class Logger:
             file.write(buffer.getvalue())
 
     @staticmethod
-    def _format_text(data):
+    def _format_text(data: Any) -> Any:
         if isinstance(data, dict):
             return {
                 k: LiteralScalarString(v) if k == "text" else Logger._format_text(v)

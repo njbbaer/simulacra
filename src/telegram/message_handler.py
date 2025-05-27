@@ -1,16 +1,19 @@
 import asyncio
+from typing import Any, Awaitable, Callable
 
 from .telegram_context import TelegramContext
 
 
-async def _loop_send_typing_action(ctx):
+async def _loop_send_typing_action(ctx: TelegramContext) -> None:
     while True:
         await ctx.send_typing_action()
         await asyncio.sleep(4)
 
 
-def message_handler(func):
-    async def wrapper(self, update, context, *args, **kwargs):
+def message_handler(
+    func: Callable[..., Awaitable[Any]]
+) -> Callable[..., Awaitable[Any]]:
+    async def wrapper(self, update, context, *args, **kwargs) -> Any:
         ctx = TelegramContext(self.app, update, context)
         typing_task = asyncio.create_task(_loop_send_typing_action(ctx))
         try:

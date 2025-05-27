@@ -1,6 +1,7 @@
 import logging
 import math
 import textwrap
+from typing import List, Optional
 
 # fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -8,6 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from ..simulacrum import Simulacrum
 from ..telegram.filters import StaleMessageFilter
 from ..telegram.message_handler import message_handler
+from ..telegram.telegram_context import TelegramContext
 
 # fmt: on
 
@@ -17,7 +19,9 @@ logging.basicConfig(level=logging.ERROR)
 
 
 class TelegramBot:
-    def __init__(self, context_filepath, telegram_token, authorized_users):
+    def __init__(
+        self, context_filepath: str, telegram_token: str, authorized_users: List[str]
+    ) -> None:
         self.app = ApplicationBuilder().token(telegram_token).build()
         self.sim = Simulacrum(context_filepath)
         self.last_warned_cost = 0
@@ -63,18 +67,18 @@ class TelegramBot:
         self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))
         self.app.add_error_handler(self.error_handler)
 
-    def run(self):
+    def run(self) -> None:
         self.app.run_polling()
 
     @message_handler
-    async def chat_message_handler(self, ctx):
+    async def chat_message_handler(self, ctx: TelegramContext) -> None:
         image_url = await ctx.get_image_url()
         pdf_string = await ctx.get_pdf_string()
         text = await ctx.get_text()
         await self._chat(ctx, text, image_url, documents=[pdf_string])
 
     @message_handler
-    async def new_conversation_command_handler(self, ctx):
+    async def new_conversation_command_handler(self, ctx: TelegramContext) -> None:
         if self.sim.has_messages():
             await self.sim.new_conversation()
             self.last_warned_cost = 0
@@ -83,22 +87,22 @@ class TelegramBot:
             await ctx.send_message("`❌ No messages in conversation`")
 
     @message_handler
-    async def retry_command_handler(self, ctx):
+    async def retry_command_handler(self, ctx: TelegramContext) -> None:
         if self.sim.last_message_role == "assistant":
             self.sim.undo_last_messages_by_role("assistant")
         await self._chat(ctx, user_message=None)
 
     @message_handler
-    async def continue_command_handler(self, ctx):
+    async def continue_command_handler(self, ctx: TelegramContext) -> None:
         await self._chat(ctx, user_message=None)
 
     @message_handler
-    async def undo_command_handler(self, ctx):
+    async def undo_command_handler(self, ctx: TelegramContext) -> None:
         self.sim.undo_last_messages_by_role("user")
         await ctx.send_message("🗑️ Last message undone")
 
     @message_handler
-    async def stats_command_handler(self, ctx):
+    async def stats_command_handler(self, ctx: TelegramContext) -> None:
         conversation_cost = (
             f"*Conversation*\n`Cost: ${self.sim.get_conversation_cost():.2f}`"
         )
@@ -120,13 +124,13 @@ class TelegramBot:
         await ctx.send_message(f"{conversation_cost}\n\n{last_message_stats}")
 
     @message_handler
-    async def clear_command_handler(self, ctx):
+    async def clear_command_handler(self, ctx: TelegramContext) -> None:
         self.sim.reset_conversation()
         self.last_warned_cost = 0
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler
-    async def add_fact_command_handler(self, ctx):
+    async def add_fact_command_handler(self, ctx: TelegramContext) -> None:
         if ctx.command_body:
             self.sim.add_conversation_fact(ctx.command_body)
             await ctx.send_message("`✅ Fact added to conversation`")
@@ -134,7 +138,7 @@ class TelegramBot:
             await ctx.send_message("`❌ No text provided`")
 
     @message_handler
-    async def apply_instruction_command_handler(self, ctx):
+    async def apply_instruction_command_handler(self, ctx: TelegramContext) -> None:
         if ctx.command_body:
             self.sim.apply_instruction(ctx.command_body)
             await ctx.send_message("`✅ Instruction applied to next response`")
@@ -142,7 +146,7 @@ class TelegramBot:
             await ctx.send_message("`❌ No text provided`")
 
     @message_handler
-    async def help_command_handler(self, ctx):
+    async def help_command_handler(self, ctx: TelegramContext) -> None:
         await ctx.send_message(
             textwrap.dedent(
                 """
@@ -163,36 +167,42 @@ class TelegramBot:
         )
 
     @message_handler
-    async def unauthorized(self, ctx):
+    async def unauthorized(self, ctx: TelegramContext) -> None:
         await ctx.send_message("`❌ Unauthorized`")
 
     @message_handler
-    async def unknown_message_handler(self, ctx):
+    async def unknown_message_handler(self, ctx: TelegramContext) -> None:
         await ctx.send_message("`❌ Not recognized`")
 
     @message_handler
-    async def error_handler(self, ctx):
+    async def error_handler(self, ctx: TelegramContext) -> None:
         logger.error(ctx.context.error, exc_info=True)
         if ctx.update:
             await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
 
     @message_handler
-    async def sync_book_command_handler(self, ctx):
+    async def sync_book_command_handler(self, ctx: TelegramContext) -> None:
         book_chunk = self.sim.sync_book(ctx.command_body)
         num_words = len(book_chunk.split())
         chunk_sample = " ".join(book_chunk.split()[-10:])
         await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
 
-    async def _do_nothing(self, *_):
+    async def _do_nothing(self, *_) -> None:
         pass
 
-    async def _chat(self, ctx, user_message, image_url=None, documents=None):
+    async def _chat(
+        self,
+        ctx: TelegramContext,
+        user_message: Optional[str],
+        image_url: Optional[str] = None,
+        documents: Optional[List[str]] = None,
+    ) -> None:
         response = await self.sim.chat(user_message, image_url, documents)
         response = response.replace("(", "_(").replace(")", ")_")
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 
-    async def _warn_cost(self, ctx):
+    async def _warn_cost(self, ctx: TelegramContext) -> None:
         cost = self.sim.last_completion.cost
         total_cost = self.sim.get_conversation_cost()
         warnings = []

@@ -1,9 +1,11 @@
+from typing import Any
+
 from ruamel.yaml import YAML
 from ruamel.yaml.representer import RoundTripRepresenter
 
 
 class NonAliasingRTRepresenter(RoundTripRepresenter):
-    def ignore_aliases(self, _):
+    def ignore_aliases(self, _: Any) -> bool:
         return True
 
 

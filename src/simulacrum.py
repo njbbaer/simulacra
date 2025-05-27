@@ -1,5 +1,6 @@
 import re
 import textwrap
+from typing import List, Optional
 
 from .book_reader import BookReader
 from .context import Context
@@ -7,12 +8,17 @@ from .lm_executors import ChatExecutor
 
 
 class Simulacrum:
-    def __init__(self, context_file):
+    def __init__(self, context_file: str) -> None:
         self.context = Context(context_file)
         self.last_completion = None
         self.instruction_text = None
 
-    async def chat(self, user_input, image_url, documents):
+    async def chat(
+        self,
+        user_input: Optional[str],
+        image_url: Optional[str],
+        documents: Optional[List[str]],
+    ) -> str:
         self.context.load()
         if documents:
             for document in documents:
@@ -30,25 +36,25 @@ class Simulacrum:
         speech = self._strip_tag(content, "character_think")
         return speech
 
-    async def new_conversation(self):
+    async def new_conversation(self) -> None:
         self.context.load()
         self.context.new_conversation()
         self.context.save()
 
-    def reset_conversation(self):
+    def reset_conversation(self) -> None:
         self.context.load()
         self.context.reset_conversation()
         self.context.save()
 
-    def add_conversation_fact(self, fact_text):
+    def add_conversation_fact(self, fact_text: str) -> None:
         self.context.load()
         self.context.add_conversation_fact(fact_text)
         self.context.save()
 
-    def apply_instruction(self, instruction_text):
+    def apply_instruction(self, instruction_text: str) -> None:
         self.instruction_text = instruction_text
 
-    def undo_last_messages_by_role(self, role):
+    def undo_last_messages_by_role(self, role: str) -> None:
         self.context.load()
         num_messages = len(self.context.conversation_messages)
         for _ in range(num_messages):
@@ -57,15 +63,15 @@ class Simulacrum:
                 break
         self.context.save()
 
-    def has_messages(self):
+    def has_messages(self) -> bool:
         self.context.load()
         return len(self.context.conversation_messages) > 0
 
-    def get_conversation_cost(self):
+    def get_conversation_cost(self) -> float:
         self.context.load()
         return self.context.conversation_cost
 
-    def sync_book(self, query):
+    def sync_book(self, query: str) -> str:
         self.context.load()
         book = BookReader(self.context.book_path)
         start_idx = self.context.last_book_position or 0
@@ -76,16 +82,16 @@ class Simulacrum:
         return book_chunk
 
     @property
-    def last_message_role(self):
+    def last_message_role(self) -> str:
         self.context.load()
         return self.context.conversation_messages[-1]["role"]
 
-    def _strip_tag(self, content, tag):
+    def _strip_tag(self, content: str, tag: str) -> str:
         content = re.sub(rf"<{tag}.*?>.*?</{tag}>", "", content, flags=re.DOTALL)
         content = re.sub(r"\n{3,}", "\n\n", content)
         return content.strip()
 
-    def _inject_instruction(self, text):
+    def _inject_instruction(self, text: str) -> str:
         if self.instruction_text:
             text = textwrap.dedent(
                 f"""
@@ -100,7 +106,7 @@ class Simulacrum:
         return text
 
     @staticmethod
-    def _append_document(text, document):
+    def _append_document(text: Optional[str], document: str) -> str:
         if not document:
             return text
 

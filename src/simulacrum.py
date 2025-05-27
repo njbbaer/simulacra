@@ -73,6 +73,8 @@ class Simulacrum:
 
     def sync_book(self, query: str) -> str:
         self.context.load()
+        if not self.context.book_path:
+            raise Exception("No book path set.")
         book = BookReader(self.context.book_path)
         start_idx = self.context.last_book_position or 0
         book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)

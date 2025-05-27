@@ -1051,13 +1051,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "autoflake" },
-    { name = "black" },
-    { name = "flake8" },
-    { name = "flake8-bugbear" },
-    { name = "flake8-pyproject" },
+    { name = "autoflake", specifier = "==2.3.1" },
+    { name = "black", specifier = "==25.1.0" },
+    { name = "flake8", specifier = "==7.2.0" },
+    { name = "flake8-bugbear", specifier = "==24.12.12" },
+    { name = "flake8-pyproject", specifier = "==1.2.3" },
     { name = "hupper" },
-    { name = "isort" },
+    { name = "isort", specifier = "==6.0.1" },
     { name = "mypy", specifier = "==1.15.0" },
     { name = "pre-commit" },
     { name = "pycodestyle" },

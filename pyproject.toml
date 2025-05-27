@@ -33,6 +33,7 @@ dev = [
     "pytest-httpx",
     "pytest-cov",
     "flake8-pyproject",
+    "mypy==1.15.0",
 ]
 
 [tool.flake8]

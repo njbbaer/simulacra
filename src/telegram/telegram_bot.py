@@ -1,4 +1,5 @@
 import logging
+import math
 import textwrap
 
 # fmt: off
@@ -188,15 +189,19 @@ class TelegramBot:
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 
-    async def _warn_cost(self, ctx, threshold_high=0.15, threshold_elevated=0.10):
+    async def _warn_cost(self, ctx):
         cost = self.sim.last_completion.cost
-        if not cost:
-            return
+        total_cost = self.sim.get_conversation_cost()
+        warnings = []
 
-        if cost > threshold_high:
-            await ctx.send_message("🔴 Cost is high. Start a new conversation soon.")
-        elif cost > threshold_elevated and not self.sim.cost_warning_sent:
-            self.sim.cost_warning_sent = True
-            await ctx.send_message(
-                "🟡 Cost is elevated. Start a new conversation when ready."
-            )
+        if cost and cost > 0.15:
+            symbol = "🔴" if cost > 0.25 else "🟡"
+            warnings.append(f"{symbol} Last message cost: ${cost:.2f}")
+
+        if total_cost > self.sim.cost_threshold_warned + 1.0:
+            self.sim.cost_threshold_warned = math.floor(total_cost)
+            symbol = "🔴" if total_cost > 3.0 else "🟡"
+            warnings.append(f"{symbol} Conversation cost: ${total_cost:.2f}")
+
+        if warnings:
+            await ctx.send_message("\n".join(warnings))

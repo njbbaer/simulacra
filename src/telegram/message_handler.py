@@ -11,7 +11,7 @@ async def _loop_send_typing_action(ctx: TelegramContext) -> None:
 
 
 def message_handler(
-    func: Callable[..., Awaitable[Any]]
+    func: Callable[..., Awaitable[Any]],
 ) -> Callable[..., Awaitable[Any]]:
     async def wrapper(self, update, context, *args, **kwargs) -> Any:
         ctx = TelegramContext(self.app, update, context)

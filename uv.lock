@@ -1066,9 +1066,9 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
-    { name = "types-pytz", specifier = ">=2025.2.0.20250516" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250516" },
-    { name = "types-toml", specifier = ">=0.10.8.20240310" },
+    { name = "types-pytz", specifier = "==2025.2.0.20250516" },
+    { name = "types-pyyaml", specifier = "==6.0.12.20250516" },
+    { name = "types-toml", specifier = "==0.10.8.20240310" },
 ]
 
 [[package]]

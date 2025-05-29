@@ -10,8 +10,8 @@ def _shuffle_list(list: List[Any]) -> List[Any]:
     return shuffled_list
 
 
-def _merge_lists(list1: List[Any], list2: List[Any]) -> List[Any]:
-    return list1 + list2
+def _merge_lists(list1: List[Any] | None, list2: List[Any] | None) -> List[Any]:
+    return (list1 or []) + (list2 or [])
 
 
 def register_filters() -> None:

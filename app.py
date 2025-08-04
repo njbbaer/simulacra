@@ -28,7 +28,17 @@ def _get_args() -> Optional[str]:
     return parser.parse_args().config_file
 
 
+def _start_reloader() -> None:
+    import hupper
+
+    reloader = hupper.start_reloader("app.main")
+    reloader.watch_files([CONFIG_FILEPATH])
+
+
 def main() -> None:
+    if IS_DEVELOPMENT:
+        _start_reloader()
+
     config_file = _get_args()
     if config_file is None:
         raise ValueError("Config file is required")
@@ -43,8 +53,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if IS_DEVELOPMENT:
-        import hupper  # type: ignore
-
-        hupper.start_reloader("app.main")
     main()

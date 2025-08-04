@@ -56,7 +56,6 @@ class OpenRouterAPIClient:
                 headers=self._get_headers(),
                 json=body,
             )
-            completion_response.raise_for_status()
             completion_data = completion_response.json()
 
             if "error" in completion_data:

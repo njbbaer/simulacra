@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from .conversation import Conversation
+from .types import ScaffoldConfig
 from .yaml_config import yaml
 
 
@@ -105,6 +106,11 @@ class Context:
             if "end_idx" in metadata:
                 return metadata["end_idx"]
         return None
+
+    @property
+    def response_scaffold(self) -> ScaffoldConfig:
+        scaffold_config_dict = self._data.get("response_scaffold", {})
+        return ScaffoldConfig.from_dict(scaffold_config_dict)
 
     def _load_conversation(self) -> None:
         os.makedirs(self.conversations_dir, exist_ok=True)

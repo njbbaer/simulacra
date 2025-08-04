@@ -1,4 +1,3 @@
-import re
 import textwrap
 from typing import List, Optional
 
@@ -6,6 +5,7 @@ from .book_reader import BookReader
 from .chat_completion import ChatCompletion
 from .context import Context
 from .lm_executors import ChatExecutor
+from .response_scaffold import ResponseScaffold
 
 
 class Simulacrum:
@@ -31,11 +31,11 @@ class Simulacrum:
         completion = await ChatExecutor(self.context).execute()
         self.last_completion = completion
         content = completion.content.strip()
-        self.context.add_message("assistant", content)
+        scaffold = ResponseScaffold(content, self.context.response_scaffold)
+        transformed_content = scaffold.get_transformed_content()
+        self.context.add_message("assistant", transformed_content)
         self.context.save()
-        content = self._strip_tag(content, "playwright_think")
-        speech = self._strip_tag(content, "character_think")
-        return speech
+        return scaffold.extract_output()
 
     async def new_conversation(self) -> None:
         self.context.load()
@@ -88,11 +88,6 @@ class Simulacrum:
     def last_message_role(self) -> str:
         self.context.load()
         return self.context.conversation_messages[-1]["role"]
-
-    def _strip_tag(self, content: str, tag: str) -> str:
-        content = re.sub(rf"<{tag}.*?>.*?</{tag}>", "", content, flags=re.DOTALL)
-        content = re.sub(r"\n{3,}", "\n\n", content)
-        return content.strip()
 
     def _inject_instruction(self, text: str) -> str:
         if self.instruction_text:

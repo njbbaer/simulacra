@@ -46,10 +46,7 @@ class TelegramBot:
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
             (["clear"], self.clear_command_handler),
-            (
-                ["cancel", "x"],
-                self.cancel_command_handler,
-            ),  # Placeholder for cancel command
+            (["cancel", "x"], self.cancel_command_handler),
             (["syncbook", "sb"], self.sync_book_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self._do_nothing),
@@ -163,6 +160,7 @@ class TelegramBot:
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
                 /continue - Request another response
+                /cancel - Cancel the current request
                 /fact (...) - Add a fact to the conversation
                 /instruct (...) - Apply an instruction
                 /syncbook (...) - Sync current book position

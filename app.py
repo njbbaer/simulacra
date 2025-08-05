@@ -29,7 +29,7 @@ def _get_args() -> Optional[str]:
 
 
 def _start_reloader() -> None:
-    import hupper
+    import hupper  # type: ignore
 
     reloader = hupper.start_reloader("app.main")
     reloader.watch_files([CONFIG_FILEPATH])

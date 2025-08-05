@@ -38,7 +38,7 @@ class Context:
         self._load_conversation()
 
     def increment_cost(self, new_cost: float) -> None:
-        self._data["total_cost"] += new_cost
+        self._data["total_cost"] = float(self._data["total_cost"]) + new_cost
         self._conversation.increment_cost(new_cost)
 
     def add_conversation_fact(self, fact: str) -> None:

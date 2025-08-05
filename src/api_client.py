@@ -1,12 +1,14 @@
 import asyncio
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Coroutine, Dict, List, Optional
 
 import backoff
 import httpx
 
 from .chat_completion import ChatCompletion
 from .logger import Logger
+
+last_api_call_task: Optional[asyncio.Task] = None
 
 
 class RateLimitExceeded(Exception):
@@ -41,12 +43,24 @@ class OpenRouterAPIClient:
     ) -> ChatCompletion:
         body = self._prepare_body(messages, parameters, provider)
         try:
-            completion_data = await self._fetch_completion_data(body)
+            completion_data = await self._execute_with_cancellation(
+                self._fetch_completion_data(body)
+            )
             completion = ChatCompletion(completion_data)
             self.logger.log(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout:
             raise Exception("Request timed out")
+
+    async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> Any:
+        task = asyncio.create_task(coro)
+        global last_api_call_task
+        last_api_call_task = task
+        try:
+            result = await task
+            return result
+        finally:
+            last_api_call_task = None
 
     @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=10)
     async def _fetch_completion_data(self, body: Dict[str, Any]) -> Dict[str, Any]:

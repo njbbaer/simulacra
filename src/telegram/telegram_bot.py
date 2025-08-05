@@ -22,7 +22,9 @@ class TelegramBot:
     def __init__(
         self, context_filepath: str, telegram_token: str, authorized_users: List[str]
     ) -> None:
-        self.app = ApplicationBuilder().token(telegram_token).build()
+        self.app = (
+            ApplicationBuilder().token(telegram_token).concurrent_updates(True).build()
+        )
         self.sim = Simulacrum(context_filepath)
         self.last_warned_cost = 0
 
@@ -43,7 +45,11 @@ class TelegramBot:
             (["fact", "f"], self.add_fact_command_handler),
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
-            (["clear", "c"], self.clear_command_handler),
+            (["clear"], self.clear_command_handler),
+            (
+                ["cancel", "x"],
+                self.cancel_command_handler,
+            ),  # Placeholder for cancel command
             (["syncbook", "sb"], self.sync_book_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self._do_nothing),
@@ -191,6 +197,17 @@ class TelegramBot:
 
     async def _do_nothing(self, *_) -> None:
         pass
+
+    @message_handler
+    async def cancel_command_handler(self, ctx: TelegramContext) -> None:
+        from ..api_client import last_api_call_task
+
+        if last_api_call_task:
+            last_api_call_task.cancel()
+            last_api_call_task = None
+            await ctx.send_message("`✅ API call cancelled`")
+        else:
+            await ctx.send_message("`❌ No API call to cancel`")
 
     async def _chat(
         self,

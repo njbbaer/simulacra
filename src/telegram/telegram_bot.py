@@ -198,11 +198,11 @@ class TelegramBot:
 
     @message_handler
     async def cancel_command_handler(self, ctx: TelegramContext) -> None:
-        from ..api_client import last_api_call_task
+        from ..api_client import current_api_task
 
-        if last_api_call_task:
-            last_api_call_task.cancel()
-            last_api_call_task = None
+        if current_api_task:
+            current_api_task.cancel()
+            current_api_task = None
             await ctx.send_message("`✅ API call cancelled`")
         else:
             await ctx.send_message("`❌ No API call to cancel`")

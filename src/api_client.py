@@ -8,7 +8,7 @@ import httpx
 from .chat_completion import ChatCompletion
 from .logger import Logger
 
-last_api_call_task: Optional[asyncio.Task] = None
+current_api_task: Optional[asyncio.Task] = None
 
 
 class RateLimitExceeded(Exception):
@@ -54,13 +54,13 @@ class OpenRouterAPIClient:
 
     async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> Any:
         task = asyncio.create_task(coro)
-        global last_api_call_task
-        last_api_call_task = task
+        global current_api_task
+        current_api_task = task
         try:
             result = await task
             return result
         finally:
-            last_api_call_task = None
+            current_api_task = None
 
     @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=10)
     async def _fetch_completion_data(self, body: Dict[str, Any]) -> Dict[str, Any]:

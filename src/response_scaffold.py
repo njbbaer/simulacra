@@ -5,7 +5,7 @@ from .types import ScaffoldConfig
 
 class ResponseScaffold:
     def __init__(self, content: str, config: ScaffoldConfig) -> None:
-        self.original_content = content
+        self.original_content = content.strip()
         self.config = config
         self._validate_content()
 

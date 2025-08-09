@@ -8,3 +8,4 @@ data.csv
 .venv/
 .mypy_cache/
 .claude/
+comparison_log.txt

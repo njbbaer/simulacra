@@ -1,11 +1,19 @@
+import os
 import textwrap
-from typing import List, Optional
+from typing import List, Optional, Type
 
 from .book_reader import BookReader
 from .chat_completion import ChatCompletion
 from .context import Context
-from .lm_executors import ChatExecutor
+from .lm_executors import ChatExecutor as _ChatExecutor
+from .lm_executors import ComparisonExecutor
 from .response_scaffold import ResponseScaffold
+
+ChatExecutor: Type[_ChatExecutor]
+if os.getenv("ENABLE_COMPARISON_EXECUTOR") == "true":
+    ChatExecutor = ComparisonExecutor
+else:
+    ChatExecutor = _ChatExecutor
 
 
 class Simulacrum:
@@ -31,8 +39,7 @@ class Simulacrum:
         completion = await ChatExecutor(self.context).execute()
         self.last_completion = completion
         scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
-        transformed_content = scaffold.get_transformed_content()
-        self.context.add_message("assistant", transformed_content)
+        self.context.add_message("assistant", scaffold.get_transformed_content())
         self.context.save()
         return scaffold.extract_output()
 

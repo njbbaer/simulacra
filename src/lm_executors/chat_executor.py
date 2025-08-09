@@ -15,11 +15,11 @@ class ChatExecutor:
     def __init__(self, context) -> None:
         self.context = context
 
-    async def execute(self) -> ChatCompletion:
+    async def execute(self, params: Dict[str, Any] | None = None) -> ChatCompletion:
         client = OpenRouterAPIClient()
+        params = params or {}
 
-        params = {"max_tokens": 8192}
-        if self.context.model is not None:
+        if "model" not in params:
             params["model"] = self.context.model
 
         completion = await client.request_completion(

@@ -32,10 +32,12 @@ def _start_reloader() -> None:
     import hupper  # type: ignore
 
     reloader = hupper.start_reloader("app.main")
-    reloader.watch_files([CONFIG_FILEPATH])
+    reloader.watch_files([CONFIG_FILEPATH, ".env"])
 
 
 def main() -> None:
+    dotenv.load_dotenv()
+
     if IS_DEVELOPMENT:
         _start_reloader()
 

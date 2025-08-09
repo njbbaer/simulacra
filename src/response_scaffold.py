@@ -10,6 +10,8 @@ class ResponseScaffold:
         self._validate_content()
 
     def get_transformed_content(self) -> str:
+        """Return the transformed response content by removing specified tags and renaming others."""
+
         content = self.original_content
 
         for tag in self.config.delete_tags:
@@ -22,18 +24,20 @@ class ResponseScaffold:
 
         return re.sub(r"\n{3,}", "\n\n", content).strip()
 
-    def extract_output(self) -> str:
-        if not self.config.output_tag:
+    def extract(self, tag_name: str | None = None) -> str:
+        target_tag = tag_name or self.config.output_tag
+
+        if not target_tag:
             return re.sub(
                 r"<[^>]*>.*?</[^>]*>", "", self.original_content, flags=re.DOTALL
             ).strip()
 
-        pattern = rf"<{re.escape(self.config.output_tag)}(?:\s[^>]*)?>(?P<content>.*?)</{re.escape(self.config.output_tag)}>"
+        pattern = rf"<{re.escape(target_tag)}(?:\s[^>]*)?>(?P<content>.*?)</{re.escape(target_tag)}>"
         match = re.search(pattern, self.original_content, flags=re.DOTALL)
 
         if not match:
             raise ValueError(
-                f"Output tag '{self.config.output_tag}' not found in processed content"
+                f"Output tag '{target_tag}' not found in processed content"
             )
 
         return match.group("content").strip()

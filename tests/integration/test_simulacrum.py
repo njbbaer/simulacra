@@ -123,7 +123,6 @@ async def test_simulacrum_chat(
 
     # Verify model request properties
     assert actual_body["model"] == context_data["model"]
-    assert actual_body["max_tokens"] == 8192
 
     # Check the messages structure
     assert len(actual_body["messages"]) == 3

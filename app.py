@@ -10,8 +10,8 @@ from src import TelegramBot
 
 dotenv.load_dotenv()
 
-IS_DEVELOPMENT = os.environ.get("ENVIRONMENT") == "development"
-CONFIG_FILEPATH = os.environ.get("CONFIG_FILEPATH")
+IS_DEVELOPMENT = os.getenv("ENVIRONMENT") == "development"
+CONFIG_FILEPATH = os.getenv("CONFIG_FILEPATH")
 
 
 def _run_bot(bot_config: Dict[str, Any]) -> None:

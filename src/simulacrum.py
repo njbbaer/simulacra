@@ -6,12 +6,12 @@ from .book_reader import BookReader
 from .chat_completion import ChatCompletion
 from .context import Context
 from .lm_executors import ChatExecutor as _ChatExecutor
-from .lm_executors import ComparisonExecutor
+from .lm_executors import ExperimentExecutor
 from .response_scaffold import ResponseScaffold
 
 ChatExecutor: Type[_ChatExecutor]
-if os.getenv("ENABLE_COMPARISON_EXECUTOR") == "true":
-    ChatExecutor = ComparisonExecutor
+if os.getenv("ENABLE_EXPERIMENT_EXECUTOR") == "true":
+    ChatExecutor = ExperimentExecutor
 else:
     ChatExecutor = _ChatExecutor
 

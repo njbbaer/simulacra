@@ -1,4 +1,4 @@
 from .chat_executor import ChatExecutor
-from .comparison_executor import ComparisonExecutor
+from .experiment_executor import ExperimentExecutor
 
-__all__ = ["ChatExecutor", "ComparisonExecutor"]
+__all__ = ["ChatExecutor", "ExperimentExecutor"]

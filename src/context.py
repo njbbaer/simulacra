@@ -112,6 +112,10 @@ class Context:
         scaffold_config_dict = self._data.get("response_scaffold", {})
         return ScaffoldConfig.from_dict(scaffold_config_dict)
 
+    @property
+    def experiment_variations(self) -> Dict[str, Any]:
+        return self._data.get("experiment_variations", {})
+
     def _load_conversation(self) -> None:
         os.makedirs(self.conversations_dir, exist_ok=True)
         path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"

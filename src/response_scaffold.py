@@ -46,7 +46,10 @@ class ResponseScaffold:
         missing_tags = [
             tag
             for tag in self.config.require_tags
-            if not re.search(rf"<{re.escape(tag)}\b", self.original_content)
+            if not (
+                re.search(rf"<{re.escape(tag)}\b", self.original_content)
+                and re.search(rf"</{re.escape(tag)}>", self.original_content)
+            )
         ]
         if missing_tags:
             raise ValueError(

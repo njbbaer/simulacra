@@ -38,7 +38,7 @@ class ExperimentExecutor(ChatExecutor):
         for i, result in enumerate(results):
             scaffold = ResponseScaffold(result.content, self.context.response_scaffold)
             print(f"\n---------- (#{i+1}) ----------\n")
-            print(f"THOUGHTS: {scaffold.extract('character_think')}\n")
+            print(f"THOUGHTS: {scaffold.extract('think_character')}\n")
             print(scaffold.extract())
 
         choice = int(input("\nSelect response (1-" + str(len(results)) + "): ")) - 1

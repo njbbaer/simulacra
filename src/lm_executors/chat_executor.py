@@ -25,7 +25,6 @@ class ChatExecutor:
         completion = await client.request_completion(
             messages=self._build_messages(),
             parameters=merged_params,
-            provider=self.context.provider,
         )
 
         self.context.increment_cost(completion.cost)

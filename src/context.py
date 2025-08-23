@@ -89,10 +89,6 @@ class Context:
         return self._data.get("pricing", None)
 
     @property
-    def provider(self) -> Optional[str]:
-        return self._data.get("provider", None)
-
-    @property
     def book_path(self) -> Optional[str]:
         path = self._data.get("book_path", None)
         if path:

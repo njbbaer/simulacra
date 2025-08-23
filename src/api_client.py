@@ -28,20 +28,16 @@ class OpenRouterAPIClient:
         self,
         messages: List[Dict[str, Any]],
         parameters: Dict[str, Any],
-        provider: Optional[str] = None,
     ) -> Dict[str, Any]:
         body = {"messages": messages, **parameters}
-        if provider:
-            body["provider"] = {"only": [provider]}
         return body
 
     async def request_completion(
         self,
         messages: List[Dict[str, Any]],
         parameters: Dict[str, Any],
-        provider: Optional[str] = None,
     ) -> ChatCompletion:
-        body = self._prepare_body(messages, parameters, provider)
+        body = self._prepare_body(messages, parameters)
         try:
             completion_data = await self._execute_with_cancellation(
                 self._fetch_completion_data(body)

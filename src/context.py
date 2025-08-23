@@ -78,7 +78,7 @@ class Context:
 
     @property
     def model(self) -> str:
-        return self._data["model"]
+        return self.api_params["model"]
 
     @property
     def conversation_id(self) -> int:
@@ -115,6 +115,10 @@ class Context:
     @property
     def experiment_variations(self) -> Dict[str, Any]:
         return self._data.get("experiment_variations", {})
+
+    @property
+    def api_params(self) -> Dict[str, Any]:
+        return self._data.get("api_params", {})
 
     def _load_conversation(self) -> None:
         os.makedirs(self.conversations_dir, exist_ok=True)

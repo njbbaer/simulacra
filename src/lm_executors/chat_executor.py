@@ -17,14 +17,14 @@ class ChatExecutor:
 
     async def execute(self, params: Dict[str, Any] | None = None) -> ChatCompletion:
         client = OpenRouterAPIClient()
-        params = params or {}
 
-        if "model" not in params:
-            params["model"] = self.context.model
+        merged_params = {**self.context.api_params}
+        if params:
+            merged_params.update(params)
 
         completion = await client.request_completion(
             messages=self._build_messages(),
-            parameters=params,
+            parameters=merged_params,
             provider=self.context.provider,
         )
 

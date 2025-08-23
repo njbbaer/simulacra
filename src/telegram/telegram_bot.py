@@ -116,7 +116,7 @@ class TelegramBot:
             lc = self.sim.last_completion
             last_message_stats += "\n".join(
                 [
-                    f"`Cost: ${lc.cost:.2f}`",
+                    f"`Cost: ${lc.cost:.4f}`",
                     f"`Cache discount: {lc.cache_discount_string}`",
                     f"`Prompt tokens: {lc.prompt_tokens}`",
                     f"`Completion tokens: {lc.completion_tokens}`",

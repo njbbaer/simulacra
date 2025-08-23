@@ -28,6 +28,9 @@ class ChatCompletion:
 
     @property
     def cache_discount_string(self) -> str:
+        if not self._cache_discount:
+            return "N/A"
+
         sign = "-" if self._cache_discount < 0 else ""
         amount = f"${abs(self._cache_discount):.2f}"
         return f"{sign}{amount}"
@@ -50,4 +53,4 @@ class ChatCompletion:
 
     @property
     def _cache_discount(self) -> float:
-        return self.response["details"]["cache_discount"]
+        return self.response["details"].get("cache_discount", None)

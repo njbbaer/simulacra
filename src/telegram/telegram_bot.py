@@ -1,6 +1,7 @@
 import logging
 import math
 import textwrap
+import tomllib
 from typing import List, Optional
 
 # fmt: off
@@ -48,6 +49,7 @@ class TelegramBot:
             (["clear"], self.clear_command_handler),
             (["cancel", "x"], self.cancel_command_handler),
             (["syncbook", "sb"], self.sync_book_command_handler),
+            (["version", "v"], self.version_command_handler),
             (["help", "h"], self.help_command_handler),
             (["start"], self._do_nothing),
         ]
@@ -206,6 +208,12 @@ class TelegramBot:
             await ctx.send_message("`✅ API call cancelled`")
         else:
             await ctx.send_message("`❌ No API call to cancel`")
+
+    @message_handler
+    async def version_command_handler(self, ctx: TelegramContext) -> None:
+        with open("pyproject.toml", "rb") as f:
+            pyproject = tomllib.load(f)
+        await ctx.send_message(f"`📦 Version: {pyproject['project']['version']}`")
 
     async def _chat(
         self,

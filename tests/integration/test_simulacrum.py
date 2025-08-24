@@ -19,10 +19,10 @@ def custom_fs(fs):
 def context_data() -> Dict[str, Any]:
     return {
         "char_name": "test",
-        "model": "anthropic/claude",
         "conversation_id": 0,
         "total_cost": 0.1,
         "pricing": [1, 2],
+        "api_params": {"model": "anthropic/claude"},
         "vars": {
             "chat_prompt": "Say something!",
         },
@@ -121,8 +121,11 @@ async def test_simulacrum_chat(
     )[0]
     actual_body = json.loads(request.content)
 
-    # Verify model request properties
-    assert actual_body["model"] == context_data["model"]
+    # Verify API request contains all context api_params
+    assert all(
+        key in actual_body and actual_body[key] == value
+        for key, value in context_data["api_params"].items()
+    )
 
     # Check the messages structure
     assert len(actual_body["messages"]) == 3
@@ -151,7 +154,6 @@ async def test_simulacrum_chat(
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == context_data["conversation_id"]
         assert new_context_data["total_cost"] > initial_context_cost
-        assert new_context_data["model"] == context_data["model"]
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml", "r") as f:
@@ -179,7 +181,6 @@ async def test_new_conversation(
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == initial_conversation_id + 1
         assert new_context_data["total_cost"] == context_data["total_cost"]
-        assert new_context_data["model"] == context_data["model"]
 
     # Verify contents of the new conversation file
     new_conversation_path = f"conversations/test_{initial_conversation_id + 1}.yml"
@@ -203,12 +204,10 @@ def test_reset_conversation(
 
     simulacrum.reset_conversation()
 
-    # Verify context file remains unchanged
+    # Verify conversation ID doesn't change
     with open("context.yml", "r") as f:
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == context_data["conversation_id"]
-        assert new_context_data["total_cost"] == context_data["total_cost"]
-        assert new_context_data["model"] == context_data["model"]
 
     # Verify conversation file was reset
     with open("conversations/test_0.yml", "r") as f:

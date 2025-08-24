@@ -92,3 +92,14 @@ jobs:
 
       - name: Push latest tag to GHCR
         run: docker push ghcr.io/${{ github.repository }}:latest
+
+  deploy:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: self-hosted
+    steps:
+      - name: Deploy new version
+        run: |
+          cd /opt/homeworld
+          docker compose pull simulacra
+          docker compose up -d simulacra

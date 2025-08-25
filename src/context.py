@@ -73,10 +73,6 @@ class Context:
         return self._data["char_name"]
 
     @property
-    def api_provider(self) -> str:
-        return self._data["api_provider"]
-
-    @property
     def model(self) -> str:
         return self.api_params["model"]
 

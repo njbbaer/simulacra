@@ -18,7 +18,7 @@ def _run_bot(bot_config: Dict[str, Any]) -> None:
     TelegramBot(
         bot_config["context_filepath"],
         bot_config["telegram_token"],
-        bot_config["authorized_users"],
+        bot_config["authorized_user"],
     ).run()
 
 

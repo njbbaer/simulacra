@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.ERROR)
 
 class TelegramBot:
     def __init__(
-        self, context_filepath: str, telegram_token: str, authorized_users: List[str]
+        self, context_filepath: str, telegram_token: str, authorized_user: str
     ) -> None:
         self.app = (
             ApplicationBuilder().token(telegram_token).concurrent_updates(True).build()
@@ -34,7 +34,7 @@ class TelegramBot:
 
         # Disallow unauthorized users
         self.app.add_handler(
-            MessageHandler(~filters.User(username=authorized_users), self.unauthorized)  # type: ignore
+            MessageHandler(~filters.User(username=[authorized_user]), self.unauthorized)  # type: ignore
         )
 
         # Handle commands

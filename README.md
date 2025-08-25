@@ -3,16 +3,11 @@
 [![build](https://github.com/njbbaer/simulacra/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/njbbaer/simulacra/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/njbbaer/simulacra/graph/badge.svg?token=F6D6YPZLZC)](https://codecov.io/gh/njbbaer/simulacra)
 
-![OpenAI](https://img.shields.io/badge/OpenAI-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-
-Simulacra is a platform for building GPT-4 powered Telegram bots with a template-based personality system.
+Simulacra is a platform for building LLM powered Telegram bots with a template-based context system.
 
 This project is under active development and breaking changes may occur at any time.
 
-If this project interests you, show your support by starring it on GitHub.
+Express your interest in this project by starring it on GitHub.
 
 ## Usage
 
@@ -63,19 +58,24 @@ Information
 
 ## Configuration
 
-The application is configured by a config file and one or more context files.
+The application is configured by a TOML config file, which initializes one or more Telegram bots and defines the path to their YAML context files.
 
 ### Config file
 
-The config TOML file initializes one or more bots and defines the paths to their context files.
+The config TOML file initializes one or more Telegram bots and defines the path to their context files.
 
 See `example/config.toml` for a template config file:
 
 ```toml
 [[simulacra]]
 context_filepath = "example/context.yml"
-telegram_token = "TELEGRAM_API_TOKEN"
-authorized_users = [ "TELEGRAM_USERNAME" ] # [ "@username", ... ]
+telegram_token = "telegram-bot-token"
+authorized_user = "@telegram-username"
+
+[[simulacra]]  # Second bot configuration
+context_filepath = "example/second_bot_context.yml"
+telegram_token = "second-telegram-bot-token"
+authorized_user = "@telegram-username"
 ```
 
 ### Context file
@@ -105,7 +105,7 @@ Configure your container with the following:
 
 - Mount a directory containing your config and context files to `/config`.
 - Set the path to your config file in the environment as `CONFIG_FILEPATH`.
-- Set your OpenAI API key in the environment as `OPENAI_API_KEY`.
+- Set your OpenRouter API key in the environment as `OPENROUTER_API_KEY`.
 
 Ensure the context file paths in your config are accessible within the container (i.e. `/config`).
 
@@ -116,7 +116,7 @@ Ensure the context file paths in your config are accessible within the container
 ```shell
 docker run --name simulacra \
   --volume /var/lib/simulacra:/config \
-  --env OPENAI_API_KEY=your_openai_api_key \
+  --env OPENROUTER_API_KEY=your_openai_api_key \
   --env CONFIG_FILEPATH=/config/config.toml \
   --restart unless-stopped \
   ghcr.io/njbbaer/simulacra:latest
@@ -132,7 +132,7 @@ services:
     volumes:
       - /var/lib/simulacra:/config
     environment:
-      - OPENAI_API_KEY={{ your_openai_api_key }}
+      - OPENROUTER_API_KEY={{ your_openai_api_key }}
       - CONFIG_FILEPATH=/config/config.toml
     restart: unless-stopped
 ```
@@ -147,7 +147,7 @@ Enable code reloading with development mode. Create a `.env` file or add the fol
 export ENVIRONMENT=development
 ```
 
-Note: Development mode can only run a single bot at once.
+Note: Development mode can only run a single bot.
 
 ### Pre-commit hooks
 
@@ -167,8 +167,8 @@ uv run pytest
 
 New versions are released automatically by GitHub Actions when a new tag is pushed.
 
-A shortcut script is provided to create a new tag and push it to the repository:
+This script automatically pushes a new tag using the version in `pyproject.toml`.
 
 ```sh
-make release version=0.0.0
+make release
 ```

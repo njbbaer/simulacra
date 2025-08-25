@@ -3,7 +3,7 @@
   content:
     - type: text
       text: |-
-        {{ chat_prompt | indent(8) }}
+        {{ system_prompt | indent(8) }}
       {% if 'claude' in model %}
       cache_control:
         type: ephemeral
@@ -29,10 +29,10 @@
       {% endif %}
       {% endif %}
 {% endfor %}
-{% if reinforcement_chat_prompt %}
+{% if reinforcement_system_prompt %}
 - role: user
   content:
     - type: text
       text: |-
-        {{ reinforcement_chat_prompt | indent(8) }}
+        {{ reinforcement_system_prompt | indent(8) }}
 {% endif %}

@@ -93,7 +93,7 @@ A context file contains the following keys:
 | `├─ model` | The model to use for the API |
 | `└─ <key>` | Additional API parameters (e.g. temperature, max_tokens) |
 | `vars` | Template variables object |
-| `├─ chat_prompt` | The bot's system prompt |
+| `├─ system_prompt` | The bot's system prompt |
 | `└─ <key>` | Additional template variables |
 
 Conversations are stored separately in a `conversations/` directory. Changes to the context file take effect immediately.

@@ -29,10 +29,10 @@
       {% endif %}
       {% endif %}
 {% endfor %}
-{% if reinforcement_system_prompt %}
+{% if reinforcement_prompt %}
 - role: user
   content:
     - type: text
       text: |-
-        {{ reinforcement_system_prompt | indent(8) }}
+        {{ reinforcement_prompt | indent(8) }}
 {% endif %}

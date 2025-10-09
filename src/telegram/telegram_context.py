@@ -8,7 +8,7 @@ from openai import AsyncOpenAI
 
 from telegram.error import BadRequest
 
-from ..utilities import parse_pdf
+from ..utilities import parse_pdf, rehost_file_to_catbox
 
 
 class TelegramContext:
@@ -38,8 +38,9 @@ class TelegramContext:
         if not self._message.photo:
             return None
 
-        photo_file = await self._message.photo[-1].get_file()
-        return photo_file.file_path
+        image_file = await self._message.photo[-1].get_file()
+        image_url = await rehost_file_to_catbox(image_file.file_path)
+        return image_url
 
     async def get_pdf_string(self) -> Optional[str]:
         if not self._message.document:

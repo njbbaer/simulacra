@@ -47,7 +47,6 @@ class TelegramBot:
             (["instruct", "i"], self.apply_instruction_command_handler),
             (["stats", "s"], self.stats_command_handler),
             (["clear"], self.clear_command_handler),
-            (["cancel", "x"], self.cancel_command_handler),
             (["syncbook", "sb"], self.sync_book_command_handler),
             (["version", "v"], self.version_command_handler),
             (["help", "h"], self.help_command_handler),
@@ -104,6 +103,7 @@ class TelegramBot:
 
     @message_handler
     async def undo_command_handler(self, ctx: TelegramContext) -> None:
+        self._cancel_current_request()
         self.sim.undo_last_messages_by_role("user")
         await ctx.send_message("🗑️ Last message undone")
 
@@ -162,7 +162,6 @@ class TelegramBot:
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
                 /continue - Request another response
-                /cancel - Cancel the current request
                 /fact (...) - Add a fact to the conversation
                 /instruct (...) - Apply an instruction
                 /syncbook (...) - Sync current book position
@@ -197,17 +196,6 @@ class TelegramBot:
 
     async def _do_nothing(self, *_) -> None:
         pass
-
-    @message_handler
-    async def cancel_command_handler(self, ctx: TelegramContext) -> None:
-        from ..api_client import current_api_task
-
-        if current_api_task:
-            current_api_task.cancel()
-            current_api_task = None
-            await ctx.send_message("`✅ API call cancelled`")
-        else:
-            await ctx.send_message("`❌ No API call to cancel`")
 
     @message_handler
     async def version_command_handler(self, ctx: TelegramContext) -> None:
@@ -245,3 +233,10 @@ class TelegramBot:
 
         if warnings:
             await ctx.send_message("\n".join(warnings))
+
+    def _cancel_current_request(self) -> None:
+        from ..api_client import current_api_task
+
+        if current_api_task:
+            current_api_task.cancel()
+            current_api_task = None

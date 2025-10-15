@@ -1,6 +1,9 @@
 .ONESHELL:
 release:
-	@version="$$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"; \
-	if [ -z "$$version" ]; then echo "Error: project.version not found in pyproject.toml"; exit 1; fi; \
-	git tag -a "v$$version" -m "Release v$$version"; \
-	git push origin HEAD --tags
+	@if [ -z "$(version)" ]; then echo "Usage: make release version=1.2.3"; exit 1; fi
+	@sed -i 's/^version = .*/version = "$(version)"/' pyproject.toml
+	@uv sync
+	@git add pyproject.toml uv.lock
+	@git commit -m "Release v$(version)"
+	@git tag -a "v$(version)" -m "Release v$(version)"
+	@git push origin HEAD --tags

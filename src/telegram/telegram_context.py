@@ -8,7 +8,7 @@ from openai import AsyncOpenAI
 
 from telegram.error import BadRequest
 
-from ..utilities import parse_pdf, rehost_file_to_catbox
+from ..utilities import parse_pdf
 
 
 class TelegramContext:
@@ -34,13 +34,15 @@ class TelegramContext:
         match = re.search(r"/\w+\s+(.*)", self._message.text)
         return match.group(1) if match else None
 
-    async def get_image_url(self) -> Optional[str]:
+    async def save_image_locally(self) -> Optional[str]:
         if not self._message.photo:
             return None
 
         image_file = await self._message.photo[-1].get_file()
-        image_url = await rehost_file_to_catbox(image_file.file_path)
-        return image_url
+        os.makedirs("tmp", exist_ok=True)
+        image_filepath = f"tmp/{uuid.uuid4()}.jpg"
+        await image_file.download_to_drive(image_filepath)
+        return image_filepath
 
     async def get_pdf_string(self) -> Optional[str]:
         if not self._message.document:

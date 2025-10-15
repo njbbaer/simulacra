@@ -1,7 +1,7 @@
+import base64
 import unicodedata
 from io import BytesIO
 
-import httpx
 import pdfplumber
 
 
@@ -14,16 +14,7 @@ def parse_pdf(content: bytes) -> str:
         return clean_text
 
 
-async def rehost_file_to_catbox(file_url: str) -> str:
-    async with httpx.AsyncClient() as client:
-        photo_response = await client.get(file_url)
-        photo_response.raise_for_status()
-
-        upload_response = await client.post(
-            "https://litterbox.catbox.moe/resources/internals/api.php",
-            data={"reqtype": "fileupload", "time": "72h"},
-            files={"fileToUpload": ("", photo_response.content)},
-        )
-        upload_response.raise_for_status()
-
-    return upload_response.text.strip()
+def load_base64(file_path: str) -> str:
+    with open(file_path, "rb") as file:
+        encoded_string = base64.b64encode(file.read()).decode("utf-8")
+    return encoded_string

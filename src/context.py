@@ -25,10 +25,10 @@ class Context:
         self,
         role: str,
         message: str,
-        image_url: Optional[str] = None,
+        image_path: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self._conversation.add_message(role, message, image_url, metadata)
+        self._conversation.add_message(role, message, image_path, metadata)
 
     def reset_conversation(self) -> None:
         self._conversation.reset()

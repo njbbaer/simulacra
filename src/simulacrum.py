@@ -25,7 +25,7 @@ class Simulacrum:
     async def chat(
         self,
         user_input: Optional[str],
-        image_url: Optional[str],
+        image_path: Optional[str],
         documents: Optional[List[str]],
     ) -> str:
         self.context.load()
@@ -34,7 +34,7 @@ class Simulacrum:
                 user_input = self._append_document(user_input, document)
         if user_input:
             user_input = self._inject_instruction(user_input)
-            self.context.add_message("user", user_input, image_url)
+            self.context.add_message("user", user_input, image_path)
         self.context.save()
         completion = await ChatExecutor(self.context).execute()
         self.last_completion = completion

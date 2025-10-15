@@ -27,10 +27,21 @@ class Logger:
     def _format_text(data: Any) -> Any:
         if isinstance(data, dict):
             return {
-                k: LiteralScalarString(v) if k == "text" else Logger._format_text(v)
-                for k, v in data.items()
+                key: Logger._format_value(key, value) for key, value in data.items()
             }
         elif isinstance(data, list):
             return [Logger._format_text(item) for item in data]
         else:
             return data
+
+    @staticmethod
+    def _format_value(key: str, value: Any) -> Any:
+        # Convert text fields to multi-line strings
+        if key == "text" and isinstance(value, str):
+            return LiteralScalarString(value)
+
+        # Truncate long URLs
+        if key == "url" and isinstance(value, str):
+            return value[:256] + "..." if len(value) > 256 else value
+
+        return Logger._format_text(value)

@@ -34,13 +34,13 @@ class TelegramContext:
         match = re.search(r"/\w+\s+(.*)", self._message.text)
         return match.group(1) if match else None
 
-    async def save_image_locally(self) -> Optional[str]:
+    async def save_image_locally(self, base_path: str) -> Optional[str]:
         if not self._message.photo:
             return None
 
         image_file = await self._message.photo[-1].get_file()
-        os.makedirs("tmp", exist_ok=True)
-        image_filepath = f"tmp/{uuid.uuid4()}.jpg"
+        os.makedirs(base_path, exist_ok=True)
+        image_filepath = f"{base_path}/{uuid.uuid4()}.jpg"
         await image_file.download_to_drive(image_filepath)
         return image_filepath
 

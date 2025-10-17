@@ -76,7 +76,7 @@ class TelegramBot:
 
     @message_handler
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
-        image_path = await ctx.save_image_locally()
+        image_path = await ctx.save_image_locally(self.sim.context.images_dir)
         pdf_string = await ctx.get_pdf_string()
         text = await ctx.get_text()
         documents = [pdf_string] if pdf_string else []

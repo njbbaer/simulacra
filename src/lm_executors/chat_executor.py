@@ -7,7 +7,7 @@ import yaml
 
 from ..api_client import OpenRouterAPIClient
 from ..chat_completion import ChatCompletion
-from ..utilities import load_base64
+from ..utilities import make_base64_loader
 
 
 class ChatExecutor:
@@ -35,7 +35,7 @@ class ChatExecutor:
         resolved_vars = self._resolve_vars()
         resolved_vars["messages"] = self.context.conversation_messages
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
-        env.globals["load_base64"] = load_base64
+        env.globals["load_base64"] = make_base64_loader(self.context.images_dir)
         with open(self.TEMPLATE_PATH) as file:
             template = env.from_string(file.read())
         rendered_str = template.render(resolved_vars)

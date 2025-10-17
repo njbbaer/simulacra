@@ -1,4 +1,5 @@
 import base64
+import os
 import unicodedata
 from io import BytesIO
 
@@ -14,7 +15,11 @@ def parse_pdf(content: bytes) -> str:
         return clean_text
 
 
-def load_base64(file_path: str) -> str:
-    with open(file_path, "rb") as file:
-        encoded_string = base64.b64encode(file.read()).decode("utf-8")
-    return encoded_string
+def make_base64_loader(images_dir: str):
+    def load_base64(file_path: str) -> str:
+        full_path = os.path.abspath(os.path.join(images_dir, file_path))
+        with open(full_path, "rb") as file:
+            encoded_string = base64.b64encode(file.read()).decode("utf-8")
+        return encoded_string
+
+    return load_base64

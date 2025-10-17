@@ -65,6 +65,10 @@ class Context:
         return f"{self.dir}/conversations"
 
     @property
+    def images_dir(self) -> str:
+        return f"{self.dir}/images"
+
+    @property
     def vars(self) -> Dict[str, Any]:
         return self._data["vars"]
 

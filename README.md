@@ -165,10 +165,10 @@ uv run pytest
 
 ### Release a new version
 
-New versions are released automatically by GitHub Actions when a new tag is pushed.
+The release script sets the version in `pyproject.toml`, commits this change, and pushes a new tag.
 
-This script automatically pushes a new tag using the version in `pyproject.toml`.
+A release is performed by GitHub Actions when the tag is pushed.
 
 ```sh
-make release
+make release version=1.2.3
 ```

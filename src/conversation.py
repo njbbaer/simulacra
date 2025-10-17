@@ -35,14 +35,14 @@ class Conversation:
         self,
         role: str,
         message: str,
-        image_path: Optional[str] = None,
+        image: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.messages.append(
             {
                 "role": role,
                 "content": LiteralScalarString(message),
-                **({"image_path": image_path} if image_path else {}),
+                **({"image": image} if image else {}),
                 **({"metadata": metadata} if metadata else {}),
             }
         )

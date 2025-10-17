@@ -40,9 +40,10 @@ class TelegramContext:
 
         image_file = await self._message.photo[-1].get_file()
         os.makedirs(base_path, exist_ok=True)
-        image_filepath = f"{base_path}/{uuid.uuid4()}.jpg"
+        filename = f"{uuid.uuid4()}.jpg"
+        image_filepath = f"{base_path}/{filename}"
         await image_file.download_to_drive(image_filepath)
-        return image_filepath
+        return filename
 
     async def get_pdf_string(self) -> Optional[str]:
         if not self._message.document:

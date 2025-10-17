@@ -76,11 +76,11 @@ class TelegramBot:
 
     @message_handler
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
-        image_path = await ctx.save_image_locally(self.sim.context.images_dir)
+        image = await ctx.save_image_locally(self.sim.context.images_dir)
         pdf_string = await ctx.get_pdf_string()
         text = await ctx.get_text()
         documents = [pdf_string] if pdf_string else []
-        await self._chat(ctx, text, image_path, documents=documents)
+        await self._chat(ctx, text, image, documents=documents)
 
     @message_handler
     async def new_conversation_command_handler(self, ctx: TelegramContext) -> None:
@@ -207,10 +207,10 @@ class TelegramBot:
         self,
         ctx: TelegramContext,
         user_message: Optional[str],
-        image_path: Optional[str] = None,
+        image: Optional[str] = None,
         documents: Optional[List[str]] = None,
     ) -> None:
-        response = await self.sim.chat(user_message, image_path, documents)
+        response = await self.sim.chat(user_message, image, documents)
         response = response.replace("(", "_(").replace(")", ")_")
         await ctx.send_message(response)
         await self._warn_cost(ctx)

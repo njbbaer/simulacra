@@ -15,9 +15,9 @@ def parse_pdf(content: bytes) -> str:
         return clean_text
 
 
-def make_base64_loader(images_dir: str):
-    def load_base64(file_path: str) -> str:
-        full_path = os.path.abspath(os.path.join(images_dir, file_path))
+def make_base64_loader(base_dir: str):
+    def load_base64(local_path: str) -> str:
+        full_path = os.path.abspath(os.path.join(base_dir, local_path))
         with open(full_path, "rb") as file:
             encoded_string = base64.b64encode(file.read()).decode("utf-8")
         return encoded_string

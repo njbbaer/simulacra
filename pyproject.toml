@@ -19,12 +19,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "autoflake==2.3.1",
-    "black==25.1.0",
-    "flake8==7.2.0",
-    "flake8-bugbear==24.12.12",
+    "autoflake",
+    "black",
+    "flake8",
+    "flake8-bugbear",
     "hupper",
-    "isort==6.0.1",
+    "isort",
     "pre-commit",
     "pycodestyle",
     "pytest",
@@ -32,11 +32,11 @@ dev = [
     "pyfakefs",
     "pytest-httpx",
     "pytest-cov",
-    "flake8-pyproject==1.2.3",
-    "mypy==1.15.0",
-    "types-pyyaml==6.0.12.20250516",
-    "types-pytz==2025.2.0.20250516",
-    "types-toml==0.10.8.20240310",
+    "flake8-pyproject",
+    "mypy",
+    "types-pyyaml",
+    "types-pytz",
+    "types-toml",
 ]
 
 [tool.flake8]

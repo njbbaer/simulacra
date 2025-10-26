@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from .conversation import Conversation
+from .message import Message
 from .types import ScaffoldConfig
 from .yaml_config import yaml
 
@@ -45,7 +46,7 @@ class Context:
         self._conversation.add_fact(fact)
 
     @property
-    def conversation_messages(self) -> List[Dict[str, Any]]:
+    def conversation_messages(self) -> List[Message]:
         return self._conversation.messages
 
     @property
@@ -98,7 +99,7 @@ class Context:
     @property
     def last_book_position(self) -> Optional[int]:
         for message in reversed(self.conversation_messages):
-            metadata = message.get("metadata", {})
+            metadata = message.metadata or {}
             if "end_idx" in metadata:
                 return metadata["end_idx"]
         return None

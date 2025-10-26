@@ -66,7 +66,7 @@ class Simulacrum:
         num_messages = len(self.context.conversation_messages)
         for _ in range(num_messages):
             message = self.context.conversation_messages.pop()
-            if message["role"] == role:
+            if message.role == role:
                 break
         self.context.save()
 
@@ -93,7 +93,7 @@ class Simulacrum:
     @property
     def last_message_role(self) -> str:
         self.context.load()
-        return self.context.conversation_messages[-1]["role"]
+        return self.context.conversation_messages[-1].role
 
     def _inject_instruction(self, text: str) -> str:
         if self.instruction_text:

@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ruamel.yaml.scalarstring import LiteralScalarString
-
+from .message import Message
 from .yaml_config import yaml
 
 
@@ -18,7 +17,7 @@ class Conversation:
                 data = yaml.load(file)
             self.cost = data.get("cost", 0.0)
             self.facts = data.get("facts", [])
-            self.messages = data.get("messages", [])
+            self.messages = [Message.from_dict(msg) for msg in data.get("messages", [])]
         else:
             self.reset()
 
@@ -26,7 +25,7 @@ class Conversation:
         data_to_save = {
             "cost": self.cost,
             "facts": self.facts,
-            "messages": self.messages,
+            "messages": [msg.to_dict() for msg in self.messages],
         }
         with open(self._filepath, "w") as file:
             yaml.dump(data_to_save, file)
@@ -38,14 +37,7 @@ class Conversation:
         image: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.messages.append(
-            {
-                "role": role,
-                "content": LiteralScalarString(message),
-                **({"image": image} if image else {}),
-                **({"metadata": metadata} if metadata else {}),
-            }
-        )
+        self.messages.append(Message(role, message, image, metadata))
 
     def reset(self) -> None:
         self.cost = 0.0

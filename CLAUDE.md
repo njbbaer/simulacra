@@ -2,12 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
-
-- Run tests: `uv run pytest`
-
 ## Guidelines
 
-- Format code with Black and Flake8 conventions.
+- Run all python commands using `uv` (ex. `uv run pytest`).
+- Manage dependencies with `uv`.
+- Format code according to Black and Flake8 conventions.
 - Group public methods first, followed by private methods.
 - Prefix private methods and variables with an underscore.

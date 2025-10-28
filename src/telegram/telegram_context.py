@@ -61,6 +61,9 @@ class TelegramContext:
         return self._message.text or self._message.caption
 
     async def send_message(self, text: str) -> None:
+        # Italicize parenthetical asides
+        text = text.replace("(", "_(").replace(")", ")_")
+
         # Attempt to fix broken markdown
         if text.count("_") % 2 != 0 and text.endswith("_"):
             text = text[:-1]

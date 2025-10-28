@@ -41,6 +41,7 @@ class TelegramBot:
         command_handlers = [
             (["new", "n"], self.new_conversation_command_handler),
             (["retry", "r"], self.retry_command_handler),
+            (["undoretry", "ur"], self.undoretry_command_handler),
             (["continue", "co"], self.continue_command_handler),
             (["undo", "u"], self.undo_command_handler),
             (["fact", "f"], self.add_fact_command_handler),
@@ -93,18 +94,27 @@ class TelegramBot:
 
     @message_handler
     async def retry_command_handler(self, ctx: TelegramContext) -> None:
-        if self.sim.last_message_role == "assistant":
-            self.sim.undo_last_messages_by_role("assistant")
-        await self._chat(ctx, user_message=None)
+        response = await self.sim.retry()
+        await ctx.send_message(response)
+        await self._warn_cost(ctx)
+
+    @message_handler
+    async def undoretry_command_handler(self, ctx: TelegramContext) -> None:
+        if not self.sim.undo_retry():
+            await ctx.send_message("`❌ No retry to undo`")
+            return
+        await ctx.send_message("↩️ Retry undone")
 
     @message_handler
     async def continue_command_handler(self, ctx: TelegramContext) -> None:
-        await self._chat(ctx, user_message=None)
+        response = await self.sim.continue_conversation()
+        await ctx.send_message(response)
+        await self._warn_cost(ctx)
 
     @message_handler
     async def undo_command_handler(self, ctx: TelegramContext) -> None:
         self._cancel_current_request()
-        self.sim.undo_last_messages_by_role("user")
+        self.sim.undo()
         await ctx.send_message("🗑️ Last message undone")
 
     @message_handler
@@ -159,6 +169,7 @@ class TelegramBot:
                 *Actions*
                 /new - Start a new conversation
                 /retry - Retry the last response
+                /undoretry - Undo a retry
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
                 /continue - Request another response
@@ -211,7 +222,6 @@ class TelegramBot:
         documents: Optional[List[str]] = None,
     ) -> None:
         response = await self.sim.chat(user_message, image, documents)
-        response = response.replace("(", "_(").replace(")", ")_")
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 

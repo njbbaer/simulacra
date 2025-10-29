@@ -100,6 +100,7 @@ class TelegramBot:
 
     @message_handler
     async def undoretry_command_handler(self, ctx: TelegramContext) -> None:
+        self._cancel_current_request()
         if not self.sim.undo_retry():
             await ctx.send_message("`❌ No retry to undo`")
             return

@@ -51,6 +51,7 @@ class TelegramBot:
             (["syncbook", "sb"], self.sync_book_command_handler),
             (["version", "v"], self.version_command_handler),
             (["help", "h"], self.help_command_handler),
+            (["parrot"], self.parrot_command_handler),
             (["start"], self._do_nothing),
         ]
         for commands, handler in command_handlers:
@@ -205,6 +206,13 @@ class TelegramBot:
         num_words = len(book_chunk.split())
         chunk_sample = " ".join(book_chunk.split()[-10:])
         await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
+
+    @message_handler
+    async def parrot_command_handler(self, ctx: TelegramContext) -> None:
+        if ctx.command_body:
+            await ctx.send_message(ctx.command_body)
+        else:
+            await ctx.send_message("`❌ No text provided`")
 
     async def _do_nothing(self, *_) -> None:
         pass

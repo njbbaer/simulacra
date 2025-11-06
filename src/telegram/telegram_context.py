@@ -1,11 +1,9 @@
 import os
 import re
 import uuid
-from typing import Optional
 
 import httpx
 from openai import AsyncOpenAI
-
 from telegram.error import BadRequest
 
 from ..utilities import parse_pdf
@@ -30,11 +28,11 @@ class TelegramContext:
         return self._message.from_user.first_name
 
     @property
-    def command_body(self) -> Optional[str]:
+    def command_body(self) -> str | None:
         match = re.search(r"/\w+\s+(.*)", self._message.text)
         return match.group(1) if match else None
 
-    async def save_image_locally(self, base_path: str) -> Optional[str]:
+    async def save_image_locally(self, base_path: str) -> str | None:
         if not self._message.photo:
             return None
 
@@ -45,7 +43,7 @@ class TelegramContext:
         await image_file.download_to_drive(image_filepath)
         return filename
 
-    async def get_pdf_string(self) -> Optional[str]:
+    async def get_pdf_string(self) -> str | None:
         if not self._message.document:
             return None
 
@@ -55,7 +53,7 @@ class TelegramContext:
             response.raise_for_status()
             return parse_pdf(response.content)
 
-    async def get_text(self) -> Optional[str]:
+    async def get_text(self) -> str | None:
         if self._message.voice:
             return await self._transcribe_voice()
         return self._message.text or self._message.caption

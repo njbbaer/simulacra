@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import rapidfuzz
 
 
@@ -8,7 +6,7 @@ class BookReader:
         self.path = path
         self._load()
 
-    def next_chunk(self, query: str, start_idx: int = 0) -> Tuple[str, int]:
+    def next_chunk(self, query: str, start_idx: int = 0) -> tuple[str, int]:
         if query and query.strip() != "":
             end_idx = self._find_position(query)
         else:
@@ -21,7 +19,7 @@ class BookReader:
         return chunk, end_idx
 
     def _load(self) -> None:
-        with open(self.path, "r", encoding="utf-8") as f:
+        with open(self.path, encoding="utf-8") as f:
             self.text = f.read()
 
     def _find_position(self, query: str) -> int:

@@ -1,6 +1,5 @@
 import os
 import textwrap
-from typing import List, Optional, Type
 
 from .book_reader import BookReader
 from .chat_completion import ChatCompletion
@@ -10,7 +9,7 @@ from .lm_executors import ExperimentExecutor
 from .message import Message
 from .response_scaffold import ResponseScaffold
 
-ChatExecutor: Type[_ChatExecutor]
+ChatExecutor: type[_ChatExecutor]
 if os.getenv("ENABLE_EXPERIMENT_EXECUTOR") == "true":
     ChatExecutor = ExperimentExecutor
 else:
@@ -20,15 +19,15 @@ else:
 class Simulacrum:
     def __init__(self, context_file: str) -> None:
         self.context = Context(context_file)
-        self.last_completion: Optional[ChatCompletion] = None
-        self.instruction_text: Optional[str] = None
-        self.retry_stack: List[List[Message]] = []
+        self.last_completion: ChatCompletion | None = None
+        self.instruction_text: str | None = None
+        self.retry_stack: list[list[Message]] = []
 
     async def chat(
         self,
-        user_input: Optional[str],
-        image: Optional[str],
-        documents: Optional[List[str]],
+        user_input: str | None,
+        image: str | None,
+        documents: list[str] | None,
     ) -> str:
         self.context.load()
         if documents:
@@ -88,7 +87,7 @@ class Simulacrum:
         self._restore_messages(messages_to_restore)
         return True
 
-    def _undo_last_messages_by_role(self, role: str) -> List:
+    def _undo_last_messages_by_role(self, role: str) -> list:
         self.context.load()
         removed_messages = []
         num_messages = len(self.context.conversation_messages)
@@ -100,7 +99,7 @@ class Simulacrum:
         self.context.save()
         return removed_messages
 
-    def _restore_messages(self, messages: List) -> None:
+    def _restore_messages(self, messages: list) -> None:
         self.context.load()
         for message in reversed(messages):
             self.context.conversation_messages.append(message)
@@ -147,14 +146,10 @@ class Simulacrum:
         return text
 
     @staticmethod
-    def _append_document(text: Optional[str], document: str) -> Optional[str]:
+    def _append_document(text: str | None, document: str) -> str | None:
         if not document:
             return text
 
         return textwrap.dedent(
-            f"\nBEGIN DOCUMENT\n"
-            f"\n{document}\n"
-            f"\nEND DOCUMENT\n"
-            f"\n---\n"
-            f"\n{text}"
+            f"\nBEGIN DOCUMENT\n\n{document}\n\nEND DOCUMENT\n\n---\n\n{text}"
         )

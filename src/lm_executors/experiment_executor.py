@@ -1,7 +1,7 @@
 import asyncio
 import copy
 import random
-from typing import Any, Dict
+from typing import Any
 
 from ..chat_completion import ChatCompletion
 from ..response_scaffold import ResponseScaffold
@@ -9,12 +9,13 @@ from .chat_executor import ChatExecutor
 
 
 class ExperimentExecutor(ChatExecutor):
-    """Patched ChatExecutor for use in development to run multiple variations of Context data and choose the best response."""
+    """Patched version of ChatExecutor for use in development to run multiple variations
+    of Context data and choose the best response."""
 
     def __init__(self, context) -> None:
         super().__init__(context)
 
-    async def execute(self, params: Dict[str, Any] | None = None) -> ChatCompletion:
+    async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         async def execute_variation(variation_data):
             variation_context = copy.deepcopy(self.context)
             variation_context._data = merge_dicts(
@@ -37,7 +38,7 @@ class ExperimentExecutor(ChatExecutor):
 
         for i, result in enumerate(results):
             scaffold = ResponseScaffold(result.content, self.context.response_scaffold)
-            print(f"\n---------- (#{i+1}) ----------\n")
+            print(f"\n---------- (#{i + 1}) ----------\n")
             print(scaffold.extract())
 
         choice = int(input("\nSelect response (1-" + str(len(results)) + "): ")) - 1

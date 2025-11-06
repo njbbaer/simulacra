@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ruamel.yaml.scalarstring import LiteralScalarString
 
@@ -8,8 +8,8 @@ class Message:
         self,
         role: str,
         content: str,
-        image: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        image: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         self._role = role
         self._content = content
@@ -17,7 +17,7 @@ class Message:
         self._metadata = metadata
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Message":
+    def from_dict(cls, data: dict[str, Any]) -> "Message":
         return cls(
             role=str(data["role"]),
             content=str(data["content"]),
@@ -34,14 +34,14 @@ class Message:
         return self._content
 
     @property
-    def image(self) -> Optional[str]:
+    def image(self) -> str | None:
         return self._image
 
     @property
-    def metadata(self) -> Optional[Dict[str, Any]]:
+    def metadata(self) -> dict[str, Any] | None:
         return self._metadata
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "role": self._role,
             "content": LiteralScalarString(self._content),

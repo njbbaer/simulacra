@@ -1,6 +1,7 @@
 import asyncio
 import os
-from typing import Any, Coroutine, Dict, List, Optional
+from collections.abc import Coroutine
+from typing import Any
 
 import backoff
 import httpx
@@ -8,10 +9,10 @@ import httpx
 from .chat_completion import ChatCompletion
 from .logger import Logger
 
-current_api_task: Optional[asyncio.Task] = None
+current_api_task: asyncio.Task | None = None
 
 
-class RateLimitExceeded(Exception):
+class RateLimitExceededError(Exception):
     def __init__(self, message: str = "API rate limit exceeded") -> None:
         super().__init__(message)
 
@@ -21,21 +22,21 @@ class OpenRouterAPIClient:
         self.api_key = os.environ.get("OPENROUTER_API_KEY")
         self.logger = Logger("log.yml")
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
 
     def _prepare_body(
         self,
-        messages: List[Dict[str, Any]],
-        parameters: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        messages: list[dict[str, Any]],
+        parameters: dict[str, Any],
+    ) -> dict[str, Any]:
         body = {"messages": messages, **parameters}
         return body
 
     async def request_completion(
         self,
-        messages: List[Dict[str, Any]],
-        parameters: Dict[str, Any],
+        messages: list[dict[str, Any]],
+        parameters: dict[str, Any],
     ) -> ChatCompletion:
         body = self._prepare_body(messages, parameters)
         try:
@@ -45,8 +46,8 @@ class OpenRouterAPIClient:
             completion = ChatCompletion(completion_data)
             self.logger.log(parameters, messages, completion.content)
             return completion
-        except httpx.ReadTimeout:
-            raise Exception("Request timed out")
+        except httpx.ReadTimeout as err:
+            raise Exception("Request timed out") from err
 
     async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> Any:
         task = asyncio.create_task(coro)
@@ -58,8 +59,8 @@ class OpenRouterAPIClient:
         finally:
             current_api_task = None
 
-    @backoff.on_exception(backoff.expo, RateLimitExceeded, max_tries=10)
-    async def _fetch_completion_data(self, body: Dict[str, Any]) -> Dict[str, Any]:
+    @backoff.on_exception(backoff.expo, RateLimitExceededError, max_tries=10)
+    async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=30) as client:
             completion_response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -70,13 +71,13 @@ class OpenRouterAPIClient:
 
             if "error" in completion_data:
                 if completion_data["error"].get("code") == 429:
-                    raise RateLimitExceeded()
+                    raise RateLimitExceededError()
                 raise Exception(completion_data["error"])
 
             details_data = await self._fetch_details(completion_data["id"])
             return {**completion_data, "details": details_data["data"]}
 
-    async def _fetch_details(self, generation_id: str) -> Dict[str, Any]:
+    async def _fetch_details(self, generation_id: str) -> dict[str, Any]:
         details_url = f"https://openrouter.ai/api/v1/generation?id={generation_id}"
         async with httpx.AsyncClient(timeout=3) as client:
             for _ in range(10):

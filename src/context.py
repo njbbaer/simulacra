@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .conversation import Conversation
 from .message import Message
@@ -13,7 +13,7 @@ class Context:
         self._filepath = filepath
 
     def load(self) -> None:
-        with open(self._filepath, "r") as file:
+        with open(self._filepath) as file:
             self._data = yaml.load(file)
         self._load_conversation()
 
@@ -26,8 +26,8 @@ class Context:
         self,
         role: str,
         message: str,
-        image: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        image: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         self._conversation.add_message(role, message, image, metadata)
 
@@ -46,11 +46,11 @@ class Context:
         self._conversation.add_fact(fact)
 
     @property
-    def conversation_messages(self) -> List[Message]:
+    def conversation_messages(self) -> list[Message]:
         return self._conversation.messages
 
     @property
-    def conversation_facts(self) -> List[str]:
+    def conversation_facts(self) -> list[str]:
         return self._conversation.facts
 
     @property
@@ -70,7 +70,7 @@ class Context:
         return f"{self.dir}/images"
 
     @property
-    def vars(self) -> Dict[str, Any]:
+    def vars(self) -> dict[str, Any]:
         return self._data["vars"]
 
     @property
@@ -86,18 +86,18 @@ class Context:
         return self._data.setdefault("conversation_id", self._next_conversation_id())
 
     @property
-    def pricing(self) -> Optional[Dict[str, Any]]:
+    def pricing(self) -> dict[str, Any] | None:
         return self._data.get("pricing", None)
 
     @property
-    def book_path(self) -> Optional[str]:
+    def book_path(self) -> str | None:
         path = self._data.get("book_path", None)
         if path:
             return os.path.join(self.dir, path)
         return None
 
     @property
-    def last_book_position(self) -> Optional[int]:
+    def last_book_position(self) -> int | None:
         for message in reversed(self.conversation_messages):
             metadata = message.metadata or {}
             if "end_idx" in metadata:
@@ -110,11 +110,11 @@ class Context:
         return ScaffoldConfig.from_dict(scaffold_config_dict)
 
     @property
-    def experiment_variations(self) -> Dict[str, Any]:
+    def experiment_variations(self) -> dict[str, Any]:
         return self._data.get("experiment_variations", {})
 
     @property
-    def api_params(self) -> Dict[str, Any]:
+    def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params", {})
 
     def _load_conversation(self) -> None:

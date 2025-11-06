@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .message import Message
 from .yaml_config import yaml
@@ -13,7 +13,7 @@ class Conversation:
 
     def load(self) -> None:
         if os.path.exists(self._filepath):
-            with open(self._filepath, "r") as file:
+            with open(self._filepath) as file:
                 data = yaml.load(file)
             self.cost = data.get("cost", 0.0)
             self.facts = data.get("facts", [])
@@ -34,8 +34,8 @@ class Conversation:
         self,
         role: str,
         message: str,
-        image: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        image: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         self.messages.append(Message(role, message, image, metadata))
 

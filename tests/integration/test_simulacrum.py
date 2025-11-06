@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from ruamel.yaml import YAML
@@ -16,7 +16,7 @@ def custom_fs(fs):
 
 
 @pytest.fixture
-def context_data() -> Dict[str, Any]:
+def context_data() -> dict[str, Any]:
     return {
         "char_name": "test",
         "conversation_id": 0,
@@ -30,7 +30,7 @@ def context_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def conversation_data() -> Dict[str, Any]:
+def conversation_data() -> dict[str, Any]:
     return {
         "cost": 0.1,
         "facts": [],
@@ -45,7 +45,7 @@ def conversation_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def simulacrum_context(
-    custom_fs, context_data: Dict[str, Any], conversation_data: Dict[str, Any]
+    custom_fs, context_data: dict[str, Any], conversation_data: dict[str, Any]
 ) -> None:
     with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
@@ -65,7 +65,7 @@ def generation_id() -> str:
 
 
 @pytest.fixture
-def mock_completion_response(generation_id: str) -> Dict[str, Any]:
+def mock_completion_response(generation_id: str) -> dict[str, Any]:
     return {
         "id": generation_id,
         "choices": [
@@ -79,7 +79,7 @@ def mock_completion_response(generation_id: str) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def mock_cost_response() -> Dict[str, Any]:
+def mock_cost_response() -> dict[str, Any]:
     return {"data": {"total_cost": 0.1}}
 
 
@@ -87,8 +87,8 @@ def mock_cost_response() -> Dict[str, Any]:
 def mock_openrouter(
     httpx_mock,
     generation_id: str,
-    mock_completion_response: Dict[str, Any],
-    mock_cost_response: Dict[str, Any],
+    mock_completion_response: dict[str, Any],
+    mock_cost_response: dict[str, Any],
 ):
     httpx_mock.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",
@@ -105,8 +105,8 @@ def mock_openrouter(
 async def test_simulacrum_chat(
     simulacrum: Simulacrum,
     mock_openrouter,
-    context_data: Dict[str, Any],
-    conversation_data: Dict[str, Any],
+    context_data: dict[str, Any],
+    conversation_data: dict[str, Any],
     generation_id: str,
 ) -> None:
     initial_context_cost = context_data["total_cost"]
@@ -150,13 +150,13 @@ async def test_simulacrum_chat(
     )
 
     # Verify contents of the context file
-    with open("context.yml", "r") as f:
+    with open("context.yml") as f:
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == context_data["conversation_id"]
         assert new_context_data["total_cost"] > initial_context_cost
 
     # Verify contents of the conversation file
-    with open("conversations/test_0.yml", "r") as f:
+    with open("conversations/test_0.yml") as f:
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] > initial_conversation_cost
         assert len(new_conversation_data["messages"]) == initial_message_count + 2
@@ -170,14 +170,14 @@ async def test_simulacrum_chat(
 
 @pytest.mark.asyncio
 async def test_new_conversation(
-    simulacrum: Simulacrum, context_data: Dict[str, Any]
+    simulacrum: Simulacrum, context_data: dict[str, Any]
 ) -> None:
     initial_conversation_id = context_data["conversation_id"]
 
     await simulacrum.new_conversation()
 
     # Verify context file updates
-    with open("context.yml", "r") as f:
+    with open("context.yml") as f:
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == initial_conversation_id + 1
         assert new_context_data["total_cost"] == context_data["total_cost"]
@@ -185,7 +185,7 @@ async def test_new_conversation(
     # Verify contents of the new conversation file
     new_conversation_path = f"conversations/test_{initial_conversation_id + 1}.yml"
     assert os.path.exists(new_conversation_path)
-    with open(new_conversation_path, "r") as f:
+    with open(new_conversation_path) as f:
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] == 0.0
         assert isinstance(new_conversation_data["facts"], list)
@@ -196,8 +196,8 @@ async def test_new_conversation(
 
 def test_reset_conversation(
     simulacrum: Simulacrum,
-    context_data: Dict[str, Any],
-    conversation_data: Dict[str, Any],
+    context_data: dict[str, Any],
+    conversation_data: dict[str, Any],
 ) -> None:
     initial_cost = conversation_data["cost"]
     initial_message_count = len(conversation_data["messages"])
@@ -205,12 +205,12 @@ def test_reset_conversation(
     simulacrum.reset_conversation()
 
     # Verify conversation ID doesn't change
-    with open("context.yml", "r") as f:
+    with open("context.yml") as f:
         new_context_data = YAML(typ="safe").load(f)
         assert new_context_data["conversation_id"] == context_data["conversation_id"]
 
     # Verify conversation file was reset
-    with open("conversations/test_0.yml", "r") as f:
+    with open("conversations/test_0.yml") as f:
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] == 0.0
         assert len(new_conversation_data["facts"]) == 0

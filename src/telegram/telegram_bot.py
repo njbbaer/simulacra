@@ -2,7 +2,6 @@ import logging
 import math
 import textwrap
 import tomllib
-from typing import List, Optional
 
 # fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
@@ -226,9 +225,9 @@ class TelegramBot:
     async def _chat(
         self,
         ctx: TelegramContext,
-        user_message: Optional[str],
-        image: Optional[str] = None,
-        documents: Optional[List[str]] = None,
+        user_message: str | None,
+        image: str | None = None,
+        documents: list[str] | None = None,
     ) -> None:
         response = await self.sim.chat(user_message, image, documents)
         await ctx.send_message(response)

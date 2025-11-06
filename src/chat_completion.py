@@ -1,8 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ChatCompletion:
-    def __init__(self, response: Dict[str, Any]) -> None:
+    def __init__(self, response: dict[str, Any]) -> None:
         self.response = response
         self._validate()
 
@@ -40,11 +40,11 @@ class ChatCompletion:
         return self.response["details"]["total_cost"]
 
     @property
-    def _choice(self) -> Dict[str, Any]:
+    def _choice(self) -> dict[str, Any]:
         return self.response["choices"][0]
 
     @property
-    def _finish_reason(self) -> Optional[str]:
+    def _finish_reason(self) -> str | None:
         return self._choice.get("finish_reason")
 
     @property

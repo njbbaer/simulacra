@@ -1,7 +1,7 @@
 import argparse
 import multiprocessing
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import dotenv
 import toml
@@ -14,7 +14,7 @@ IS_DEVELOPMENT = os.getenv("ENVIRONMENT") == "development"
 CONFIG_FILEPATH = os.getenv("CONFIG_FILEPATH")
 
 
-def _run_bot(bot_config: Dict[str, Any]) -> None:
+def _run_bot(bot_config: dict[str, Any]) -> None:
     TelegramBot(
         bot_config["context_filepath"],
         bot_config["telegram_token"],
@@ -22,7 +22,7 @@ def _run_bot(bot_config: Dict[str, Any]) -> None:
     ).run()
 
 
-def _get_args() -> Optional[str]:
+def _get_args() -> str | None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file", type=str, nargs="?", default=CONFIG_FILEPATH)
     return parser.parse_args().config_file
@@ -44,7 +44,8 @@ def main() -> None:
     config_file = _get_args()
     if config_file is None:
         raise ValueError("Config file is required")
-    configs = toml.load(open(config_file, "r"))
+    with open(config_file) as f:
+        configs = toml.load(f)
     bot_configs = configs.get("simulacra", [])
 
     if IS_DEVELOPMENT:

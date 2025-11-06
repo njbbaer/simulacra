@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import jinja2
 import yaml
@@ -16,7 +16,7 @@ class ChatExecutor:
     def __init__(self, context) -> None:
         self.context = context
 
-    async def execute(self, params: Dict[str, Any] | None = None) -> ChatCompletion:
+    async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         client = OpenRouterAPIClient()
 
         merged_params = {**self.context.api_params}
@@ -31,7 +31,7 @@ class ChatExecutor:
         self.context.increment_cost(completion.cost)
         return completion
 
-    def _build_messages(self) -> List[Dict[str, Any]]:
+    def _build_messages(self) -> list[dict[str, Any]]:
         resolved_vars = self._resolve_vars()
         resolved_vars["messages"] = self.context.conversation_messages
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
@@ -41,7 +41,7 @@ class ChatExecutor:
         rendered_str = template.render(resolved_vars)
         return yaml.safe_load(rendered_str)
 
-    def _resolve_vars(self) -> Dict[str, Any]:
+    def _resolve_vars(self) -> dict[str, Any]:
         """
         Resolves nested Jinja templates within the context variables.
         It iteratively renders templates using the state from the previous pass
@@ -87,7 +87,7 @@ class ChatExecutor:
 
         raise RuntimeError("Variable resolution did not converge")
 
-    def _template_vars(self) -> Dict[str, Any]:
+    def _template_vars(self) -> dict[str, Any]:
         return {
             **copy.deepcopy(self.context.vars),
             "facts": self.context.conversation_facts,

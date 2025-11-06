@@ -1,16 +1,16 @@
 import random
-from typing import Any, List
+from typing import Any
 
 import jinja2
 
 
-def _shuffle_list(list: List[Any]) -> List[Any]:
+def _shuffle_list(list: list[Any]) -> list[Any]:
     shuffled_list = list.copy()
     random.shuffle(shuffled_list)
     return shuffled_list
 
 
-def _merge_lists(list1: List[Any] | None, list2: List[Any] | None) -> List[Any]:
+def _merge_lists(list1: list[Any] | None, list2: list[Any] | None) -> list[Any]:
     return (list1 or []) + (list2 or [])
 
 

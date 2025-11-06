@@ -19,33 +19,36 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "autoflake",
-    "black",
-    "flake8",
-    "flake8-bugbear",
+    "ruff",
     "hupper",
-    "isort",
     "pre-commit",
-    "pycodestyle",
     "pytest",
     "pytest-asyncio",
     "pyfakefs",
     "pytest-httpx",
     "pytest-cov",
-    "flake8-pyproject",
     "mypy",
     "types-pyyaml",
     "types-pytz",
     "types-toml",
 ]
 
-[tool.flake8]
-exclude = [".venv"]
-max-line-length = 88
-extend-ignore = ["E203", "E501", "E701"]
+[tool.ruff]
+line-length = 88
+target-version = "py312"
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+]
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/924
 [tool.pytest.ini_options]

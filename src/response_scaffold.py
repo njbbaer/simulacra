@@ -10,7 +10,8 @@ class ResponseScaffold:
         self._validate_content()
 
     def get_transformed_content(self) -> str:
-        """Return the transformed response content by removing specified tags and renaming others."""
+        """Return the transformed response content by removing specified tags and
+        renaming others."""
 
         content = self.original_content
 
@@ -32,7 +33,10 @@ class ResponseScaffold:
                 r"<[^>]*>.*?</[^>]*>", "", self.original_content, flags=re.DOTALL
             ).strip()
 
-        pattern = rf"<{re.escape(target_tag)}(?:\s[^>]*)?>(?P<content>.*?)</{re.escape(target_tag)}>"
+        pattern = (
+            rf"<{re.escape(target_tag)}(?:\s[^>]*)?>(?P<content>.*?)"
+            rf"</{re.escape(target_tag)}>"
+        )
         match = re.search(pattern, self.original_content, flags=re.DOTALL)
 
         if not match:

@@ -47,13 +47,14 @@ select = [
     "I",     # isort
     "N",     # pep8-naming
     "UP",    # pyupgrade
+    "RUF",   # ruff-specific rules
     "B",     # flake8-bugbear
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
     "ASYNC", # flake8-async
     "RET",   # flake8-return
     "TCH",   # flake8-type-checking
-    "RUF",   # ruff-specific rules
+    "ARG",   # flake8-unused-arguments
 ]
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/924

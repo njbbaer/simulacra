@@ -46,7 +46,7 @@ def conversation_data() -> dict[str, Any]:
 
 @pytest.fixture
 def simulacrum_context(
-    custom_fs, context_data: dict[str, Any], conversation_data: dict[str, Any]
+    _custom_fs, context_data: dict[str, Any], conversation_data: dict[str, Any]
 ) -> None:
     with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
@@ -56,7 +56,7 @@ def simulacrum_context(
 
 
 @pytest.fixture
-def simulacrum(simulacrum_context) -> Simulacrum:
+def simulacrum(_simulacrum_context) -> Simulacrum:
     return Simulacrum("context.yml")
 
 

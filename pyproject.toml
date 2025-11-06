@@ -51,6 +51,7 @@ select = [
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
     "ASYNC", # flake8-async
+    "RET",   # flake8-return
 ]
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/924

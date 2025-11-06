@@ -29,10 +29,9 @@ class Logger:
             return {
                 key: Logger._format_value(key, value) for key, value in data.items()
             }
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return [Logger._format_text(item) for item in data]
-        else:
-            return data
+        return data
 
     @staticmethod
     def _format_value(key: str, value: Any) -> Any:

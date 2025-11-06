@@ -70,14 +70,13 @@ class ChatExecutor:
             def resolve_recursive_pass(obj: Any) -> Any:
                 if isinstance(obj, dict):
                     return {k: resolve_recursive_pass(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
+                if isinstance(obj, list):
                     return [resolve_recursive_pass(i) for i in obj]
-                elif isinstance(obj, str):
+                if isinstance(obj, str):
                     if "{{" in obj and "}}" in obj:
                         template = env.from_string(obj)
                         return template.render(**context_container[0])
-                    else:
-                        return obj
+                    return obj
                 return obj
 
             resolved_vars = resolve_recursive_pass(context_container[0])

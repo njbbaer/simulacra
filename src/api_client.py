@@ -30,8 +30,7 @@ class OpenRouterAPIClient:
         messages: list[dict[str, Any]],
         parameters: dict[str, Any],
     ) -> dict[str, Any]:
-        body = {"messages": messages, **parameters}
-        return body
+        return {"messages": messages, **parameters}
 
     async def request_completion(
         self,
@@ -54,8 +53,7 @@ class OpenRouterAPIClient:
         global current_api_task
         current_api_task = task
         try:
-            result = await task
-            return result
+            return await task
         finally:
             current_api_task = None
 

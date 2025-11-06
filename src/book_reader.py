@@ -27,5 +27,4 @@ class BookReader:
         if match is None or match.score < 80:
             raise Exception("No match found in text")
 
-        end_position = self.text.find("\n", match.dest_end)
-        return end_position
+        return self.text.find("\n", match.dest_end)

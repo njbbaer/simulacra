@@ -52,6 +52,7 @@ select = [
     "SIM",   # flake8-simplify
     "ASYNC", # flake8-async
     "RET",   # flake8-return
+    "TCH",   # flake8-type-checking
 ]
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/924

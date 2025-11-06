@@ -1,13 +1,16 @@
 import os
 import textwrap
+from typing import TYPE_CHECKING
 
 from .book_reader import BookReader
-from .chat_completion import ChatCompletion
 from .context import Context
 from .lm_executors import ChatExecutor as _ChatExecutor
 from .lm_executors import ExperimentExecutor
-from .message import Message
 from .response_scaffold import ResponseScaffold
+
+if TYPE_CHECKING:
+    from .chat_completion import ChatCompletion
+    from .message import Message
 
 ChatExecutor: type[_ChatExecutor]
 if os.getenv("ENABLE_EXPERIMENT_EXECUTOR") == "true":

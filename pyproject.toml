@@ -53,6 +53,7 @@ select = [
     "ASYNC", # flake8-async
     "RET",   # flake8-return
     "TCH",   # flake8-type-checking
+    "RUF",   # ruff-specific rules
 ]
 
 # https://github.com/pytest-dev/pytest-asyncio/issues/924

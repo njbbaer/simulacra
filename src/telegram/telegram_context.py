@@ -2,6 +2,7 @@ import os
 import re
 import uuid
 
+import aiofiles
 import httpx
 from openai import AsyncOpenAI
 from telegram.error import BadRequest
@@ -81,10 +82,12 @@ class TelegramContext:
         voice_filepath = f"tmp/{uuid.uuid4()}.ogg"
         try:
             await voice_file.download_to_drive(voice_filepath)
-            with open(voice_filepath, "rb") as file:
-                transcript = await AsyncOpenAI().audio.transcriptions.create(
-                    model="whisper-1", file=file
-                )
+            async with aiofiles.open(voice_filepath, "rb") as file:
+                content = await file.read()
+            transcript = await AsyncOpenAI().audio.transcriptions.create(
+                model="whisper-1",
+                file=(os.path.basename(voice_filepath), content),
+            )
             return transcript.text
         finally:
             os.remove(voice_filepath)

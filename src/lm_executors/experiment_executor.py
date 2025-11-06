@@ -3,6 +3,8 @@ import copy
 import random
 from typing import Any
 
+import aiofiles
+
 from ..chat_completion import ChatCompletion
 from ..response_scaffold import ResponseScaffold
 from .chat_executor import ChatExecutor
@@ -43,8 +45,8 @@ class ExperimentExecutor(ChatExecutor):
 
         choice = int(input("\nSelect response (1-" + str(len(results)) + "): ")) - 1
 
-        with open("experiment_log.txt", "a") as f:
-            f.write(f"{variation_names[choice]}\n")
+        async with aiofiles.open("experiment_log.txt", "a") as f:
+            await f.write(f"{variation_names[choice]}\n")
 
         return results[choice]
 

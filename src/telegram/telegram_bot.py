@@ -3,6 +3,8 @@ import math
 import textwrap
 import tomllib
 
+import aiofiles
+
 # fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
@@ -218,8 +220,9 @@ class TelegramBot:
 
     @message_handler
     async def version_command_handler(self, ctx: TelegramContext) -> None:
-        with open("pyproject.toml", "rb") as f:
-            pyproject = tomllib.load(f)
+        async with aiofiles.open("pyproject.toml", "rb") as f:
+            content = await f.read()
+            pyproject = tomllib.loads(content.decode())
         await ctx.send_message(f"`📦 Version: {pyproject['project']['version']}`")
 
     async def _chat(

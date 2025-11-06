@@ -1,3 +1,4 @@
+# ruff: noqa: ASYNC230
 import json
 import os
 from typing import Any
@@ -151,13 +152,15 @@ async def test_simulacrum_chat(
 
     # Verify contents of the context file
     with open("context.yml") as f:
-        new_context_data = YAML(typ="safe").load(f)
+        content = f.read()
+        new_context_data = YAML(typ="safe").load(content)
         assert new_context_data["conversation_id"] == context_data["conversation_id"]
         assert new_context_data["total_cost"] > initial_context_cost
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml") as f:
-        new_conversation_data = YAML(typ="safe").load(f)
+        content = f.read()
+        new_conversation_data = YAML(typ="safe").load(content)
         assert new_conversation_data["cost"] > initial_conversation_cost
         assert len(new_conversation_data["messages"]) == initial_message_count + 2
 
@@ -178,7 +181,8 @@ async def test_new_conversation(
 
     # Verify context file updates
     with open("context.yml") as f:
-        new_context_data = YAML(typ="safe").load(f)
+        content = f.read()
+        new_context_data = YAML(typ="safe").load(content)
         assert new_context_data["conversation_id"] == initial_conversation_id + 1
         assert new_context_data["total_cost"] == context_data["total_cost"]
 
@@ -186,7 +190,8 @@ async def test_new_conversation(
     new_conversation_path = f"conversations/test_{initial_conversation_id + 1}.yml"
     assert os.path.exists(new_conversation_path)
     with open(new_conversation_path) as f:
-        new_conversation_data = YAML(typ="safe").load(f)
+        content = f.read()
+        new_conversation_data = YAML(typ="safe").load(content)
         assert new_conversation_data["cost"] == 0.0
         assert isinstance(new_conversation_data["facts"], list)
         assert len(new_conversation_data["facts"]) == 0

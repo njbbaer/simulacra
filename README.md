@@ -13,7 +13,7 @@ For Docker specific usage, see the [Docker](#docker) section.
 ### Install dependencies with uv
 
 ```sh
-uv install
+uv sync
 ```
 
 If you wish to include development dependencies, add `--dev`.
@@ -29,7 +29,7 @@ For more information, see the [Configuration](#configuration) section.
 ### Run the application
 
 ```sh
-uv run app examples/config.toml
+uv run app.py examples/config.toml
 ```
 
 ### Interact with your bot on Telegram
@@ -150,16 +150,22 @@ Note: Development mode can only run a single bot.
 
 ### Pre-commit hooks
 
-Install pre-commit hooks to run code formatting and linting before committing:
+Install pre-commit hooks before committing code:
 
 ```sh
 uv run pre-commit install
 ```
 
+### Run linter
+
+```sh
+make lint
+```
+
 ### Run tests
 
 ```sh
-uv run pytest
+make test
 ```
 
 ### Release a new version

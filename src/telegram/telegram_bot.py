@@ -1,5 +1,4 @@
 import logging
-import math
 import textwrap
 import tomllib
 
@@ -8,10 +7,11 @@ import aiofiles
 # fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
+from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
-from ..telegram.filters import StaleMessageFilter
-from ..telegram.message_handler import message_handler
-from ..telegram.telegram_context import TelegramContext
+from .filters import StaleMessageFilter
+from .message_handler import message_handler
+from .telegram_context import TelegramContext
 
 # fmt: on
 
@@ -28,34 +28,40 @@ class TelegramBot:
             ApplicationBuilder().token(telegram_token).concurrent_updates(True).build()
         )
         self.sim = Simulacrum(context_filepath)
-        self.last_warned_cost = 0
+        self.cost_tracker = CostTracker()
 
+        self._register_handlers(authorized_user)
+
+    def _register_handlers(self, authorized_user: str) -> None:
         # Ignore stale messages
         self.app.add_handler(MessageHandler(StaleMessageFilter(), self._do_nothing))
 
         # Disallow unauthorized users
         self.app.add_handler(
-            MessageHandler(~filters.User(username=[authorized_user]), self.unauthorized)  # type: ignore
+            MessageHandler(
+                ~filters.User(username=[authorized_user]),  # type: ignore
+                self._unauthorized,  # type: ignore
+            )
         )
 
         # Handle commands
-        command_handlers = [
-            (["new", "n"], self.new_conversation_command_handler),
-            (["retry", "r"], self.retry_command_handler),
-            (["undoretry", "ur"], self.undoretry_command_handler),
-            (["continue", "co"], self.continue_command_handler),
-            (["undo", "u"], self.undo_command_handler),
-            (["fact", "f"], self.add_fact_command_handler),
-            (["instruct", "i"], self.apply_instruction_command_handler),
-            (["stats", "s"], self.stats_command_handler),
-            (["clear"], self.clear_command_handler),
-            (["syncbook", "sb"], self.sync_book_command_handler),
-            (["version", "v"], self.version_command_handler),
-            (["help", "h"], self.help_command_handler),
-            (["parrot"], self.parrot_command_handler),
+        command_map = [
+            (["new", "n"], self._new_conversation),
+            (["retry", "r"], self._retry),
+            (["undoretry", "ur"], self._undo_retry),
+            (["continue", "co"], self._continue),
+            (["undo", "u"], self._undo),
+            (["fact", "f"], self._add_fact),
+            (["instruct", "i"], self._apply_instruction),
+            (["stats", "s"], self._stats),
+            (["clear"], self._clear),
+            (["syncbook", "sb"], self._sync_book),
+            (["version", "v"], self._version),
+            (["help", "h"], self._help),
+            (["parrot"], self._parrot),
             (["start"], self._do_nothing),
         ]
-        for commands, handler in command_handlers:
+        for commands, handler in command_map:
             for cmd in commands:
                 self.app.add_handler(CommandHandler(cmd, handler))  # type: ignore
 
@@ -71,8 +77,10 @@ class TelegramBot:
         )
 
         # Handle unknown messages and errors
-        self.app.add_handler(MessageHandler(filters.ALL, self.unknown_message_handler))  # type: ignore
-        self.app.add_error_handler(self.error_handler)  # type: ignore
+        self.app.add_handler(
+            MessageHandler(filters.ALL, self._unknown_message)  # type: ignore
+        )
+        self.app.add_error_handler(self._error_handler)  # type: ignore
 
     def run(self) -> None:
         self.app.run_polling()
@@ -86,22 +94,22 @@ class TelegramBot:
         await self._chat(ctx, text, image, documents=documents)
 
     @message_handler
-    async def new_conversation_command_handler(self, ctx: TelegramContext) -> None:
+    async def _new_conversation(self, ctx: TelegramContext) -> None:
         if self.sim.has_messages():
             await self.sim.new_conversation()
-            self.last_warned_cost = 0
+            self.cost_tracker.reset()
             await ctx.send_message("`✅ New conversation started`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 
     @message_handler
-    async def retry_command_handler(self, ctx: TelegramContext) -> None:
+    async def _retry(self, ctx: TelegramContext) -> None:
         response = await self.sim.retry()
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 
     @message_handler
-    async def undoretry_command_handler(self, ctx: TelegramContext) -> None:
+    async def _undo_retry(self, ctx: TelegramContext) -> None:
         self._cancel_current_request()
         if not self.sim.undo_retry():
             await ctx.send_message("`❌ No retry to undo`")
@@ -109,19 +117,19 @@ class TelegramBot:
         await ctx.send_message("↩️ Retry undone")
 
     @message_handler
-    async def continue_command_handler(self, ctx: TelegramContext) -> None:
+    async def _continue(self, ctx: TelegramContext) -> None:
         response = await self.sim.continue_conversation()
         await ctx.send_message(response)
         await self._warn_cost(ctx)
 
     @message_handler
-    async def undo_command_handler(self, ctx: TelegramContext) -> None:
+    async def _undo(self, ctx: TelegramContext) -> None:
         self._cancel_current_request()
         self.sim.undo()
         await ctx.send_message("🗑️ Last message undone")
 
     @message_handler
-    async def stats_command_handler(self, ctx: TelegramContext) -> None:
+    async def _stats(self, ctx: TelegramContext) -> None:
         conversation_cost = (
             f"*Conversation*\n`Cost: ${self.sim.get_conversation_cost():.2f}`"
         )
@@ -143,29 +151,29 @@ class TelegramBot:
         await ctx.send_message(f"{conversation_cost}\n\n{last_message_stats}")
 
     @message_handler
-    async def clear_command_handler(self, ctx: TelegramContext) -> None:
+    async def _clear(self, ctx: TelegramContext) -> None:
         self.sim.reset_conversation()
-        self.last_warned_cost = 0
+        self.cost_tracker.reset()
         await ctx.send_message("🗑️ Current conversation cleared")
 
     @message_handler
-    async def add_fact_command_handler(self, ctx: TelegramContext) -> None:
-        if ctx.command_body:
-            self.sim.add_conversation_fact(ctx.command_body)
-            await ctx.send_message("`✅ Fact added to conversation`")
-        else:
+    async def _add_fact(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
+            return
+        self.sim.add_conversation_fact(ctx.command_body)
+        await ctx.send_message("`✅ Fact added to conversation`")
 
     @message_handler
-    async def apply_instruction_command_handler(self, ctx: TelegramContext) -> None:
-        if ctx.command_body:
-            self.sim.apply_instruction(ctx.command_body)
-            await ctx.send_message("`✅ Instruction applied to next response`")
-        else:
+    async def _apply_instruction(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
+            return
+        self.sim.apply_instruction(ctx.command_body)
+        await ctx.send_message("`✅ Instruction applied to next response`")
 
     @message_handler
-    async def help_command_handler(self, ctx: TelegramContext) -> None:
+    async def _help(self, ctx: TelegramContext) -> None:
         await ctx.send_message(
             textwrap.dedent(
                 """
@@ -187,21 +195,7 @@ class TelegramBot:
         )
 
     @message_handler
-    async def unauthorized(self, ctx: TelegramContext) -> None:
-        await ctx.send_message("`❌ Unauthorized`")
-
-    @message_handler
-    async def unknown_message_handler(self, ctx: TelegramContext) -> None:
-        await ctx.send_message("`❌ Not recognized`")
-
-    @message_handler
-    async def error_handler(self, ctx: TelegramContext) -> None:
-        logger.error(ctx.context.error, exc_info=True)
-        if ctx.update:
-            await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
-
-    @message_handler
-    async def sync_book_command_handler(self, ctx: TelegramContext) -> None:
+    async def _sync_book(self, ctx: TelegramContext) -> None:
         query = ctx.command_body or ""
         book_chunk = self.sim.sync_book(query)
         num_words = len(book_chunk.split())
@@ -209,21 +203,35 @@ class TelegramBot:
         await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
 
     @message_handler
-    async def parrot_command_handler(self, ctx: TelegramContext) -> None:
-        if ctx.command_body:
-            await ctx.send_message(ctx.command_body)
-        else:
+    async def _parrot(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
-
-    async def _do_nothing(self, *_) -> None:
-        pass
+            return
+        await ctx.send_message(ctx.command_body)
 
     @message_handler
-    async def version_command_handler(self, ctx: TelegramContext) -> None:
+    async def _version(self, ctx: TelegramContext) -> None:
         async with aiofiles.open("pyproject.toml", "rb") as f:
             content = await f.read()
             pyproject = tomllib.loads(content.decode())
         await ctx.send_message(f"`📦 Version: {pyproject['project']['version']}`")
+
+    @message_handler
+    async def _unauthorized(self, ctx: TelegramContext) -> None:
+        await ctx.send_message("`❌ Unauthorized`")
+
+    @message_handler
+    async def _unknown_message(self, ctx: TelegramContext) -> None:
+        await ctx.send_message("`❌ Not recognized`")
+
+    @message_handler
+    async def _error_handler(self, ctx: TelegramContext) -> None:
+        logger.error(ctx.context.error, exc_info=True)
+        if ctx.update:
+            await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
+
+    async def _do_nothing(self, *_) -> None:
+        pass
 
     async def _chat(
         self,
@@ -239,19 +247,9 @@ class TelegramBot:
     async def _warn_cost(self, ctx: TelegramContext) -> None:
         if not self.sim.last_completion:
             return
-        cost = self.sim.last_completion.cost
-        total_cost = self.sim.get_conversation_cost()
-        warnings = []
-
-        if cost and cost > 0.15:
-            symbol = "🔴" if cost > 0.25 else "🟡"
-            warnings.append(f"{symbol} Last message cost: ${cost:.2f}")
-
-        if total_cost > self.last_warned_cost + 1.0:
-            self.last_warned_cost = math.floor(total_cost)
-            symbol = "🔴" if total_cost > 3.0 else "🟡"
-            warnings.append(f"{symbol} Conversation cost: ${total_cost:.2f}")
-
+        warnings = self.cost_tracker.get_cost_warnings(
+            self.sim.last_completion.cost, self.sim.get_conversation_cost()
+        )
         if warnings:
             await ctx.send_message("\n".join(warnings))
 
@@ -260,4 +258,3 @@ class TelegramBot:
 
         if current_api_task:
             current_api_task.cancel()
-            current_api_task = None

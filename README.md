@@ -1,7 +1,6 @@
 # Simulacra
 
 [![build](https://github.com/njbbaer/simulacra/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/njbbaer/simulacra/actions/workflows/build.yml)
-[![codecov](https://codecov.io/gh/njbbaer/simulacra/graph/badge.svg?token=F6D6YPZLZC)](https://codecov.io/gh/njbbaer/simulacra)
 
 Simulacra is a platform for building LLM powered Telegram bots with a template-based context system.
 

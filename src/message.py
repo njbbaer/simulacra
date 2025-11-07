@@ -11,10 +11,10 @@ class Message:
         image: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        self._role = role
-        self._content = content
-        self._image = image
-        self._metadata = metadata
+        self.role = role
+        self.content = content
+        self.image = image
+        self.metadata = metadata
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Message":
@@ -25,26 +25,10 @@ class Message:
             metadata=data.get("metadata"),
         )
 
-    @property
-    def role(self) -> str:
-        return self._role
-
-    @property
-    def content(self) -> str:
-        return self._content
-
-    @property
-    def image(self) -> str | None:
-        return self._image
-
-    @property
-    def metadata(self) -> dict[str, Any] | None:
-        return self._metadata
-
     def to_dict(self) -> dict[str, Any]:
         return {
-            "role": self._role,
-            "content": LiteralScalarString(self._content),
-            **({"image": self._image} if self._image else {}),
-            **({"metadata": self._metadata} if self._metadata else {}),
+            "role": self.role,
+            "content": LiteralScalarString(self.content),
+            **({"image": self.image} if self.image else {}),
+            **({"metadata": self.metadata} if self.metadata else {}),
         }

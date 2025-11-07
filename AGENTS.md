@@ -14,3 +14,7 @@
 - Group public methods first, followed by private methods.
 - Prefix private methods and variables with an underscore.
 - Add types where sensible, but avoid overly verbose annotations.
+
+### Other
+
+- Do not write tests unless explicitly instructed.

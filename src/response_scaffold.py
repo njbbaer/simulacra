@@ -7,55 +7,70 @@ class ResponseScaffold:
     def __init__(self, content: str, config: ScaffoldConfig) -> None:
         self.original_content = content.strip()
         self.config = config
-        self._validate_content()
-
-    def get_transformed_content(self) -> str:
-        """Return the transformed response content by removing specified tags and
-        renaming others."""
-
-        content = self.original_content
-
-        for tag in self.config.delete_tags:
-            pattern = rf"<{re.escape(tag)}(?:\s[^>]*)?>.*?</{re.escape(tag)}>"
-            content = re.sub(pattern, "", content, flags=re.DOTALL)
-
-        for old_tag, new_tag in self.config.rename_tags.items():
-            content = content.replace(f"<{old_tag}>", f"<{new_tag}>")
-            content = content.replace(f"</{old_tag}>", f"</{new_tag}>")
-
-        return re.sub(r"\n{3,}", "\n\n", content).strip()
+        self._validate_required_tags()
+        self.transformed_content = self._transform()
 
     def extract(self, tag_name: str | None = None) -> str:
         target_tag = tag_name or self.config.output_tag
 
         if not target_tag:
-            return re.sub(
-                r"<[^>]*>.*?</[^>]*>", "", self.original_content, flags=re.DOTALL
-            ).strip()
+            return self._strip_all_tags(self.transformed_content)
 
-        pattern = (
-            rf"<{re.escape(target_tag)}(?:\s[^>]*)?>(?P<content>.*?)"
-            rf"</{re.escape(target_tag)}>"
-        )
-        match = re.search(pattern, self.original_content, flags=re.DOTALL)
-
-        if not match:
+        content = self._extract_tag_content(target_tag, self.transformed_content)
+        if content is None:
             raise ValueError(
                 f"Output tag '{target_tag}' not found in processed content"
             )
 
-        return match.group("content").strip()
+        return content
 
-    def _validate_content(self) -> None:
+    def _transform(self) -> str:
+        content = self.original_content
+
+        for tag in self.config.delete_tags:
+            content = self._remove_tag(tag, content)
+
+        for old_tag, new_tag in self.config.rename_tags.items():
+            content = self._rename_tag(old_tag, new_tag, content)
+
+        for pattern, replacement in self.config.replace_patterns.items():
+            content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+
+        return re.sub(r"\n{3,}", "\n\n", content).strip()
+
+    def _validate_required_tags(self) -> None:
         missing_tags = [
             tag
             for tag in self.config.require_tags
-            if not (
-                re.search(rf"<{re.escape(tag)}\b", self.original_content)
-                and re.search(rf"</{re.escape(tag)}>", self.original_content)
-            )
+            if not self._has_tag(tag, self.original_content)
         ]
         if missing_tags:
-            raise ValueError(
-                f"Missing required tags: {', '.join(sorted(missing_tags))}"
-            )
+            tag_list = ", ".join(sorted(missing_tags))
+            raise ValueError(f"Missing required tags: {tag_list}")
+
+    @staticmethod
+    def _has_tag(tag: str, content: str) -> bool:
+        return bool(
+            re.search(rf"<{re.escape(tag)}\b", content)
+            and re.search(rf"</{re.escape(tag)}>", content)
+        )
+
+    @staticmethod
+    def _remove_tag(tag: str, content: str) -> str:
+        pattern = rf"<{re.escape(tag)}(?:\s[^>]*)?>.*?</{re.escape(tag)}>"
+        return re.sub(pattern, "", content, flags=re.DOTALL)
+
+    @staticmethod
+    def _rename_tag(old_tag: str, new_tag: str, content: str) -> str:
+        content = content.replace(f"<{old_tag}>", f"<{new_tag}>")
+        return content.replace(f"</{old_tag}>", f"</{new_tag}>")
+
+    @staticmethod
+    def _extract_tag_content(tag: str, content: str) -> str | None:
+        pattern = rf"<{re.escape(tag)}(?:\s[^>]*)?>(?P<content>.*?)</{re.escape(tag)}>"
+        match = re.search(pattern, content, flags=re.DOTALL)
+        return match.group("content").strip() if match else None
+
+    @staticmethod
+    def _strip_all_tags(content: str) -> str:
+        return re.sub(r"<[^>]*>.*?</[^>]*>", "", content, flags=re.DOTALL).strip()

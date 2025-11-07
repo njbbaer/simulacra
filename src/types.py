@@ -8,6 +8,7 @@ class ScaffoldConfig:
     delete_tags: set[str] = field(default_factory=set)
     rename_tags: dict[str, str] = field(default_factory=dict)
     output_tag: str | None = None
+    replace_patterns: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ScaffoldConfig":
@@ -16,4 +17,5 @@ class ScaffoldConfig:
             delete_tags=set(data.get("delete_tags", [])),
             rename_tags=data.get("rename_tags", {}),
             output_tag=data.get("output_tag"),
+            replace_patterns=data.get("replace_patterns", {}),
         )

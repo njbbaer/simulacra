@@ -44,7 +44,7 @@ class Simulacrum:
         completion = await ChatExecutor(self.context).execute()
         self.last_completion = completion
         scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
-        self.context.add_message("assistant", scaffold.get_transformed_content())
+        self.context.add_message("assistant", scaffold.transformed_content)
         self.context.save()
         return scaffold.extract()
 

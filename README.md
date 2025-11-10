@@ -86,7 +86,7 @@ A context file contains the following keys:
 | Key | Description |
 |-----|-------------|
 | `char_name` | The bot's character name |
-| `conversation_id` | Current conversation ID (auto-generated) |
+| `conversation_file` | Relative file link to the conversation file (auto-generated) |
 | `api_params` | API configuration object |
 | `├─ model` | The model to use for the API |
 | `└─ <key>` | Additional API parameters (e.g. temperature, max_tokens) |

@@ -20,7 +20,7 @@ def custom_fs(fs):
 def context_data() -> dict[str, Any]:
     return {
         "char_name": "test",
-        "conversation_id": 0,
+        "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.1,
         "pricing": [1, 2],
         "api_params": {"model": "anthropic/claude"},
@@ -156,7 +156,9 @@ async def test_simulacrum_chat(
     with open("context.yml") as f:
         content = f.read()
         new_context_data = YAML(typ="safe").load(content)
-        assert new_context_data["conversation_id"] == context_data["conversation_id"]
+        assert (
+            new_context_data["conversation_file"] == context_data["conversation_file"]
+        )
         assert new_context_data["total_cost"] > initial_context_cost
 
     # Verify contents of the conversation file
@@ -177,19 +179,19 @@ async def test_simulacrum_chat(
 async def test_new_conversation(
     simulacrum: Simulacrum, context_data: dict[str, Any]
 ) -> None:
-    initial_conversation_id = context_data["conversation_id"]
-
     await simulacrum.new_conversation()
 
     # Verify context file updates
     with open("context.yml") as f:
         content = f.read()
         new_context_data = YAML(typ="safe").load(content)
-        assert new_context_data["conversation_id"] == initial_conversation_id + 1
+        assert (
+            new_context_data["conversation_file"] == "file://./conversations/test_1.yml"
+        )
         assert new_context_data["total_cost"] == context_data["total_cost"]
 
     # Verify contents of the new conversation file
-    new_conversation_path = f"conversations/test_{initial_conversation_id + 1}.yml"
+    new_conversation_path = "conversations/test_1.yml"
     assert os.path.exists(new_conversation_path)
     with open(new_conversation_path) as f:
         content = f.read()
@@ -211,10 +213,12 @@ def test_reset_conversation(
 
     simulacrum.reset_conversation()
 
-    # Verify conversation ID doesn't change
+    # Verify conversation file doesn't change
     with open("context.yml") as f:
         new_context_data = YAML(typ="safe").load(f)
-        assert new_context_data["conversation_id"] == context_data["conversation_id"]
+        assert (
+            new_context_data["conversation_file"] == context_data["conversation_file"]
+        )
 
     # Verify conversation file was reset
     with open("conversations/test_0.yml") as f:

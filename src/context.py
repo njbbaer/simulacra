@@ -35,7 +35,8 @@ class Context:
         self._conversation.reset()
 
     def new_conversation(self) -> None:
-        self._data["conversation_id"] = self._next_conversation_id()
+        next_id = self._next_conversation_id()
+        self._data["conversation_file"] = self._generate_conversation_path(next_id)
         self._load_conversation()
 
     def increment_cost(self, new_cost: float) -> None:
@@ -82,8 +83,17 @@ class Context:
         return self.api_params["model"]
 
     @property
+    def conversation_file(self) -> str:
+        return self._data["conversation_file"]
+
+    @property
     def conversation_id(self) -> int:
-        return self._data.setdefault("conversation_id", self._next_conversation_id())
+        file_path = self.conversation_file.replace("file://./", "")
+        filename = os.path.basename(file_path)
+        match = re.match(rf"^{self.char_name}_(\d+)\.yml$", filename)
+        if match:
+            return int(match.group(1))
+        raise ValueError(f"Invalid conversation file format: {file_path}")
 
     @property
     def pricing(self) -> dict[str, Any] | None:
@@ -118,10 +128,17 @@ class Context:
         return self._data.get("api_params", {})
 
     def _load_conversation(self) -> None:
+        if "conversation_file" not in self._data:
+            next_id = self._next_conversation_id()
+            self._data["conversation_file"] = self._generate_conversation_path(next_id)
         os.makedirs(self.conversations_dir, exist_ok=True)
-        path = f"{self.conversations_dir}/{self.char_name}_{self.conversation_id}.yml"
-        self._conversation = Conversation(path)
+        file_path = self.conversation_file.replace("file://./", "")
+        full_path = os.path.join(self.dir, file_path)
+        self._conversation = Conversation(full_path)
         self._conversation.load()
+
+    def _generate_conversation_path(self, conversation_id: int) -> str:
+        return f"file://./conversations/{self.char_name}_{conversation_id}.yml"
 
     def _next_conversation_id(self) -> int:
         max_id = max(

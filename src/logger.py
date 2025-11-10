@@ -1,4 +1,5 @@
 import io
+import json
 from typing import Any
 
 from ruamel.yaml.scalarstring import LiteralScalarString
@@ -14,7 +15,7 @@ class Logger:
         buffer = io.StringIO()
         yaml.dump(
             {
-                "parameters": parameters,
+                "api_params": self._normalize_data(parameters),
                 "content": self._format_text(content),
                 "response": LiteralScalarString(response),
             },
@@ -22,6 +23,11 @@ class Logger:
         )
         with open(self.filepath, "w") as file:
             file.write(buffer.getvalue())
+
+    @staticmethod
+    def _normalize_data(data: Any) -> Any:
+        """Normalize data by removing YAML metadata (e.g. comments)."""
+        return json.loads(json.dumps(data))
 
     @staticmethod
     def _format_text(data: Any) -> Any:

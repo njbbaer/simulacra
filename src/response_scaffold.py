@@ -7,7 +7,6 @@ class ResponseScaffold:
     def __init__(self, content: str, config: ScaffoldConfig) -> None:
         self.original_content = content.strip()
         self.config = config
-        self._validate_required_tags()
         self.transformed_content = self._transform()
 
     def extract(self, tag_name: str | None = None) -> str:
@@ -25,7 +24,8 @@ class ResponseScaffold:
         return content
 
     def _transform(self) -> str:
-        content = self.original_content
+        content = self._apply_replace_patterns(self.original_content)
+        self._validate_required_tags(content)
 
         for tag in self.config.delete_tags:
             content = self._remove_tag(tag, content)
@@ -33,16 +33,16 @@ class ResponseScaffold:
         for old_tag, new_tag in self.config.rename_tags.items():
             content = self._rename_tag(old_tag, new_tag, content)
 
-        for pattern, replacement in self.config.replace_patterns.items():
-            content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-
         return re.sub(r"\n{3,}", "\n\n", content).strip()
 
-    def _validate_required_tags(self) -> None:
+    def _apply_replace_patterns(self, content: str) -> str:
+        for pattern, replacement in self.config.replace_patterns.items():
+            content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        return content
+
+    def _validate_required_tags(self, content: str) -> None:
         missing_tags = [
-            tag
-            for tag in self.config.require_tags
-            if not self._has_tag(tag, self.original_content)
+            tag for tag in self.config.require_tags if not self._has_tag(tag, content)
         ]
         if missing_tags:
             tag_list = ", ".join(sorted(missing_tags))

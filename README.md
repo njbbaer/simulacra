@@ -170,10 +170,10 @@ make test
 
 ### Release a new version
 
-The release script sets the version in `pyproject.toml`, commits this change, and pushes a new tag.
+The release script sets the new version in `pyproject.toml`, commits it, and pushes a tag.
 
 A release is performed by GitHub Actions when the tag is pushed.
 
 ```sh
-make release version=1.2.3
+make release type=<major|minor|patch>
 ```

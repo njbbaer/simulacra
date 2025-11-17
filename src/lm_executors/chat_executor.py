@@ -44,8 +44,8 @@ class ChatExecutor:
     def _resolve_vars(self) -> dict[str, Any]:
         """
         Resolves nested Jinja templates within the context variables.
-        It iteratively renders templates using the state from the previous pass
-        until no more changes occur, handling interdependencies.
+        Iteratively render templates using the state from the previous pass until no
+        more changes occur, handling interdependencies.
         """
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True, autoescape=False)
         resolved_vars = self._template_vars()

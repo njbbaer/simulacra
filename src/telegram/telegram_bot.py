@@ -6,6 +6,7 @@ import aiofiles
 
 # fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
@@ -24,8 +25,17 @@ class TelegramBot:
     def __init__(
         self, context_filepath: str, telegram_token: str, authorized_user: str
     ) -> None:
+        request = HTTPXRequest(
+            connect_timeout=30.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+        )
         self.app = (
-            ApplicationBuilder().token(telegram_token).concurrent_updates(True).build()
+            ApplicationBuilder()
+            .token(telegram_token)
+            .request(request)
+            .concurrent_updates(True)
+            .build()
         )
         self.sim = Simulacrum(context_filepath)
         self.cost_tracker = CostTracker()

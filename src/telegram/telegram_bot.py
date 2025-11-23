@@ -228,7 +228,10 @@ class TelegramBot:
     async def _error_handler(self, ctx: TelegramContext) -> None:
         logger.error(ctx.context.error, exc_info=True)
         if ctx.update:
-            await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
+            try:
+                await ctx.send_message(f"`❌ An error occurred: {ctx.context.error}`")
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
 
     async def _do_nothing(self, *_) -> None:
         pass

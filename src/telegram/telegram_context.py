@@ -3,6 +3,7 @@ import re
 import uuid
 
 import aiofiles
+import backoff
 import httpx
 from openai import AsyncOpenAI
 from telegram.error import BadRequest
@@ -59,6 +60,7 @@ class TelegramContext:
             return await self._transcribe_voice()
         return self._message.text or self._message.caption
 
+    @backoff.on_exception(backoff.expo, httpx.TransportError, max_tries=3)
     async def send_message(self, text: str) -> None:
         # Italicize parenthetical asides
         text = text.replace("(", "_(").replace(")", ")_")

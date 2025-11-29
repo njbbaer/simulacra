@@ -36,9 +36,10 @@ class Simulacrum:
         if documents:
             for document in documents:
                 user_input = self._append_document(user_input, document)
-        if user_input:
+        if user_input or image:
             self.retry_stack.clear()
-            user_input = self._inject_instruction(user_input)
+            if user_input:
+                user_input = self._inject_instruction(user_input)
             self.context.add_message("user", user_input, image)
         self.context.save()
         completion = await ChatExecutor(self.context).execute()

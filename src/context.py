@@ -25,7 +25,7 @@ class Context:
     def add_message(
         self,
         role: str,
-        message: str,
+        message: str | None,
         image: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:

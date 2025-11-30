@@ -155,5 +155,5 @@ class Simulacrum:
             return text
 
         return textwrap.dedent(
-            f"\nBEGIN DOCUMENT\n\n{document}\n\nEND DOCUMENT\n\n---\n\n{text}"
+            f"\n<document>\n\n{document}\n\n</document>\n\n---\n\n{text}"
         )

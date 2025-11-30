@@ -10,6 +10,7 @@ from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
+from ..utilities import extract_url_content
 from .filters import StaleMessageFilter
 from .message_handler import message_handler
 from .telegram_context import TelegramContext
@@ -98,9 +99,10 @@ class TelegramBot:
     @message_handler
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
         image = await ctx.save_image_locally(self.sim.context.images_dir)
-        pdf_string = await ctx.get_pdf_string()
+        pdf_content = await ctx.get_pdf_content()
         text = await ctx.get_text()
-        documents = [pdf_string] if pdf_string else []
+        text, url_content = await extract_url_content(text)
+        documents = [d for d in [pdf_content, url_content] if d]
         await self._chat(ctx, text, image, documents=documents)
 
     @message_handler

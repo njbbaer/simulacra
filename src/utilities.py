@@ -1,9 +1,30 @@
 import base64
 import os
+import re
 import unicodedata
 from io import BytesIO
 
+import httpx
 import pdfplumber
+import trafilatura
+
+
+async def extract_url_content(text: str | None) -> tuple[str | None, str | None]:
+    if not text:
+        return text, None
+    pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    match = re.search(pattern, text)
+    if not match:
+        return text, None
+    url = match.group(0)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, follow_redirects=True)
+        response.raise_for_status()
+    content = trafilatura.extract(response.text)
+    if not content:
+        raise ValueError(f"Failed to extract content from URL: {url}")
+    stripped = text.replace(url, "").strip() or None
+    return stripped, content
 
 
 def parse_pdf(content: bytes) -> str:

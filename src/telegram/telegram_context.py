@@ -45,7 +45,7 @@ class TelegramContext:
         await image_file.download_to_drive(image_filepath)
         return filename
 
-    async def get_pdf_string(self) -> str | None:
+    async def get_pdf_content(self) -> str | None:
         if not self._message.document:
             return None
 

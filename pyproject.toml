@@ -16,6 +16,7 @@ dependencies = [
     "rapidfuzz",
     "dotenv",
     "aiofiles",
+    "trafilatura",
 ]
 
 [dependency-groups]

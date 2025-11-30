@@ -154,6 +154,7 @@ class Simulacrum:
         if not document:
             return text
 
-        return textwrap.dedent(
-            f"\n<document>\n\n{document}\n\n</document>\n\n---\n\n{text}"
-        )
+        content = f"<document>\n{document}\n</document>"
+        if text:
+            content += f"\n\n---\n\n{text}"
+        return textwrap.dedent(content)

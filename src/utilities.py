@@ -4,9 +4,9 @@ import re
 import unicodedata
 from io import BytesIO
 
-import httpx
 import pdfplumber
 import trafilatura
+from curl_cffi.requests import AsyncSession
 
 
 async def extract_url_content(text: str | None) -> tuple[str | None, str | None]:
@@ -17,12 +17,14 @@ async def extract_url_content(text: str | None) -> tuple[str | None, str | None]
     if not match:
         return text, None
     url = match.group(0)
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, follow_redirects=True)
-        response.raise_for_status()
+
+    async with AsyncSession(impersonate="chrome124") as client:
+        response = await client.get(url, allow_redirects=True, timeout=30)
+    response.raise_for_status()
+
     content = trafilatura.extract(response.text)
     if not content:
-        raise ValueError(f"Failed to extract content from URL: {url}")
+        raise ValueError("Failed to extract content from URL")
     stripped = text.replace(url, "").strip() or None
     return stripped, content
 

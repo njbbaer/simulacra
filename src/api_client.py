@@ -57,27 +57,22 @@ class OpenRouterAPIClient:
         finally:
             current_api_task = None
 
-    @backoff.on_exception(backoff.expo, RateLimitExceededError, max_tries=10)
+    @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=3)
     async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(5, read=60)) as client:
             completion_response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=self._get_headers(),
                 json=body,
             )
+            completion_response.raise_for_status()
             completion_data = completion_response.json()
-
-            if "error" in completion_data:
-                if completion_data["error"].get("code") == 429:
-                    raise RateLimitExceededError()
-                raise Exception(completion_data["error"])
-
             details_data = await self._fetch_details(completion_data["id"])
             return {**completion_data, "details": details_data["data"]}
 
     async def _fetch_details(self, generation_id: str) -> dict[str, Any]:
         details_url = f"https://openrouter.ai/api/v1/generation?id={generation_id}"
-        async with httpx.AsyncClient(timeout=3) as client:
+        async with httpx.AsyncClient() as client:
             for _ in range(10):
                 try:
                     response = await client.get(

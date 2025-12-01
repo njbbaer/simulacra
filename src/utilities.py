@@ -4,11 +4,14 @@ import re
 import unicodedata
 from io import BytesIO
 
+import backoff
 import pdfplumber
 import trafilatura
 from curl_cffi.requests import AsyncSession
+from curl_cffi.requests.errors import RequestsError
 
 
+@backoff.on_exception(backoff.expo, RequestsError, max_tries=3)
 async def extract_url_content(text: str | None) -> tuple[str | None, str | None]:
     if not text:
         return text, None

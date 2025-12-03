@@ -58,6 +58,7 @@ class TelegramBot:
         # Handle commands
         command_map = [
             (["new", "n"], self._new_conversation),
+            (["extend", "e"], self._extend_conversation),
             (["retry", "r"], self._retry),
             (["undoretry", "ur"], self._undo_retry),
             (["continue", "co"], self._continue),
@@ -111,6 +112,15 @@ class TelegramBot:
             await self.sim.new_conversation()
             self.cost_tracker.reset()
             await ctx.send_message("`✅ New conversation started`")
+        else:
+            await ctx.send_message("`❌ No messages in conversation`")
+
+    @message_handler
+    async def _extend_conversation(self, ctx: TelegramContext) -> None:
+        if self.sim.has_messages():
+            await self.sim.extend_conversation()
+            self.cost_tracker.reset()
+            await ctx.send_message("`✅ Conversation extended with memory`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 
@@ -191,6 +201,7 @@ class TelegramBot:
                 """
                 *Actions*
                 /new - Start a new conversation
+                /extend - Extend conversation with memory
                 /retry - Retry the last response
                 /undoretry - Undo a retry
                 /undo - Undo the last exchange

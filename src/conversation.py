@@ -1,6 +1,9 @@
 import os
+import re
 from pathlib import Path
 from typing import Any
+
+from ruamel.yaml.scalarstring import LiteralScalarString
 
 from .message import Message
 from .yaml_config import yaml
@@ -17,6 +20,7 @@ class Conversation:
                 data = yaml.load(file)
             self.cost = data.get("cost", 0.0)
             self.facts = data.get("facts", [])
+            self.memories = data.get("memories", [])
             self.messages = [Message.from_dict(msg) for msg in data.get("messages", [])]
         else:
             self.reset()
@@ -25,10 +29,26 @@ class Conversation:
         data_to_save = {
             "cost": self.cost,
             "facts": self.facts,
+            **(
+                {"memories": [LiteralScalarString(m) for m in self.memories]}
+                if self.memories
+                else {}
+            ),
             "messages": [msg.to_dict() for msg in self.messages],
         }
         with open(self._filepath, "w") as file:
             yaml.dump(data_to_save, file)
+
+    def format_as_memory(self, character_name: str, user_name: str) -> str:
+        lines = []
+        for msg in self.messages:
+            text = re.sub(r"<[^>]+>.*?</[^>]+>", "", msg.content or "", flags=re.DOTALL)
+            if content := text.strip():
+                role = (
+                    user_name.upper() if msg.role == "user" else character_name.upper()
+                )
+                lines.append(f"{role}:\n\n{content}")
+        return "\n\n".join(lines)
 
     def add_message(
         self,
@@ -42,6 +62,7 @@ class Conversation:
     def reset(self) -> None:
         self.cost = 0.0
         self.facts = []
+        self.memories = []
         self.messages = []
 
     def add_fact(self, fact: str) -> None:

@@ -90,5 +90,6 @@ class ChatExecutor:
         return {
             **copy.deepcopy(self.context.vars),
             "facts": self.context.conversation_facts,
+            "memories": self.context.conversation_memories,
             "model": self.context.model,
         }

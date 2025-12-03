@@ -55,6 +55,12 @@ class Simulacrum:
         self.context.new_conversation()
         self.context.save()
 
+    async def extend_conversation(self) -> None:
+        self.retry_stack.clear()
+        self.context.load()
+        self.context.extend_conversation()
+        self.context.save()
+
     def reset_conversation(self) -> None:
         self.retry_stack.clear()
         self.context.load()

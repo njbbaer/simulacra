@@ -39,6 +39,14 @@ class Context:
         self._data["conversation_file"] = self._generate_conversation_path(next_id)
         self._load_conversation()
 
+    def extend_conversation(self) -> None:
+        memory = self._conversation.format_as_memory(
+            self.character_name, self.user_name
+        )
+        memories = [*self._conversation.memories, memory]
+        self.new_conversation()
+        self._conversation.memories = memories
+
     def increment_cost(self, new_cost: float) -> None:
         self._data["total_cost"] = float(self._data["total_cost"]) + new_cost
         self._conversation.increment_cost(new_cost)
@@ -59,6 +67,10 @@ class Context:
         return self._conversation.cost
 
     @property
+    def conversation_memories(self) -> list[str]:
+        return self._conversation.memories
+
+    @property
     def dir(self) -> str:
         return os.path.dirname(self._filepath)
 
@@ -75,8 +87,12 @@ class Context:
         return self._data["vars"]
 
     @property
-    def char_name(self) -> str:
-        return self._data["char_name"]
+    def character_name(self) -> str:
+        return self._data["character_name"]
+
+    @property
+    def user_name(self) -> str:
+        return self._data["user_name"]
 
     @property
     def model(self) -> str:
@@ -90,7 +106,7 @@ class Context:
     def conversation_id(self) -> int:
         file_path = self.conversation_file.replace("file://./", "")
         filename = os.path.basename(file_path)
-        match = re.match(rf"^{self.char_name}_(\d+)\.yml$", filename)
+        match = re.match(rf"^{self.character_name.lower()}_(\d+)\.yml$", filename)
         if match:
             return int(match.group(1))
         raise ValueError(f"Invalid conversation file format: {file_path}")
@@ -138,14 +154,14 @@ class Context:
         self._conversation.load()
 
     def _generate_conversation_path(self, conversation_id: int) -> str:
-        return f"file://./conversations/{self.char_name}_{conversation_id}.yml"
+        return f"file://./conversations/{self.character_name.lower()}_{conversation_id}.yml"
 
     def _next_conversation_id(self) -> int:
         max_id = max(
             (
                 int(os.path.splitext(file)[0].split("_")[1])
                 for file in os.listdir(self.conversations_dir)
-                if re.match(rf"^{self.char_name}_\d+\.yml$", file)
+                if re.match(rf"^{self.character_name.lower()}_\d+\.yml$", file)
             ),
             default=0,
         )

@@ -59,7 +59,7 @@ class OpenRouterAPIClient:
 
     @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=3)
     async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(5, read=60)) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10, read=60)) as client:
             completion_response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=self._get_headers(),

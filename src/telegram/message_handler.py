@@ -2,13 +2,21 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import backoff
+from telegram.error import NetworkError
+
 from .telegram_context import TelegramContext
 
 
 async def _loop_send_typing_action(ctx: TelegramContext) -> None:
     while True:
-        await ctx.send_typing_action()
+        await _send_typing_action(ctx)
         await asyncio.sleep(4)
+
+
+@backoff.on_exception(backoff.expo, NetworkError, max_tries=2)
+async def _send_typing_action(ctx: TelegramContext) -> None:
+    await ctx.send_typing_action()
 
 
 def message_handler(

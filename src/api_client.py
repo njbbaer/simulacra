@@ -57,7 +57,7 @@ class OpenRouterAPIClient:
         finally:
             current_api_task = None
 
-    @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=3)
+    @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
     async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10, read=60)) as client:
             completion_response = await client.post(

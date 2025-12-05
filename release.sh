@@ -40,6 +40,9 @@ esac
 
 new_version="$major.$minor.$patch"
 
+echo "Running tests..."
+make test
+
 echo "Bumping version from $current_version to $new_version"
 
 sed -i "s/^version = .*/version = \"$new_version\"/" pyproject.toml

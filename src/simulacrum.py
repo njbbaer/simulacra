@@ -47,7 +47,7 @@ class Simulacrum:
         scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
         self.context.add_message("assistant", scaffold.transformed_content)
         self.context.save()
-        return scaffold.extract()
+        return scaffold.extract_response()
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()

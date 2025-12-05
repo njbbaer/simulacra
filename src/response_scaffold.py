@@ -23,6 +23,9 @@ class ResponseScaffold:
 
         return content
 
+    def extract_response(self) -> str:
+        return self.extract(tag_name=self.config.response_tag)
+
     def _transform(self) -> str:
         content = self._apply_replace_patterns(self.original_content)
         self._validate_required_tags(content)

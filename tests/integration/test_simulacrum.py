@@ -19,7 +19,7 @@ def custom_fs(fs):
 @pytest.fixture
 def context_data() -> dict[str, Any]:
     return {
-        "char_name": "test",
+        "character_name": "test",
         "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.1,
         "pricing": [1, 2],

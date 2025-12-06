@@ -151,7 +151,6 @@ class Context:
         file_path = self.conversation_file.replace("file://./", "")
         full_path = os.path.join(self.dir, file_path)
         self._conversation = Conversation(full_path)
-        self._conversation.load()
 
     def _generate_conversation_path(self, conversation_id: int) -> str:
         return f"file://./conversations/{self.character_name.lower()}_{conversation_id}.yml"

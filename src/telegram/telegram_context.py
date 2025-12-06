@@ -18,14 +18,6 @@ class TelegramContext:
         self.context = context
 
     @property
-    def _chat_id(self) -> int:
-        return self.update.effective_chat.id
-
-    @property
-    def _message(self):
-        return self.update.message
-
-    @property
     def command_body(self) -> str | None:
         match = re.search(r"/\w+\s+(.*)", self._message.text)
         return match.group(1) if match else None
@@ -72,6 +64,14 @@ class TelegramContext:
 
     async def send_typing_action(self) -> None:
         await self.app.bot.send_chat_action(chat_id=self._chat_id, action="typing")
+
+    @property
+    def _chat_id(self) -> int:
+        return self.update.effective_chat.id
+
+    @property
+    def _message(self):
+        return self.update.message
 
     async def _transcribe_voice(self) -> str:
         file_id = self._message.voice.file_id

@@ -41,11 +41,9 @@ class Logger:
 
     @staticmethod
     def _format_value(key: str, value: Any) -> Any:
-        # Convert text fields to multi-line strings
         if key == "text" and isinstance(value, str):
             return LiteralScalarString(value)
 
-        # Truncate long URLs
         if key == "url" and isinstance(value, str):
             return value[:256] + "..." if len(value) > 256 else value
 

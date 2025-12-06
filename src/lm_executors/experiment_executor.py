@@ -20,7 +20,7 @@ class ExperimentExecutor(ChatExecutor):
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         async def execute_variation(variation_data):
             variation_context = copy.deepcopy(self.context)
-            variation_context._data = merge_dicts(
+            variation_context._data = _merge_dicts(
                 variation_context._data, variation_data
             )
 
@@ -51,11 +51,11 @@ class ExperimentExecutor(ChatExecutor):
         return results[choice]
 
 
-def merge_dicts(dict1, dict2):
+def _merge_dicts(dict1, dict2):
     result = copy.deepcopy(dict1)
     for key, value in dict2.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = merge_dicts(result[key], value)
+            result[key] = _merge_dicts(result[key], value)
         else:
             result[key] = value
     return result

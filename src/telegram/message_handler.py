@@ -8,17 +8,6 @@ from telegram.error import NetworkError
 from .telegram_context import TelegramContext
 
 
-async def _loop_send_typing_action(ctx: TelegramContext) -> None:
-    while True:
-        await _send_typing_action(ctx)
-        await asyncio.sleep(4)
-
-
-@backoff.on_exception(backoff.expo, NetworkError, max_tries=2)
-async def _send_typing_action(ctx: TelegramContext) -> None:
-    await ctx.send_typing_action()
-
-
 def message_handler(
     func: Callable[..., Awaitable[Any]],
 ) -> Callable[..., Awaitable[Any]]:
@@ -31,3 +20,14 @@ def message_handler(
             typing_task.cancel()
 
     return wrapper
+
+
+async def _loop_send_typing_action(ctx: TelegramContext) -> None:
+    while True:
+        await _send_typing_action(ctx)
+        await asyncio.sleep(4)
+
+
+@backoff.on_exception(backoff.expo, NetworkError, max_tries=2)
+async def _send_typing_action(ctx: TelegramContext) -> None:
+    await ctx.send_typing_action()

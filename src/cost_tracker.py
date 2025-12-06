@@ -15,6 +15,9 @@ class CostTracker:
         self.high_total_threshold = high_total_threshold
         self.last_warned_cost = 0
 
+    def reset(self) -> None:
+        self.last_warned_cost = 0
+
     def get_cost_warnings(
         self, last_message_cost: float | None, total_cost: float
     ) -> list[str]:
@@ -33,6 +36,3 @@ class CostTracker:
             warnings.append(f"{symbol} Conversation cost: ${total_cost:.2f}")
 
         return warnings
-
-    def reset(self) -> None:
-        self.last_warned_cost = 0

@@ -16,6 +16,14 @@ class Message:
         self.image = image
         self.metadata = metadata
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "role": self.role,
+            **({"content": LiteralScalarString(self.content)} if self.content else {}),
+            **({"image": self.image} if self.image else {}),
+            **({"metadata": self.metadata} if self.metadata else {}),
+        }
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Message":
         return cls(
@@ -24,11 +32,3 @@ class Message:
             image=str(data["image"]) if data.get("image") else None,
             metadata=data.get("metadata"),
         )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "role": self.role,
-            **({"content": LiteralScalarString(self.content)} if self.content else {}),
-            **({"image": self.image} if self.image else {}),
-            **({"metadata": self.metadata} if self.metadata else {}),
-        }

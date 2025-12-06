@@ -18,13 +18,13 @@ class BookReader:
         chunk = self.text[start_idx:end_idx].strip()
         return chunk, end_idx
 
-    def _load(self) -> None:
-        with open(self.path, encoding="utf-8") as f:
-            self.text = f.read()
-
     def _find_position(self, query: str) -> int:
         match = rapidfuzz.fuzz.partial_ratio_alignment(query, self.text)
         if match is None or match.score < 80:
             raise Exception("No match found in text")
 
         return self.text.find("\n", match.dest_end)
+
+    def _load(self) -> None:
+        with open(self.path, encoding="utf-8") as f:
+            self.text = f.read()

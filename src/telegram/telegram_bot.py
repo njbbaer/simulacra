@@ -43,11 +43,21 @@ class TelegramBot:
 
         self._register_handlers(authorized_user)
 
+    def run(self) -> None:
+        self.app.run_polling()
+
+    @message_handler
+    async def chat_message_handler(self, ctx: TelegramContext) -> None:
+        image = await ctx.save_image_locally(self.sim.context.images_dir)
+        pdf_content = await ctx.get_pdf_content()
+        text = await ctx.get_text()
+        text, url_content = await extract_url_content(text)
+        documents = [d for d in [pdf_content, url_content] if d]
+        await self._chat(ctx, text, image, documents=documents)
+
     def _register_handlers(self, authorized_user: str) -> None:
-        # Ignore stale messages
         self.app.add_handler(MessageHandler(StaleMessageFilter(), self._do_nothing))
 
-        # Disallow unauthorized users
         self.app.add_handler(
             MessageHandler(
                 ~filters.User(username=[authorized_user]),  # type: ignore
@@ -55,7 +65,6 @@ class TelegramBot:
             )
         )
 
-        # Handle commands
         command_map = [
             (["new", "n"], self._new_conversation),
             (["extend", "e"], self._extend_conversation),
@@ -77,7 +86,6 @@ class TelegramBot:
             for cmd in commands:
                 self.app.add_handler(CommandHandler(cmd, handler))  # type: ignore
 
-        # Handle messages
         self.app.add_handler(
             MessageHandler(
                 (filters.TEXT & ~filters.COMMAND)
@@ -88,23 +96,10 @@ class TelegramBot:
             )
         )
 
-        # Handle unknown messages and errors
         self.app.add_handler(
             MessageHandler(filters.ALL, self._unknown_message)  # type: ignore
         )
         self.app.add_error_handler(self._error_handler)  # type: ignore
-
-    def run(self) -> None:
-        self.app.run_polling()
-
-    @message_handler
-    async def chat_message_handler(self, ctx: TelegramContext) -> None:
-        image = await ctx.save_image_locally(self.sim.context.images_dir)
-        pdf_content = await ctx.get_pdf_content()
-        text = await ctx.get_text()
-        text, url_content = await extract_url_content(text)
-        documents = [d for d in [pdf_content, url_content] if d]
-        await self._chat(ctx, text, image, documents=documents)
 
     @message_handler
     async def _new_conversation(self, ctx: TelegramContext) -> None:

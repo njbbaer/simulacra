@@ -38,6 +38,12 @@ class Conversation:
         with open(self._filepath, "w") as file:
             yaml.dump(data_to_save, file)
 
+    def reset(self) -> None:
+        self.cost = 0.0
+        self.facts = []
+        self.memories = []
+        self.messages = []
+
     def format_as_memory(self, character_name: str, user_name: str) -> str:
         lines = []
         for msg in self.messages:
@@ -57,12 +63,6 @@ class Conversation:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.messages.append(Message(role, message, image, metadata))
-
-    def reset(self) -> None:
-        self.cost = 0.0
-        self.facts = []
-        self.memories = []
-        self.messages = []
 
     def add_fact(self, fact: str) -> None:
         self.facts.append(fact)

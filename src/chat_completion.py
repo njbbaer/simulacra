@@ -6,14 +6,6 @@ class ChatCompletion:
         self.response = response
         self._validate()
 
-    def _validate(self) -> None:
-        if self._error_message:
-            raise Exception(self._error_message)
-        if self._finish_reason == "length":
-            raise Exception("Response exceeded maximum length")
-        if not self.content:
-            raise Exception("Response was empty")
-
     @property
     def content(self) -> str:
         return self._choice["message"]["content"]
@@ -38,6 +30,14 @@ class ChatCompletion:
     @property
     def cost(self) -> float:
         return self.response["details"]["total_cost"]
+
+    def _validate(self) -> None:
+        if self._error_message:
+            raise Exception(self._error_message)
+        if self._finish_reason == "length":
+            raise Exception("Response exceeded maximum length")
+        if not self.content:
+            raise Exception("Response was empty")
 
     @property
     def _choice(self) -> dict[str, Any]:

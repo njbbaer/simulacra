@@ -49,9 +49,9 @@ class ChatExecutor:
         """
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True, autoescape=False)
         resolved_vars = self._template_vars()
-        max_passes = 10  # Safety limit
+        max_passes = 10
 
-        # Use a container to hold the current state so nested functions can reference it
+        # List wrapper allows nested functions to reference the current state
         context_container = [resolved_vars]
 
         for _ in range(max_passes):

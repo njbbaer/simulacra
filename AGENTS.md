@@ -11,10 +11,18 @@
 
 - Keep the code clean and minimal by avoiding unnecessary complexity.
 - Use comments sparingly only to clarify unintuitive sections.
-- Group public methods first, followed by private methods.
 - Prefix private methods and variables with an underscore.
 - Add types where sensible, but avoid overly verbose annotations.
-- Place higher-level methods before the lower-level methods they call.
+
+### Method Ordering
+
+1. Constructor (`__init__`)
+2. Public methods (higher-level before lower-level)
+3. Public properties
+4. Private methods (higher-level before lower-level)
+5. Private properties
+6. Class methods (`@classmethod`)
+7. Static methods (`@staticmethod`)
 
 ### Other
 

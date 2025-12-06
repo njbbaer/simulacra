@@ -14,16 +14,6 @@ class OpenRouterAPIClient:
         self.api_key = os.environ.get("OPENROUTER_API_KEY")
         self.logger = Logger("log.yml")
 
-    def _get_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.api_key}"}
-
-    def _prepare_body(
-        self,
-        messages: list[dict[str, Any]],
-        parameters: dict[str, Any],
-    ) -> dict[str, Any]:
-        return {"messages": messages, **parameters}
-
     async def request_completion(
         self,
         messages: list[dict[str, Any]],
@@ -37,6 +27,16 @@ class OpenRouterAPIClient:
             return completion
         except httpx.ReadTimeout as err:
             raise Exception("Request timed out") from err
+
+    def _get_headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.api_key}"}
+
+    def _prepare_body(
+        self,
+        messages: list[dict[str, Any]],
+        parameters: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {"messages": messages, **parameters}
 
     @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
     async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:

@@ -14,6 +14,26 @@ IS_DEVELOPMENT = os.getenv("ENVIRONMENT") == "development"
 CONFIG_FILEPATH = os.getenv("CONFIG_FILEPATH")
 
 
+def main() -> None:
+    dotenv.load_dotenv()
+
+    if IS_DEVELOPMENT:
+        _start_reloader()
+
+    config_file = _get_args()
+    if config_file is None:
+        raise ValueError("Config file is required")
+    with open(config_file) as f:
+        configs = toml.load(f)
+    bot_configs = configs.get("simulacra", [])
+
+    if IS_DEVELOPMENT:
+        _run_bot(bot_configs[0])
+    else:
+        for bot_config in bot_configs:
+            multiprocessing.Process(target=_run_bot, args=(bot_config,)).start()
+
+
 def _run_bot(bot_config: dict[str, Any]) -> None:
     TelegramBot(
         bot_config["context_filepath"],
@@ -33,26 +53,6 @@ def _start_reloader() -> None:
 
     reloader = hupper.start_reloader("app.main")
     reloader.watch_files([CONFIG_FILEPATH, ".env"])
-
-
-def main() -> None:
-    dotenv.load_dotenv()
-
-    if IS_DEVELOPMENT:
-        _start_reloader()
-
-    config_file = _get_args()
-    if config_file is None:
-        raise ValueError("Config file is required")
-    with open(config_file) as f:
-        configs = toml.load(f)
-    bot_configs = configs.get("simulacra", [])
-
-    if IS_DEVELOPMENT:
-        _run_bot(bot_configs[0])
-    else:
-        for bot_config in bot_configs:
-            multiprocessing.Process(target=_run_bot, args=(bot_config,)).start()
 
 
 if __name__ == "__main__":

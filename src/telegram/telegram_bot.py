@@ -132,7 +132,7 @@ class TelegramBot:
 
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
-        self._cancel_current_request()
+        self.sim.cancel_pending_request()
         if not self.sim.undo_retry():
             await ctx.send_message("`❌ No retry to undo`")
             return
@@ -146,7 +146,7 @@ class TelegramBot:
 
     @message_handler
     async def _undo(self, ctx: TelegramContext) -> None:
-        self._cancel_current_request()
+        self.sim.cancel_pending_request()
         self.sim.undo()
         await ctx.send_message("🗑️ Last message undone")
 
@@ -280,9 +280,3 @@ class TelegramBot:
         )
         if warnings:
             await ctx.send_message("\n".join(warnings))
-
-    def _cancel_current_request(self) -> None:
-        from ..api_client import current_api_task
-
-        if current_api_task:
-            current_api_task.cancel()

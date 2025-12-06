@@ -1,3 +1,4 @@
+import asyncio
 import os
 import textwrap
 from typing import TYPE_CHECKING
@@ -25,6 +26,12 @@ class Simulacrum:
         self.last_completion: ChatCompletion | None = None
         self.instruction_text: str | None = None
         self.retry_stack: list[list[Message]] = []
+        self._current_task: asyncio.Task | None = None
+
+    def cancel_pending_request(self) -> None:
+        if self._current_task:
+            self._current_task.cancel()
+            self._current_task = None
 
     async def chat(
         self,
@@ -42,13 +49,22 @@ class Simulacrum:
                     user_input = self._inject_instruction(user_input)
                 self.context.add_message("user", user_input, image)
             self.context.save()
-            completion = await ChatExecutor(self.context).execute()
+            completion = await self._execute_with_cancellation(
+                ChatExecutor(self.context).execute()
+            )
             self.last_completion = completion
             scaffold = ResponseScaffold(
                 completion.content, self.context.response_scaffold
             )
             self.context.add_message("assistant", scaffold.transformed_content)
         return scaffold.display
+
+    async def _execute_with_cancellation(self, coro) -> "ChatCompletion":
+        self._current_task = asyncio.create_task(coro)
+        try:
+            return await self._current_task
+        finally:
+            self._current_task = None
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()

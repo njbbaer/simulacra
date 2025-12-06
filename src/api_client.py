@@ -1,6 +1,5 @@
 import asyncio
 import os
-from collections.abc import Coroutine
 from typing import Any
 
 import backoff
@@ -8,8 +7,6 @@ import httpx
 
 from .chat_completion import ChatCompletion
 from .logger import Logger
-
-current_api_task: asyncio.Task | None = None
 
 
 class OpenRouterAPIClient:
@@ -34,23 +31,12 @@ class OpenRouterAPIClient:
     ) -> ChatCompletion:
         body = self._prepare_body(messages, parameters)
         try:
-            completion_data = await self._execute_with_cancellation(
-                self._fetch_completion_data(body)
-            )
+            completion_data = await self._fetch_completion_data(body)
             completion = ChatCompletion(completion_data)
             self.logger.log(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout as err:
             raise Exception("Request timed out") from err
-
-    async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> Any:
-        task = asyncio.create_task(coro)
-        global current_api_task
-        current_api_task = task
-        try:
-            return await task
-        finally:
-            current_api_task = None
 
     @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
     async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:

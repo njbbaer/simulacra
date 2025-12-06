@@ -12,11 +12,6 @@ from .logger import Logger
 current_api_task: asyncio.Task | None = None
 
 
-class RateLimitExceededError(Exception):
-    def __init__(self, message: str = "API rate limit exceeded") -> None:
-        super().__init__(message)
-
-
 class OpenRouterAPIClient:
     def __init__(self) -> None:
         self.api_key = os.environ.get("OPENROUTER_API_KEY")

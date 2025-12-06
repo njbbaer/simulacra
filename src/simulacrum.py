@@ -47,7 +47,7 @@ class Simulacrum:
         scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
         self.context.add_message("assistant", scaffold.transformed_content)
         self.context.save()
-        return scaffold.extract_response()
+        return scaffold.display
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()
@@ -139,6 +139,8 @@ class Simulacrum:
     @property
     def last_message_role(self) -> str:
         self.context.load()
+        if not self.context.conversation_messages:
+            raise ValueError("No messages in conversation")
         return self.context.conversation_messages[-1].role
 
     def _inject_instruction(self, text: str) -> str:

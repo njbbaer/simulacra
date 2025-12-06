@@ -9,22 +9,19 @@ class ResponseScaffold:
         self.config = config
         self.transformed_content = self._transform()
 
-    def extract(self, tag_name: str | None = None) -> str:
-        target_tag = tag_name or self.config.output_tag
+    @property
+    def display(self) -> str:
+        return self.extract(tag_name=self.config.display_tag)
 
-        if not target_tag:
+    def extract(self, tag_name: str | None = None) -> str:
+        if not tag_name:
             return self._strip_all_tags(self.transformed_content)
 
-        content = self._extract_tag_content(target_tag, self.transformed_content)
+        content = self._extract_tag_content(tag_name, self.transformed_content)
         if content is None:
-            raise ValueError(
-                f"Output tag '{target_tag}' not found in processed content"
-            )
+            raise ValueError(f"Tag '{tag_name}' not found in response")
 
         return content
-
-    def extract_response(self) -> str:
-        return self.extract(tag_name=self.config.response_tag)
 
     def _transform(self) -> str:
         content = self._apply_replace_patterns(self.original_content)

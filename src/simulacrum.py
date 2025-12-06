@@ -32,45 +32,42 @@ class Simulacrum:
         image: str | None,
         documents: list[str] | None,
     ) -> str:
-        self.context.load()
-        if documents:
-            for document in documents:
-                user_input = self._append_document(user_input, document)
-        if user_input or image:
-            self.retry_stack.clear()
-            if user_input:
-                user_input = self._inject_instruction(user_input)
-            self.context.add_message("user", user_input, image)
-        self.context.save()
-        completion = await ChatExecutor(self.context).execute()
-        self.last_completion = completion
-        scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
-        self.context.add_message("assistant", scaffold.transformed_content)
-        self.context.save()
+        with self.context.session():
+            if documents:
+                for document in documents:
+                    user_input = self._append_document(user_input, document)
+            if user_input or image:
+                self.retry_stack.clear()
+                if user_input:
+                    user_input = self._inject_instruction(user_input)
+                self.context.add_message("user", user_input, image)
+            self.context.save()
+            completion = await ChatExecutor(self.context).execute()
+            self.last_completion = completion
+            scaffold = ResponseScaffold(
+                completion.content, self.context.response_scaffold
+            )
+            self.context.add_message("assistant", scaffold.transformed_content)
         return scaffold.display
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()
-        self.context.load()
-        self.context.new_conversation()
-        self.context.save()
+        with self.context.session():
+            self.context.new_conversation()
 
     async def extend_conversation(self) -> None:
         self.retry_stack.clear()
-        self.context.load()
-        self.context.extend_conversation()
-        self.context.save()
+        with self.context.session():
+            self.context.extend_conversation()
 
     def reset_conversation(self) -> None:
         self.retry_stack.clear()
-        self.context.load()
-        self.context.reset_conversation()
-        self.context.save()
+        with self.context.session():
+            self.context.reset_conversation()
 
     def add_conversation_fact(self, fact_text: str) -> None:
-        self.context.load()
-        self.context.add_conversation_fact(fact_text)
-        self.context.save()
+        with self.context.session():
+            self.context.add_conversation_fact(fact_text)
 
     def apply_instruction(self, instruction_text: str) -> None:
         self.instruction_text = instruction_text
@@ -98,22 +95,20 @@ class Simulacrum:
         return True
 
     def _undo_last_messages_by_role(self, role: str) -> list:
-        self.context.load()
-        removed_messages = []
-        num_messages = len(self.context.conversation_messages)
-        for _ in range(num_messages):
-            message = self.context.conversation_messages.pop()
-            removed_messages.append(message)
-            if message.role == role:
-                break
-        self.context.save()
+        with self.context.session():
+            removed_messages = []
+            num_messages = len(self.context.conversation_messages)
+            for _ in range(num_messages):
+                message = self.context.conversation_messages.pop()
+                removed_messages.append(message)
+                if message.role == role:
+                    break
         return removed_messages
 
     def _restore_messages(self, messages: list) -> None:
-        self.context.load()
-        for message in reversed(messages):
-            self.context.conversation_messages.append(message)
-        self.context.save()
+        with self.context.session():
+            for message in reversed(messages):
+                self.context.conversation_messages.append(message)
 
     def has_messages(self) -> bool:
         self.context.load()
@@ -124,16 +119,17 @@ class Simulacrum:
         return self.context.conversation_cost
 
     def sync_book(self, query: str) -> str:
-        self.context.load()
-        if not self.context.book_path:
-            raise Exception("No book path set.")
-        book = BookReader(self.context.book_path)
-        start_idx = self.context.last_book_position or 0
-        book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
-        message_content = f"<book_continuation>\n{book_chunk}\n</book_continuation>"
-        self.retry_stack.clear()
-        self.context.add_message("user", message_content, metadata={"end_idx": end_idx})
-        self.context.save()
+        with self.context.session():
+            if not self.context.book_path:
+                raise Exception("No book path set.")
+            book = BookReader(self.context.book_path)
+            start_idx = self.context.last_book_position or 0
+            book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
+            message_content = f"<book_continuation>\n{book_chunk}\n</book_continuation>"
+            self.retry_stack.clear()
+            self.context.add_message(
+                "user", message_content, metadata={"end_idx": end_idx}
+            )
         return book_chunk
 
     @property

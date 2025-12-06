@@ -1,5 +1,7 @@
 import os
 import re
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from .conversation import Conversation
@@ -11,6 +13,14 @@ from .yaml_config import yaml
 class Context:
     def __init__(self, filepath: str) -> None:
         self._filepath = filepath
+
+    @contextmanager
+    def session(self) -> Iterator[None]:
+        self.load()
+        try:
+            yield
+        finally:
+            self.save()
 
     def load(self) -> None:
         with open(self._filepath) as file:

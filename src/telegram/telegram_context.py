@@ -26,10 +26,6 @@ class TelegramContext:
         return self.update.message
 
     @property
-    def _user_name(self) -> str:
-        return self._message.from_user.first_name
-
-    @property
     def command_body(self) -> str | None:
         match = re.search(r"/\w+\s+(.*)", self._message.text)
         return match.group(1) if match else None

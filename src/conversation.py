@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -15,7 +14,7 @@ class Conversation:
         self.load()
 
     def load(self) -> None:
-        if os.path.exists(self._filepath):
+        if self._filepath.exists():
             with open(self._filepath) as file:
                 data = yaml.load(file)
             self.cost = data.get("cost", 0.0)

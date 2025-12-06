@@ -6,7 +6,7 @@ from typing import Any
 
 from .conversation import Conversation
 from .message import Message
-from .types import ScaffoldConfig
+from .scaffold_config import ScaffoldConfig
 from .yaml_config import yaml
 
 
@@ -57,9 +57,9 @@ class Context:
         self.new_conversation()
         self._conversation.memories = memories
 
-    def increment_cost(self, new_cost: float) -> None:
-        self._data["total_cost"] = float(self._data["total_cost"]) + new_cost
-        self._conversation.increment_cost(new_cost)
+    def increment_cost(self, cost: float) -> None:
+        self._data["total_cost"] = float(self._data["total_cost"]) + cost
+        self._conversation.increment_cost(cost)
 
     def add_conversation_fact(self, fact: str) -> None:
         self._conversation.add_fact(fact)

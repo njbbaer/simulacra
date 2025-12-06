@@ -1,6 +1,6 @@
 import re
 
-from .types import ScaffoldConfig
+from .scaffold_config import ScaffoldConfig
 
 
 class ResponseScaffold:

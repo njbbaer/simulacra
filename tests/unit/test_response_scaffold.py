@@ -1,7 +1,7 @@
 import pytest
 
 from src.response_scaffold import ResponseScaffold
-from src.types import ScaffoldConfig
+from src.scaffold_config import ScaffoldConfig
 
 
 def test_deletes_tags():

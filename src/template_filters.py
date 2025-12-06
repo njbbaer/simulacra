@@ -4,10 +4,10 @@ from typing import Any
 import jinja2
 
 
-def _shuffle_list(list: list[Any]) -> list[Any]:
-    shuffled_list = list.copy()
-    random.shuffle(shuffled_list)
-    return shuffled_list
+def _shuffle_list(items: list[Any]) -> list[Any]:
+    shuffled = items.copy()
+    random.shuffle(shuffled)
+    return shuffled
 
 
 def _merge_lists(list1: list[Any] | None, list2: list[Any] | None) -> list[Any]:

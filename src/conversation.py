@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ class Conversation:
         if self._filepath.exists():
             with open(self._filepath) as file:
                 data = yaml.load(file)
+            self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
             self.facts = data.get("facts", [])
             self.memories = data.get("memories", [])
@@ -26,6 +28,7 @@ class Conversation:
 
     def save(self) -> None:
         data_to_save = {
+            "created_at": self.created_at,
             "cost": self.cost,
             "facts": self.facts,
             **(
@@ -39,6 +42,7 @@ class Conversation:
             yaml.dump(data_to_save, file)
 
     def reset(self) -> None:
+        self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.cost = 0.0
         self.facts = []
         self.memories = []

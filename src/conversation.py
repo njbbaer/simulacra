@@ -48,16 +48,27 @@ class Conversation:
         self.memories = []
         self.messages = []
 
-    def format_as_memory(self, character_name: str, user_name: str) -> str:
+    def format_as_memory(
+        self, character_name: str, user_name: str, display_tag: str | None = None
+    ) -> str:
         lines = []
         for msg in self.messages:
-            text = re.sub(r"<[^>]+>.*?</[^>]+>", "", msg.content or "", flags=re.DOTALL)
-            if content := text.strip():
+            content = self._extract_display_content(msg.content or "", display_tag)
+            if content := content.strip():
                 role = (
                     user_name.upper() if msg.role == "user" else character_name.upper()
                 )
                 lines.append(f"{role}:\n\n{content}")
         return "\n\n".join(lines)
+
+    def _extract_display_content(self, text: str, display_tag: str | None) -> str:
+        """Extract display tag content if present, otherwise strip all tags."""
+        if display_tag:
+            tag = re.escape(display_tag)
+            match = re.search(rf"<{tag}[^>]*>(.*?)</{tag}>", text, flags=re.DOTALL)
+            if match:
+                return match.group(1).strip()
+        return re.sub(r"<[^>]+>.*?</[^>]+>", "", text, flags=re.DOTALL)
 
     def add_message(
         self,

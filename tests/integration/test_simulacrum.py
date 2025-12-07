@@ -24,9 +24,7 @@ def context_data() -> dict[str, Any]:
         "total_cost": 0.1,
         "pricing": [1, 2],
         "api_params": {"model": "anthropic/claude"},
-        "vars": {
-            "system_prompt": "Say something!",
-        },
+        "system_prompt": "Say something!",
     }
 
 
@@ -135,7 +133,7 @@ async def test_simulacrum_chat(
     assert actual_body["messages"][0]["role"] == "system"
     assert (
         actual_body["messages"][0]["content"][0]["text"]
-        == context_data["vars"]["system_prompt"]
+        == context_data["system_prompt"]
     )
 
     assert actual_body["messages"][1]["role"] == "assistant"

@@ -21,7 +21,7 @@ class ExperimentExecutor(ChatExecutor):
         async def execute_variation(variation_data):
             variation_context = copy.deepcopy(self.context)
             variation_context._data = _merge_dicts(
-                variation_context._data, variation_data
+                variation_context.resolved_data, variation_data
             )
 
             executor = ChatExecutor(variation_context)

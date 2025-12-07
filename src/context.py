@@ -1,3 +1,4 @@
+import copy
 import os
 import re
 from collections.abc import Iterator
@@ -7,6 +8,7 @@ from typing import Any
 from .conversation import Conversation
 from .message import Message
 from .scaffold_config import ScaffoldConfig
+from .template_resolver import TemplateResolver
 from .yaml_config import yaml
 
 
@@ -17,6 +19,7 @@ class Context:
     @contextmanager
     def session(self) -> Iterator[None]:
         self.load()
+        self._resolve_templates()
         try:
             yield
         finally:
@@ -24,12 +27,13 @@ class Context:
 
     def load(self) -> None:
         with open(self._filepath) as file:
-            self._data = yaml.load(file)
+            self._raw_data = yaml.load(file)
+        self._data = copy.deepcopy(self._raw_data)
         self._load_conversation()
 
     def save(self) -> None:
         with open(self._filepath, "w") as file:
-            yaml.dump(self._data, file)
+            yaml.dump(self._raw_data, file)
         self._conversation.save()
 
     def add_message(
@@ -46,7 +50,8 @@ class Context:
 
     def new_conversation(self) -> None:
         next_id = self._next_conversation_id()
-        self._data["conversation_file"] = self._generate_conversation_path(next_id)
+        self._raw_data["conversation_file"] = self._generate_conversation_path(next_id)
+        self._data["conversation_file"] = self._raw_data["conversation_file"]
         self._load_conversation()
 
     def extend_conversation(self) -> None:
@@ -58,7 +63,7 @@ class Context:
         self._conversation.memories = memories
 
     def increment_cost(self, cost: float) -> None:
-        self._data["total_cost"] = float(self._data["total_cost"]) + cost
+        self._raw_data["total_cost"] = float(self._raw_data["total_cost"]) + cost
         self._conversation.increment_cost(cost)
 
     def add_conversation_fact(self, fact: str) -> None:
@@ -91,10 +96,6 @@ class Context:
     @property
     def images_dir(self) -> str:
         return f"{self.dir}/images"
-
-    @property
-    def vars(self) -> dict[str, Any]:
-        return self._data["vars"]
 
     @property
     def character_name(self) -> str:
@@ -153,10 +154,16 @@ class Context:
     def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params", {})
 
+    @property
+    def resolved_data(self) -> dict[str, Any]:
+        return self._data
+
     def _load_conversation(self) -> None:
         if "conversation_file" not in self._data:
             next_id = self._next_conversation_id()
-            self._data["conversation_file"] = self._generate_conversation_path(next_id)
+            path = self._generate_conversation_path(next_id)
+            self._data["conversation_file"] = path
+            self._raw_data["conversation_file"] = path
         os.makedirs(self.conversations_dir, exist_ok=True)
         file_path = self.conversation_file.replace("file://./", "")
         full_path = os.path.join(self.dir, file_path)
@@ -175,3 +182,12 @@ class Context:
             default=0,
         )
         return max_id + 1
+
+    def _resolve_templates(self) -> None:
+        resolver = TemplateResolver(self.dir)
+        extra_vars = {
+            "facts": self.conversation_facts,
+            "memories": self.conversation_memories,
+            "model": self.model,
+        }
+        self._data = resolver.resolve(self._data, extra_vars)

@@ -58,7 +58,6 @@ class Context:
         memory = self._conversation.format_as_memory(
             self.character_name,
             self.user_name,
-            self.response_scaffold.display_tag,
         )
         memories = [*self._conversation.memories, memory]
         self.new_conversation()

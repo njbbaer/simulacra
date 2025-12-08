@@ -11,7 +11,7 @@ class ResponseScaffold:
 
     @property
     def display(self) -> str:
-        return self.extract(tag_name=self.config.display_tag)
+        return self._strip_all_tags(self.transformed_content)
 
     def extract(self, tag_name: str | None = None) -> str:
         if not tag_name:

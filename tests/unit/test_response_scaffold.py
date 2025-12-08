@@ -30,9 +30,9 @@ def test_extracts_tag_content():
     assert scaffold.extract("inner") == "value"
 
 
-def test_returns_display_tag_content():
-    config = ScaffoldConfig(display_tag="response")
-    content = "<thinking>ignore</thinking><response>show this</response>"
+def test_display_returns_content_outside_tags():
+    config = ScaffoldConfig()
+    content = "<thinking>ignore</thinking>show this<response>also ignore</response>"
     scaffold = ResponseScaffold(content, config)
     assert scaffold.display == "show this"
 

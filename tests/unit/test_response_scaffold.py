@@ -35,3 +35,16 @@ def test_returns_display_tag_content():
     content = "<thinking>ignore</thinking><response>show this</response>"
     scaffold = ResponseScaffold(content, config)
     assert scaffold.display == "show this"
+
+
+def test_apply_replace_patterns():
+    config = ScaffoldConfig(replace_patterns={r"foo\s+bar": "baz"})
+    content = "before foo   bar after"
+    scaffold = ResponseScaffold(content, config)
+    assert scaffold.transformed_content == "before baz after"
+
+
+def test_extract_strips_all_tags_when_no_tag_specified():
+    content = "<outer>inside</outer> plain text"
+    scaffold = ResponseScaffold(content, ScaffoldConfig())
+    assert scaffold.extract() == "plain text"

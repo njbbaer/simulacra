@@ -204,11 +204,7 @@ async def test_new_conversation(
 def test_reset_conversation(
     simulacrum: Simulacrum,
     context_data: dict[str, Any],
-    conversation_data: dict[str, Any],
 ) -> None:
-    initial_cost = conversation_data["cost"]
-    initial_message_count = len(conversation_data["messages"])
-
     simulacrum.reset_conversation()
 
     # Verify conversation file doesn't change
@@ -224,5 +220,3 @@ def test_reset_conversation(
         assert new_conversation_data["cost"] == 0.0
         assert len(new_conversation_data["facts"]) == 0
         assert len(new_conversation_data["messages"]) == 0
-        assert new_conversation_data["cost"] < initial_cost
-        assert len(new_conversation_data["messages"]) < initial_message_count

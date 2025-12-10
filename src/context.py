@@ -152,6 +152,10 @@ class Context:
         return self._data.get("experiment_variations", {})
 
     @property
+    def post_process_prompt(self) -> str | None:
+        return self._data.get("post_process_prompt")
+
+    @property
     def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params", {})
 

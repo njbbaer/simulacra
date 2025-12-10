@@ -7,6 +7,7 @@ from .book_reader import BookReader
 from .context import Context
 from .lm_executors import ChatExecutor as _ChatExecutor
 from .lm_executors import ExperimentExecutor
+from .post_processor import post_process_response
 from .response_scaffold import ResponseScaffold
 
 if TYPE_CHECKING:
@@ -50,6 +51,10 @@ class Simulacrum:
             self.last_completion = completion
             scaffold = ResponseScaffold(
                 completion.content, self.context.response_scaffold
+            )
+            scaffold.transformed_content = await post_process_response(
+                scaffold.transformed_content,
+                self.context.post_process_prompt,
             )
             self.context.add_message("assistant", scaffold.transformed_content)
         return scaffold.display

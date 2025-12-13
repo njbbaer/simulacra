@@ -2,13 +2,15 @@ import copy
 import os
 from typing import Any
 
-import jinja2
+from jinja2.nativetypes import NativeEnvironment
+
+from .yaml_config import yaml
 
 
 class TemplateResolver:
     def __init__(self, base_dir: str) -> None:
         self._base_dir = base_dir
-        self._env = jinja2.Environment(
+        self._env = NativeEnvironment(
             trim_blocks=True, lstrip_blocks=True, autoescape=False
         )
 
@@ -40,9 +42,11 @@ class TemplateResolver:
         return obj
 
     def _make_loader(self, context: list[dict]):
-        def load(filepath: str) -> str:
+        def load(filepath: str) -> str | Any:
             full_path = os.path.abspath(os.path.join(self._base_dir, filepath))
             with open(full_path) as f:
+                if filepath.endswith((".yml", ".yaml")):
+                    return yaml.load(f)
                 content = f.read()
             template = self._env.from_string(content)
             return template.render(**context[0])

@@ -18,12 +18,15 @@ class Context:
 
     @contextmanager
     def session(self) -> Iterator[None]:
-        self.load()
-        self._resolve_templates()
+        self.load_readonly()
         try:
             yield
         finally:
             self.save()
+
+    def load_readonly(self) -> None:
+        self.load()
+        self._resolve_templates()
 
     def load(self) -> None:
         with open(self._filepath) as file:
@@ -47,6 +50,10 @@ class Context:
 
     def reset_conversation(self) -> None:
         self._conversation.reset()
+
+    def use_temp_conversation(self) -> None:
+        self._conversation = Conversation.__new__(Conversation)
+        self.reset_conversation()
 
     def new_conversation(self) -> None:
         next_id = self._next_conversation_id()
@@ -146,6 +153,10 @@ class Context:
     def response_scaffold(self) -> ScaffoldConfig:
         scaffold_config_dict = self._data.get("response_scaffold", {})
         return ScaffoldConfig.from_dict(scaffold_config_dict)
+
+    @property
+    def test_prompts(self) -> dict[str, str]:
+        return self._data.get("test_prompts", {})
 
     @property
     def experiment_variations(self) -> dict[str, Any]:

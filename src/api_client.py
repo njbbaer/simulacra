@@ -48,6 +48,8 @@ class OpenRouterAPIClient:
             )
             completion_response.raise_for_status()
             completion_data = completion_response.json()
+            if "error" in completion_data:
+                raise Exception(completion_data["error"])
             details_data = await self._fetch_details(completion_data["id"])
             return {**completion_data, "details": details_data["data"]}
 

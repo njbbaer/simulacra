@@ -1,7 +1,7 @@
 import copy
 import os
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
@@ -12,17 +12,32 @@ from .template_resolver import TemplateResolver
 from .yaml_config import yaml
 
 
+class Session:
+    def __init__(self, check_superseded: Callable[[], bool]):
+        self._check_superseded = check_superseded
+
+    @property
+    def superseded(self) -> bool:
+        return self._check_superseded()
+
+
 class Context:
     def __init__(self, filepath: str) -> None:
         self._filepath = filepath
+        self._session_version = 0
 
     @contextmanager
-    def session(self) -> Iterator[None]:
+    def session(self) -> Iterator[Session]:
+        self._session_version += 1
+        version = self._session_version
         self.load_readonly()
         try:
-            yield
+            yield Session(lambda: self._session_version != version)
         finally:
-            self.save()
+            if self._session_version == version:
+                self.save()
+            else:
+                self.load_readonly()
 
     def load_readonly(self) -> None:
         self.load()

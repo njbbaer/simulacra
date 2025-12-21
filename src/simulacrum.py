@@ -35,7 +35,7 @@ class Simulacrum:
         image: str | None,
         documents: list[str] | None,
     ) -> str:
-        with self.context.session():
+        with self.context.session() as session:
             if documents:
                 for document in documents:
                     user_input = self._append_document(user_input, document)
@@ -57,7 +57,7 @@ class Simulacrum:
                 self.context.post_process_prompt,
             )
             self.context.add_message("assistant", scaffold.transformed_content)
-        return scaffold.display
+        return scaffold.display if not session.superseded else ""
 
     async def test_prompt(self, prompt_name: str) -> str:
         self.context.load_readonly()

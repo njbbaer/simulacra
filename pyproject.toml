@@ -55,7 +55,7 @@ select = [
     "SIM",   # flake8-simplify
     "ASYNC", # flake8-async
     "RET",   # flake8-return
-    "TCH",   # flake8-type-checking
+    "TC",    # flake8-type-checking
     "ARG",   # flake8-unused-arguments
 ]
 

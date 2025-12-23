@@ -29,7 +29,7 @@ class ChatCompletion:
 
     @property
     def cost(self) -> float:
-        return self.response["details"]["total_cost"]
+        return self.response["details"]["upstream_inference_cost"]
 
     def _validate(self) -> None:
         if self._error_message:

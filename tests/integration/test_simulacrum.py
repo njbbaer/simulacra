@@ -81,7 +81,7 @@ def mock_completion_response(generation_id: str) -> dict[str, Any]:
 
 @pytest.fixture
 def mock_cost_response() -> dict[str, Any]:
-    return {"data": {"total_cost": 0.1}}
+    return {"data": {"upstream_inference_cost": 0.1}}
 
 
 @pytest.fixture

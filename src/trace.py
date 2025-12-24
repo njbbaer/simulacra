@@ -7,11 +7,11 @@ from ruamel.yaml.scalarstring import LiteralScalarString
 from .yaml_config import yaml
 
 
-class Logger:
+class Trace:
     def __init__(self, filepath: str) -> None:
         self.filepath = filepath
 
-    def log(self, parameters: dict[str, Any], content: Any, response: str) -> None:
+    def record(self, parameters: dict[str, Any], content: Any, response: str) -> None:
         buffer = io.StringIO()
         yaml.dump(
             {
@@ -32,11 +32,9 @@ class Logger:
     @staticmethod
     def _format_text(data: Any) -> Any:
         if isinstance(data, dict):
-            return {
-                key: Logger._format_value(key, value) for key, value in data.items()
-            }
+            return {key: Trace._format_value(key, value) for key, value in data.items()}
         if isinstance(data, list):
-            return [Logger._format_text(item) for item in data]
+            return [Trace._format_text(item) for item in data]
         return data
 
     @staticmethod
@@ -47,4 +45,4 @@ class Logger:
         if key == "url" and isinstance(value, str):
             return value[:256] + "..." if len(value) > 256 else value
 
-        return Logger._format_text(value)
+        return Trace._format_text(value)

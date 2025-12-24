@@ -6,13 +6,13 @@ import backoff
 import httpx
 
 from .chat_completion import ChatCompletion
-from .logger import Logger
+from .trace import Trace
 
 
 class OpenRouterAPIClient:
     def __init__(self) -> None:
         self.api_key = os.environ.get("OPENROUTER_API_KEY")
-        self.logger = Logger("log.yml")
+        self.trace = Trace("trace.yml")
 
     async def request_completion(
         self,
@@ -23,7 +23,7 @@ class OpenRouterAPIClient:
         try:
             completion_data = await self._fetch_completion_data(body)
             completion = ChatCompletion(completion_data)
-            self.logger.log(parameters, messages, completion.content)
+            self.trace.record(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout as err:
             raise Exception("Request timed out") from err

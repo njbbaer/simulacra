@@ -76,6 +76,7 @@ class TelegramBot:
             (["continue", "co"], self._continue),
             (["undo", "u"], self._undo),
             (["fact", "f"], self._add_fact),
+            (["set"], self._set_var),
             (["instruct", "i"], self._apply_instruction),
             (["stats", "s"], self._stats),
             (["clear"], self._clear),
@@ -185,6 +186,19 @@ class TelegramBot:
         await ctx.send_message("`✅ Fact added to conversation`")
 
     @message_handler
+    async def _set_var(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
+            await ctx.send_message("`❌ Usage: /set <key> <value>`")
+            return
+        parts = ctx.command_body.split(maxsplit=1)
+        if len(parts) < 2:
+            await ctx.send_message("`❌ Usage: /set <key> <value>`")
+            return
+        key, value = parts
+        self.sim.set_conversation_var(key, value)
+        await ctx.send_message(f"`✅ Set {key} = {value}`")
+
+    @message_handler
     async def _apply_instruction(self, ctx: TelegramContext) -> None:
         if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
@@ -206,6 +220,7 @@ class TelegramBot:
                 /clear - Clear the conversation
                 /continue - Request another response
                 /fact (...) - Add a fact to the conversation
+                /set <key> <value> - Set a variable
                 /instruct (...) - Apply an instruction
                 /syncbook (...) - Sync current book position
                 *Information*

@@ -109,6 +109,13 @@ class Context:
         return self._conversation.memories
 
     @property
+    def conversation_vars(self) -> dict[str, Any]:
+        return self._conversation.vars
+
+    def set_conversation_var(self, key: str, value: Any) -> None:
+        self._conversation.set_var(key, value)
+
+    @property
     def dir(self) -> str:
         return os.path.dirname(self._filepath)
 
@@ -219,6 +226,7 @@ class Context:
         extra_vars = {
             "facts": self.conversation_facts,
             "memories": self.conversation_memories,
+            "vars": self.conversation_vars,
             "model": self.model,
         }
         self._data = resolver.resolve(self._data, extra_vars)

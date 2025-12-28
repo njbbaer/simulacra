@@ -21,6 +21,7 @@ class Conversation:
             self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
             self.facts = data.get("facts", [])
+            self.vars = data.get("vars", {})
             self.memories = data.get("memories", [])
             self.messages = [Message.from_dict(msg) for msg in data.get("messages", [])]
         else:
@@ -31,6 +32,7 @@ class Conversation:
             "created_at": self.created_at,
             "cost": self.cost,
             "facts": self.facts,
+            **({"vars": self.vars} if self.vars else {}),
             **(
                 {"memories": [LiteralScalarString(m) for m in self.memories]}
                 if self.memories
@@ -45,8 +47,12 @@ class Conversation:
         self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.cost = 0.0
         self.facts = []
+        self.vars = {}
         self.memories = []
         self.messages = []
+
+    def set_var(self, key: str, value: Any) -> None:
+        self.vars[key] = value
 
     def format_as_memory(self, character_name: str, user_name: str) -> str:
         lines = []

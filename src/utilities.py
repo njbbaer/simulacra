@@ -47,3 +47,19 @@ def make_base64_loader(base_dir: str):
             return base64.b64encode(file.read()).decode("utf-8")
 
     return load_base64
+
+
+def parse_value(value: str) -> bool | int | float | str:
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    return value

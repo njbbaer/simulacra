@@ -9,6 +9,7 @@ from .lm_executors import ChatExecutor as _ChatExecutor
 from .lm_executors import ExperimentExecutor
 from .post_processor import post_process_response
 from .response_scaffold import ResponseScaffold
+from .utilities import parse_value
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
@@ -119,6 +120,10 @@ class Simulacrum:
     def add_conversation_fact(self, fact_text: str) -> None:
         with self.context.session():
             self.context.add_conversation_fact(fact_text)
+
+    def set_conversation_var(self, key: str, value: str) -> None:
+        with self.context.session():
+            self.context.set_conversation_var(key, parse_value(value))
 
     def apply_instruction(self, instruction_text: str) -> None:
         self.instruction_text = instruction_text

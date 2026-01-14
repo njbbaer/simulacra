@@ -6,7 +6,7 @@ import aiofiles
 import backoff
 import httpx
 from openai import AsyncOpenAI
-from telegram.error import BadRequest, NetworkError
+from telegram.error import BadRequest, TimedOut
 
 from ..utilities import parse_pdf
 
@@ -48,7 +48,7 @@ class TelegramContext:
             return await self._transcribe_voice()
         return self._message.text or self._message.caption
 
-    @backoff.on_exception(backoff.expo, NetworkError, max_tries=5)
+    @backoff.on_exception(backoff.expo, TimedOut, max_tries=5)
     async def send_message(self, text: str) -> None:
         # Italicize parenthetical asides
         text = text.replace("(", "_(").replace(")", ")_")

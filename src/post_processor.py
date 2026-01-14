@@ -6,23 +6,23 @@ import httpx
 
 
 async def post_process_response(
-    transformed_content: str,
+    tagged_content: str,
     prompt: str | None,
 ) -> str:
     """Post-process display content via LLM, splicing result back with tags."""
     if not prompt:
-        return transformed_content
+        return tagged_content
 
-    display = _strip_all_tags(transformed_content)
-    if not display:
-        return transformed_content
+    plain_text = _strip_all_tags(tagged_content)
+    if not plain_text:
+        return tagged_content
 
     try:
-        processed = await _quick_completion(display, prompt)
-        return _splice_display(transformed_content, processed)
+        result = await _quick_completion(plain_text, prompt)
+        return _splice_display(tagged_content, result)
     except httpx.HTTPError:
         logging.exception("Post-processing failed")
-        return transformed_content
+        return tagged_content
 
 
 async def _quick_completion(user_content: str, system_prompt: str) -> str:
@@ -37,7 +37,7 @@ async def _quick_completion(user_content: str, system_prompt: str) -> str:
                 "temperature": 0.0,
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content},
+                    {"role": "user", "content": f"<content>{user_content}</content>"},
                 ],
             },
         )
@@ -45,15 +45,21 @@ async def _quick_completion(user_content: str, system_prompt: str) -> str:
         return response.json()["choices"][0]["message"]["content"]
 
 
-def _strip_all_tags(content: str) -> str:
-    return re.sub(r"<[^>]+>.*?</[^>]+>", "", content, flags=re.DOTALL).strip()
+def _strip_all_tags(tagged_content: str) -> str:
+    return re.sub(r"<[^>]+>.*?</[^>]+>", "", tagged_content, flags=re.DOTALL).strip()
 
 
-def _splice_display(transformed_content: str, new_display: str) -> str:
-    """Replace content after the last closing tag with new_display."""
-    match = list(re.finditer(r"</[^>]+>", transformed_content))
+def _strip_content_tags(text: str) -> str:
+    return re.sub(
+        r"^<content>(.*)</content>$", r"\1", text.strip(), flags=re.DOTALL
+    ).strip()
+
+
+def _splice_display(tagged_content: str, new_content: str) -> str:
+    """Replace content after the last closing tag with new content."""
+    match = list(re.finditer(r"</[^>]+>", tagged_content))
     if not match:
-        return new_display
+        return new_content
 
     last_tag_end = match[-1].end()
-    return transformed_content[:last_tag_end] + "\n\n" + new_display.strip()
+    return tagged_content[:last_tag_end] + "\n\n" + new_content.strip()

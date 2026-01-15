@@ -3,9 +3,9 @@ from typing import Any
 
 
 @dataclass
-class ReplacePattern:
+class Pattern:
     pattern: str
-    replacement: str
+    replacement: str | None = None
     notify: str | None = None
 
 
@@ -14,15 +14,15 @@ class ScaffoldConfig:
     require_tags: set[str] = field(default_factory=set)
     delete_tags: set[str] = field(default_factory=set)
     rename_tags: dict[str, str] = field(default_factory=dict)
-    replace_patterns: list[ReplacePattern] = field(default_factory=list)
+    patterns: list[Pattern] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ScaffoldConfig":
-        raw_patterns = data.get("replace_patterns", [])
+        raw_patterns = data.get("patterns", [])
         patterns = [
-            ReplacePattern(
+            Pattern(
                 pattern=p["pattern"],
-                replacement=p["replacement"],
+                replacement=p.get("replacement"),
                 notify=p.get("notify"),
             )
             for p in raw_patterns
@@ -31,5 +31,5 @@ class ScaffoldConfig:
             require_tags=set(data.get("require_tags", [])),
             delete_tags=set(data.get("delete_tags", [])),
             rename_tags=data.get("rename_tags", {}),
-            replace_patterns=patterns,
+            patterns=patterns,
         )

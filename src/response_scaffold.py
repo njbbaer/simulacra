@@ -25,7 +25,7 @@ class ResponseScaffold:
         return content
 
     def _transform(self) -> str:
-        content = self._apply_replace_patterns(self.original_content)
+        content = self._apply_patterns(self.original_content)
         self._validate_required_tags(content)
 
         for tag in self.config.delete_tags:
@@ -36,11 +36,13 @@ class ResponseScaffold:
 
         return re.sub(r"\n{3,}", "\n\n", content).strip()
 
-    def _apply_replace_patterns(self, content: str) -> str:
-        for rp in self.config.replace_patterns:
-            if rp.notify and re.search(rp.pattern, content, flags=re.DOTALL):
-                notifications.send(rp.notify)
-            content = re.sub(rp.pattern, rp.replacement, content, flags=re.DOTALL)
+    def _apply_patterns(self, content: str) -> str:
+        for p in self.config.patterns:
+            if re.search(p.pattern, content, flags=re.DOTALL):
+                if p.notify:
+                    notifications.send(p.notify)
+                if p.replacement is not None:
+                    content = re.sub(p.pattern, p.replacement, content, flags=re.DOTALL)
         return content
 
     def _validate_required_tags(self, content: str) -> None:

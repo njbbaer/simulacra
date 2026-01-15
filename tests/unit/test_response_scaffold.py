@@ -1,7 +1,7 @@
 import pytest
 
 from src.response_scaffold import ResponseScaffold
-from src.scaffold_config import ReplacePattern, ScaffoldConfig
+from src.scaffold_config import Pattern, ScaffoldConfig
 
 
 def test_deletes_tags():
@@ -37,9 +37,9 @@ def test_display_returns_content_outside_tags():
     assert scaffold.display == "show this"
 
 
-def test_apply_replace_patterns():
-    pattern = ReplacePattern(pattern=r"foo\s+bar", replacement="baz")
-    config = ScaffoldConfig(replace_patterns=[pattern])
+def test_apply_patterns():
+    pattern = Pattern(pattern=r"foo\s+bar", replacement="baz")
+    config = ScaffoldConfig(patterns=[pattern])
     content = "before foo   bar after"
     scaffold = ResponseScaffold(content, config)
     assert scaffold.transformed_content == "before baz after"

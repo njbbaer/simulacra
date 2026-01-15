@@ -46,7 +46,6 @@ Actions
 /undo - Undo the last exchange
 /clear - Clear the conversation
 /continue - Request another response
-/fact (...) - Add a fact to the conversation
 /instruct (...) - Apply an instruction
 /syncbook (...) - Sync current book position
 

@@ -195,8 +195,6 @@ async def test_new_conversation(
         content = f.read()
         new_conversation_data = YAML(typ="safe").load(content)
         assert new_conversation_data["cost"] == 0.0
-        assert isinstance(new_conversation_data["facts"], list)
-        assert len(new_conversation_data["facts"]) == 0
         assert isinstance(new_conversation_data["messages"], list)
         assert len(new_conversation_data["messages"]) == 0
 
@@ -218,5 +216,4 @@ def test_reset_conversation(
     with open("conversations/test_0.yml") as f:
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] == 0.0
-        assert len(new_conversation_data["facts"]) == 0
         assert len(new_conversation_data["messages"]) == 0

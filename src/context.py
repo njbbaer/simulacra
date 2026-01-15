@@ -89,16 +89,9 @@ class Context:
         self._raw_data["total_cost"] = float(self._raw_data["total_cost"]) + cost
         self._conversation.increment_cost(cost)
 
-    def add_conversation_fact(self, fact: str) -> None:
-        self._conversation.add_fact(fact)
-
     @property
     def conversation_messages(self) -> list[Message]:
         return self._conversation.messages
-
-    @property
-    def conversation_facts(self) -> list[str]:
-        return self._conversation.facts
 
     @property
     def conversation_cost(self) -> float:
@@ -224,7 +217,6 @@ class Context:
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir)
         extra_vars = {
-            "facts": self.conversation_facts,
             "memories": self.conversation_memories,
             "vars": self.conversation_vars,
             "model": self.model,

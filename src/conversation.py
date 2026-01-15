@@ -20,7 +20,6 @@ class Conversation:
                 data = yaml.load(file)
             self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
-            self.facts = data.get("facts", [])
             self.vars = data.get("vars", {})
             self.memories = data.get("memories", [])
             self.messages = [Message.from_dict(msg) for msg in data.get("messages", [])]
@@ -31,7 +30,6 @@ class Conversation:
         data_to_save = {
             "created_at": self.created_at,
             "cost": self.cost,
-            "facts": self.facts,
             **({"vars": self.vars} if self.vars else {}),
             **(
                 {"memories": [LiteralScalarString(m) for m in self.memories]}
@@ -46,7 +44,6 @@ class Conversation:
     def reset(self) -> None:
         self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.cost = 0.0
-        self.facts = []
         self.vars = {}
         self.memories = []
         self.messages = []
@@ -77,9 +74,6 @@ class Conversation:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.messages.append(Message(role, message, image, metadata))
-
-    def add_fact(self, fact: str) -> None:
-        self.facts.append(fact)
 
     def increment_cost(self, cost_increment: float) -> None:
         self.cost += cost_increment

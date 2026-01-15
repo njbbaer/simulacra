@@ -117,10 +117,6 @@ class Simulacrum:
             self._current_task.cancel()
             self._current_task = None
 
-    def add_conversation_fact(self, fact_text: str) -> None:
-        with self.context.session():
-            self.context.add_conversation_fact(fact_text)
-
     def set_conversation_var(self, key: str, value: str) -> None:
         with self.context.session():
             self.context.set_conversation_var(key, parse_value(value))

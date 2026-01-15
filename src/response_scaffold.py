@@ -1,5 +1,6 @@
 import re
 
+from . import notifications
 from .scaffold_config import ScaffoldConfig
 
 
@@ -36,8 +37,10 @@ class ResponseScaffold:
         return re.sub(r"\n{3,}", "\n\n", content).strip()
 
     def _apply_replace_patterns(self, content: str) -> str:
-        for pattern, replacement in self.config.replace_patterns.items():
-            content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        for rp in self.config.replace_patterns:
+            if rp.notify and re.search(rp.pattern, content, flags=re.DOTALL):
+                notifications.send(rp.notify)
+            content = re.sub(rp.pattern, rp.replacement, content, flags=re.DOTALL)
         return content
 
     def _validate_required_tags(self, content: str) -> None:

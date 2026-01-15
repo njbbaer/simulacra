@@ -5,6 +5,7 @@ from typing import Any
 import backoff
 from telegram.error import TimedOut
 
+from .. import notifications
 from .telegram_context import TelegramContext
 
 
@@ -13,6 +14,7 @@ def message_handler(
 ) -> Callable[..., Awaitable[Any]]:
     async def wrapper(self, update, context, *args, **kwargs) -> Any:
         ctx = TelegramContext(self.app, update, context)
+        notifications.set_context(ctx)
         typing_task = asyncio.create_task(_loop_send_typing_action(ctx))
         try:
             await func(self, ctx, *args, **kwargs)

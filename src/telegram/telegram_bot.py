@@ -134,7 +134,7 @@ class TelegramBot:
         if not self.sim.undo_retry():
             await ctx.send_message("`❌ No retry to undo`")
             return
-        await ctx.send_message("↩️ Retry undone")
+        await ctx.send_message("`↩️ Retry undone`")
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
@@ -146,7 +146,7 @@ class TelegramBot:
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
         self.sim.undo()
-        await ctx.send_message("🗑️ Last message undone")
+        await ctx.send_message("`🗑️ Last message undone`")
 
     @message_handler
     async def _stats(self, ctx: TelegramContext) -> None:
@@ -174,7 +174,7 @@ class TelegramBot:
     async def _clear(self, ctx: TelegramContext) -> None:
         self.sim.reset_conversation()
         self.cost_tracker.reset()
-        await ctx.send_message("🗑️ Current conversation cleared")
+        await ctx.send_message("`🗑️ Current conversation cleared`")
 
     @message_handler
     async def _set_var(self, ctx: TelegramContext) -> None:
@@ -226,7 +226,9 @@ class TelegramBot:
         book_chunk = self.sim.sync_book(query)
         num_words = len(book_chunk.split())
         chunk_sample = " ".join(book_chunk.split()[-10:])
-        await ctx.send_message(f"_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.")
+        await ctx.send_message(
+            f"`_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.`"
+        )
 
     @message_handler
     async def _parrot(self, ctx: TelegramContext) -> None:

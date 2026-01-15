@@ -28,11 +28,11 @@ class CostTracker:
 
         if last_message_cost > self.warn_message_threshold:
             symbol = "🔴" if last_message_cost > self.high_message_threshold else "🟡"
-            warnings.append(f"{symbol} Last message cost: ${last_message_cost:.2f}")
+            warnings.append(f"`{symbol} Last message cost: ${last_message_cost:.2f}`")
 
         if total_cost > self.last_warned_cost + self.warn_total_threshold:
             self.last_warned_cost = math.floor(total_cost)
             symbol = "🔴" if total_cost > self.high_total_threshold else "🟡"
-            warnings.append(f"{symbol} Conversation cost: ${total_cost:.2f}")
+            warnings.append(f"`{symbol} Conversation cost: ${total_cost:.2f}`")
 
         return warnings

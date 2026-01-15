@@ -15,6 +15,7 @@ def set_context(ctx: "TelegramContext") -> None:
 
 
 def send(message: str) -> None:
+    styled_message = f"`ℹ️ {message}`"  # noqa: RUF001
     ctx = _ctx.get()
     if ctx:
-        asyncio.create_task(ctx.send_message(message))  # noqa: RUF006
+        asyncio.create_task(ctx.send_message(styled_message))  # noqa: RUF006

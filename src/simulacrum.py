@@ -121,8 +121,14 @@ class Simulacrum:
         with self.context.session():
             self.context.set_conversation_var(key, parse_value(value))
 
-    def apply_instruction(self, instruction_text: str) -> None:
-        self.instruction_text = instruction_text
+    def apply_instruction(self, text: str) -> str | None:
+        self.context.load_readonly()
+        presets = self.context.instruction_presets
+        if text in presets:
+            self.instruction_text = presets[text]
+            return text
+        self.instruction_text = text
+        return None
 
     def sync_book(self, query: str) -> str:
         with self.context.session():
@@ -178,15 +184,7 @@ class Simulacrum:
 
     def _inject_instruction(self, text: str) -> str:
         if self.instruction_text:
-            text = textwrap.dedent(
-                f"""
-                {text}
-
-                <instruct>
-                {self.instruction_text}
-                </instruct>
-                """
-            )
+            text = f"{text}\n\n<instruct>\n{self.instruction_text}\n</instruct>"
             self.instruction_text = None
         return text
 

@@ -194,8 +194,11 @@ class TelegramBot:
         if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
             return
-        self.sim.apply_instruction(ctx.command_body)
-        await ctx.send_message("`✅ Instruction applied to next response`")
+        preset_name = self.sim.apply_instruction(ctx.command_body)
+        if preset_name:
+            await ctx.send_message(f"`✅ Preset '{preset_name}' applied`")
+        else:
+            await ctx.send_message("`✅ Instruction applied to next response`")
 
     @message_handler
     async def _help(self, ctx: TelegramContext) -> None:

@@ -36,3 +36,11 @@ def test_load_resolves_external_file(fs_with_templates):  # noqa: ARG001
     data = {"content": "{{ load('greeting.j2') }}"}
     result = resolver.resolve(data, {"name": "World"})
     assert result["content"] == "Hello, World!"
+
+
+def test_load_yaml_file(fs):
+    fs.create_file("/config/data.yml", contents="key: value\ncount: 42")
+    resolver = TemplateResolver("/config")
+    data = {"loaded": "{{ load('data.yml') }}"}
+    result = resolver.resolve(data, {})
+    assert result["loaded"] == {"key": "value", "count": 42}

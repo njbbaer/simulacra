@@ -20,7 +20,7 @@ class ChatCompletion:
 
     @property
     def cache_discount_string(self) -> str:
-        if not self._cache_discount:
+        if self._cache_discount is None:
             return "N/A"
 
         sign = "-" if self._cache_discount < 0 else ""

@@ -65,4 +65,4 @@ class OpenRouterAPIClient:
                     return response.json()
                 except httpx.HTTPError:
                     await asyncio.sleep(0.5)
-            return {"data": {"total_cost": 0.0, "cache_discount": 0.0}}
+            return {"data": {"upstream_inference_cost": 0.0, "cache_discount": 0.0}}

@@ -61,7 +61,7 @@ class Simulacrum:
         return scaffold.display if not session.superseded else ""
 
     async def test_prompt(self, prompt_name: str) -> str:
-        self.context.load_resolved()
+        self.context.load()
         prompts = self.context.test_prompts
         if prompt_name not in prompts:
             raise ValueError("Test prompt not found")
@@ -122,7 +122,7 @@ class Simulacrum:
             self.context.set_conversation_var(key, parse_value(value))
 
     def apply_instruction(self, text: str) -> str | None:
-        self.context.load_resolved()
+        self.context.load()
         presets = self.context.instruction_presets
         if text in presets:
             self.instruction_text = presets[text]

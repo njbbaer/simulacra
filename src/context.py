@@ -30,24 +30,21 @@ class Context:
     def session(self) -> Iterator[Session]:
         self._session_version += 1
         version = self._session_version
-        self.load_resolved()
+        self.load()
         try:
             yield Session(lambda: self._session_version != version)
         finally:
             if self._session_version == version:
                 self.save()
             else:
-                self.load_resolved()
-
-    def load_resolved(self) -> None:
-        self.load()
-        self._resolve_templates()
+                self.load()
 
     def load(self) -> None:
         with open(self._filepath) as file:
             self._raw_data = yaml.load(file)
         self._data = copy.deepcopy(self._raw_data)
         self._load_conversation()
+        self._resolve_templates()
 
     def save(self) -> None:
         with open(self._filepath, "w") as file:

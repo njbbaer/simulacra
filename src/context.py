@@ -30,16 +30,16 @@ class Context:
     def session(self) -> Iterator[Session]:
         self._session_version += 1
         version = self._session_version
-        self.load_readonly()
+        self.load_resolved()
         try:
             yield Session(lambda: self._session_version != version)
         finally:
             if self._session_version == version:
                 self.save()
             else:
-                self.load_readonly()
+                self.load_resolved()
 
-    def load_readonly(self) -> None:
+    def load_resolved(self) -> None:
         self.load()
         self._resolve_templates()
 

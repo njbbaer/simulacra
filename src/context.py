@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from .conversation import Conversation
+from .instruction_preset import InstructionPreset
 from .message import Message
 from .scaffold_config import ScaffoldConfig
 from .template_resolver import TemplateResolver
@@ -179,8 +180,8 @@ class Context:
         return self._data.get("post_process_prompt")
 
     @property
-    def instruction_presets(self) -> dict[str, str]:
-        return self._data.get("instruction_presets", {})
+    def instruction_presets(self) -> dict[str, InstructionPreset]:
+        return InstructionPreset.from_dict(self._data.get("instruction_presets", {}))
 
     @property
     def api_params(self) -> dict[str, Any]:

@@ -168,10 +168,6 @@ class Context:
         return ScaffoldConfig.from_dict(scaffold_config_dict)
 
     @property
-    def test_prompts(self) -> dict[str, str]:
-        return self._data.get("test_prompts", {})
-
-    @property
     def experiment_variations(self) -> dict[str, Any]:
         return self._data.get("experiment_variations", {})
 

@@ -68,21 +68,6 @@ class Simulacrum:
             self.context.add_message("assistant", scaffold.transformed_content)
         return scaffold.display if not session.superseded else ""
 
-    async def test_prompt(self, prompt_name: str) -> str:
-        self.context.load()
-        prompts = self.context.test_prompts
-        if prompt_name not in prompts:
-            raise ValueError("Test prompt not found")
-        self.context.use_temp_conversation()
-        self.context.add_message("user", prompts[prompt_name])
-        completion = await ChatExecutor(self.context).execute()
-        scaffold = ResponseScaffold(completion.content, self.context.response_scaffold)
-        scaffold.transformed_content = await post_process_response(
-            scaffold.transformed_content,
-            self.context.post_process_prompt,
-        )
-        return scaffold.display
-
     async def new_conversation(self) -> None:
         self.retry_stack.clear()
         with self.context.session():

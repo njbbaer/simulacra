@@ -31,7 +31,6 @@ class Simulacrum:
         self.instruction_text: str | None = None
         self.retry_stack: list[list[Message]] = []
         self._current_task: asyncio.Task | None = None
-        self._triggered_key: str | None = None
 
     async def chat(
         self,
@@ -46,12 +45,13 @@ class Simulacrum:
             if user_input or image:
                 self.retry_stack.clear()
                 if user_input:
-                    self._check_triggered_presets(user_input)
+                    triggered_key = self._check_triggered_presets(user_input)
                     user_input = self._inject_instruction(user_input)
-                metadata = None
-                if self._triggered_key:
-                    metadata = {"triggered_preset": self._triggered_key}
-                    self._triggered_key = None
+                    metadata = (
+                        {"triggered_preset": triggered_key} if triggered_key else None
+                    )
+                else:
+                    metadata = None
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
             completion = await self._execute_with_cancellation(
@@ -197,7 +197,7 @@ class Simulacrum:
             self.instruction_text = None
         return text
 
-    def _check_triggered_presets(self, text: str) -> None:
+    def _check_triggered_presets(self, text: str) -> str | None:
         triggered = [
             msg.metadata["triggered_preset"]
             for msg in self.context.conversation_messages
@@ -209,8 +209,9 @@ class Simulacrum:
         if match:
             key, preset = match
             self.instruction_text = preset.content
-            self._triggered_key = key
             notifications.send(f"Preset '{preset.name or key}' triggered")
+            return key
+        return None
 
     @staticmethod
     def _append_document(text: str | None, document: str) -> str | None:

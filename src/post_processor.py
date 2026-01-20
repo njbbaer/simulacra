@@ -42,7 +42,8 @@ async def _quick_completion(user_content: str, system_prompt: str) -> str:
             },
         )
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        content = response.json()["choices"][0]["message"]["content"]
+        return _strip_content_tags(content)
 
 
 def _strip_all_tags(tagged_content: str) -> str:

@@ -1,8 +1,9 @@
-import logging
 import os
 import re
 
 import httpx
+
+from . import notifications
 
 
 async def post_process_response(
@@ -21,7 +22,7 @@ async def post_process_response(
         result = await _quick_completion(plain_text, prompt)
         return _splice_display(tagged_content, result)
     except httpx.HTTPError:
-        logging.exception("Post-processing failed")
+        notifications.send("Post-processing failed")
         return tagged_content
 
 

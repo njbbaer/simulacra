@@ -7,6 +7,7 @@ import aiofiles
 
 from ..chat_completion import ChatCompletion
 from ..response_scaffold import ResponseScaffold
+from ..utilities import merge_dicts
 from .chat_executor import ChatExecutor
 
 
@@ -20,7 +21,7 @@ class ExperimentExecutor(ChatExecutor):
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         async def execute_variation(variation_data):
             variation_context = copy.deepcopy(self.context)
-            variation_context._data = _merge_dicts(
+            variation_context._data = merge_dicts(
                 variation_context.resolved_data, variation_data
             )
 
@@ -49,13 +50,3 @@ class ExperimentExecutor(ChatExecutor):
             await f.write(f"{variation_names[choice]}\n")
 
         return results[choice]
-
-
-def _merge_dicts(dict1, dict2):
-    result = copy.deepcopy(dict1)
-    for key, value in dict2.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = _merge_dicts(result[key], value)
-        else:
-            result[key] = value
-    return result

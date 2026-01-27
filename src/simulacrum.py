@@ -11,7 +11,7 @@ from .lm_executors import ChatExecutor as _ChatExecutor
 from .lm_executors import ExperimentExecutor
 from .post_processor import post_process_response
 from .response_scaffold import ResponseScaffold
-from .utilities import parse_value
+from .utilities import merge_dicts, parse_value
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
@@ -29,6 +29,7 @@ class Simulacrum:
         self.context = Context(context_file)
         self.last_completion: ChatCompletion | None = None
         self.instruction_text: str | None = None
+        self._pending_preset_key: str | None = None
         self.retry_stack: list[list[Message]] = []
         self._current_task: asyncio.Task | None = None
 
@@ -45,8 +46,7 @@ class Simulacrum:
             if user_input or image:
                 self.retry_stack.clear()
                 if user_input:
-                    triggered_key = self._check_triggered_presets(user_input)
-                    user_input = self._inject_instruction(user_input)
+                    user_input, triggered_key = self._apply_pending_preset(user_input)
                     metadata = (
                         {"triggered_preset": triggered_key} if triggered_key else None
                     )
@@ -120,6 +120,7 @@ class Simulacrum:
         if text in presets:
             preset = presets[text]
             self.instruction_text = preset.content
+            self._pending_preset_key = text
             return preset.name or text
         self.instruction_text = text
         return None
@@ -176,11 +177,19 @@ class Simulacrum:
             for message in reversed(messages):
                 self.context.conversation_messages.append(message)
 
-    def _inject_instruction(self, text: str) -> str:
+    def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
+        triggered_key: str | None = None
+        if self._pending_preset_key:
+            triggered_key = self._pending_preset_key
+            preset = self.context.instruction_presets[triggered_key]
+            self._apply_preset_context(preset)
+            self._pending_preset_key = None
+        else:
+            triggered_key = self._check_triggered_presets(text)
         if self.instruction_text:
             text = f"{text}\n\n<instruct>\n{self.instruction_text}\n</instruct>"
             self.instruction_text = None
-        return text
+        return text, triggered_key
 
     def _check_triggered_presets(self, text: str) -> str | None:
         triggered = [
@@ -194,9 +203,14 @@ class Simulacrum:
         if match:
             key, preset = match
             self.instruction_text = preset.content
+            self._apply_preset_context(preset)
             notifications.send(f"Preset '{preset.name or key}' triggered")
             return key
         return None
+
+    def _apply_preset_context(self, preset: InstructionPreset) -> None:
+        if preset.overrides:
+            self.context._data = merge_dicts(self.context._data, preset.overrides)
 
     @staticmethod
     def _append_document(text: str | None, document: str) -> str | None:

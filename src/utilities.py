@@ -1,4 +1,5 @@
 import base64
+import copy
 import os
 import re
 import unicodedata
@@ -47,6 +48,16 @@ def make_base64_loader(base_dir: str):
             return base64.b64encode(file.read()).decode("utf-8")
 
     return load_base64
+
+
+def merge_dicts(dict1: dict, dict2: dict) -> dict:
+    result = copy.deepcopy(dict1)
+    for key, value in dict2.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = merge_dicts(result[key], value)
+        else:
+            result[key] = value
+    return result
 
 
 def parse_value(value: str) -> bool | int | float | str:

@@ -7,6 +7,7 @@ class InstructionPreset:
     content: str
     trigger: str | None = None
     name: str | None = None
+    overrides: dict | None = None
 
     def matches(self, text: str) -> bool:
         if not self.trigger:
@@ -31,6 +32,7 @@ class InstructionPreset:
                 content=preset["content"],
                 trigger=preset.get("trigger"),
                 name=preset.get("name"),
+                overrides=preset.get("overrides"),
             )
             for key, preset in data.items()
         }

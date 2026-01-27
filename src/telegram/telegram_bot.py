@@ -76,7 +76,8 @@ class TelegramBot:
             (["continue", "co"], self._continue),
             (["undo", "u"], self._undo),
             (["set"], self._set_var),
-            (["instruct", "i"], self._apply_instruction),
+            (["preset", "p"], self._apply_preset),
+            (["instruct", "i"], self._apply_freeform_instruction),
             (["stats", "s"], self._stats),
             (["clear"], self._clear),
             (["syncbook", "sb"], self._sync_book),
@@ -190,15 +191,28 @@ class TelegramBot:
         await ctx.send_message(f"`✅ Set {key} = {value}`")
 
     @message_handler
-    async def _apply_instruction(self, ctx: TelegramContext) -> None:
+    async def _apply_preset(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
+            await ctx.send_message("`❌ Usage: /preset <key> [message]`")
+            return
+        parts = ctx.command_body.split(maxsplit=1)
+        key = parts[0]
+        message = parts[1] if len(parts) > 1 else None
+        preset_name = self.sim.apply_instruction(key)
+        if not preset_name:
+            await ctx.send_message(f"`❌ Unknown preset: {key}`")
+            return
+        await ctx.send_message(f"`✅ Preset '{preset_name}' applied`")
+        if message:
+            await self._chat(ctx, message)
+
+    @message_handler
+    async def _apply_freeform_instruction(self, ctx: TelegramContext) -> None:
         if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
             return
-        preset_name = self.sim.apply_instruction(ctx.command_body)
-        if preset_name:
-            await ctx.send_message(f"`✅ Preset '{preset_name}' applied`")
-        else:
-            await ctx.send_message("`✅ Instruction applied to next response`")
+        self.sim.apply_instruction(ctx.command_body)
+        await ctx.send_message("`✅ Instruction applied to next response`")
 
     @message_handler
     async def _help(self, ctx: TelegramContext) -> None:
@@ -214,7 +228,8 @@ class TelegramBot:
                 /clear - Clear the conversation
                 /continue - Request another response
                 /set <key> <value> - Set a variable
-                /instruct (...) - Apply an instruction
+                /preset (...) - Apply a preset
+                /instruct (...) - Freeform instruction
                 /syncbook (...) - Sync current book position
                 *Information*
                 /stats - Show conversation statistics

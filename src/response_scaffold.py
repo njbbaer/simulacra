@@ -78,4 +78,4 @@ class ResponseScaffold:
 
     @staticmethod
     def _strip_all_tags(content: str) -> str:
-        return re.sub(r"<[^>]*>.*?</[^>]*>", "", content, flags=re.DOTALL).strip()
+        return re.sub(r"<[^>]+>.*?</[^>]+>", "", content, flags=re.DOTALL).strip()

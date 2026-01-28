@@ -41,13 +41,15 @@ esac
 new_version="$major.$minor.$patch"
 
 echo "Running tests..."
-make test
+uv run pytest --cov-report=xml:coverage.xml
+uv run genbadge coverage -i coverage.xml -o assets/coverage.svg
+rm coverage.xml
 
 echo "Bumping version from $current_version to $new_version"
 
 sed -i "s/^version = .*/version = \"$new_version\"/" pyproject.toml
 uv sync
-git add pyproject.toml uv.lock
+git add pyproject.toml uv.lock assets/coverage.svg
 git commit -m "Release v$new_version"
 git tag -a "v$new_version" -m "Release v$new_version"
 git push origin HEAD --tags

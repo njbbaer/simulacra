@@ -5,6 +5,7 @@ trace.yml
 .vscode/
 data.csv
 .coverage
+coverage.xml
 .venv/
 .mypy_cache/
 .claude/

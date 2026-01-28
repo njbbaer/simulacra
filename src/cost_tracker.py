@@ -21,7 +21,7 @@ class CostTracker:
     def get_cost_warnings(
         self, last_message_cost: float | None, total_cost: float
     ) -> list[str]:
-        if not last_message_cost:
+        if last_message_cost is None:
             return []
 
         warnings = []

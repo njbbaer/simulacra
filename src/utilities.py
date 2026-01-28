@@ -29,7 +29,7 @@ async def extract_url_content(text: str | None) -> tuple[str | None, str | None]
     content = trafilatura.extract(response.text)
     if not content:
         raise ValueError("Failed to extract content from URL")
-    stripped = text.replace(url, "").strip() or None
+    stripped = re.sub(r"\s+", " ", text.replace(url, "")).strip() or None
     return stripped, content
 
 

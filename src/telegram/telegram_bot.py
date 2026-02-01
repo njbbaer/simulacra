@@ -277,7 +277,7 @@ class TelegramBot:
             try:
                 error = ctx.context.error
                 error_msg = str(error) or type(error).__name__
-                await ctx.send_message(f"`❌ An error occurred: {error_msg}`")
+                await ctx.send_message(f"`❌ Error: {error_msg}`")
             except Exception as e:
                 logger.error(f"Failed to send error message: {e}")
 

@@ -48,15 +48,17 @@ class TelegramContext:
             return await self._transcribe_voice()
         return self._message.text or self._message.caption
 
-    @backoff.on_exception(backoff.expo, TimedOut, max_tries=5)
-    async def send_message(self, text: str) -> None:
+    async def send_response(self, text: str) -> None:
         # Italicize parenthetical asides
         text = text.replace("(", "_(").replace(")", ")_")
 
         # Attempt to fix broken markdown
         if text.count("_") % 2 != 0 and text.endswith("_"):
             text = text[:-1]
+        await self.send_message(text)
 
+    @backoff.on_exception(backoff.expo, TimedOut, max_tries=5)
+    async def send_message(self, text: str) -> None:
         try:
             await self.app.bot.send_message(self._chat_id, text, parse_mode="Markdown")
         except BadRequest:

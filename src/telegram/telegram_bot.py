@@ -126,7 +126,7 @@ class TelegramBot:
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
         response = await self.sim.retry()
-        await ctx.send_message(response)
+        await ctx.send_response(response)
         await self._warn_cost(ctx)
 
     @message_handler
@@ -140,7 +140,7 @@ class TelegramBot:
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
         response = await self.sim.continue_conversation()
-        await ctx.send_message(response)
+        await ctx.send_response(response)
         await self._warn_cost(ctx)
 
     @message_handler
@@ -253,7 +253,7 @@ class TelegramBot:
         if not ctx.command_body:
             await ctx.send_message("`❌ No text provided`")
             return
-        await ctx.send_message(ctx.command_body)
+        await ctx.send_response(ctx.command_body)
 
     @message_handler
     async def _version(self, ctx: TelegramContext) -> None:
@@ -292,7 +292,7 @@ class TelegramBot:
         documents: list[str] | None = None,
     ) -> None:
         response = await self.sim.chat(user_message, image, documents)
-        await ctx.send_message(response)
+        await ctx.send_response(response)
         await self._warn_cost(ctx)
 
     async def _warn_cost(self, ctx: TelegramContext) -> None:

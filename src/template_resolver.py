@@ -3,6 +3,7 @@ import os
 import re
 from typing import Any
 
+from jinja2 import TemplateSyntaxError
 from jinja2.nativetypes import NativeEnvironment
 
 from .yaml_config import yaml
@@ -55,9 +56,15 @@ class TemplateResolver:
         return obj, False
 
     def _load_string(self, filepath: str) -> str:
-        with open(self._full_path(filepath)) as f:
+        full_path = self._full_path(filepath)
+        with open(full_path) as f:
             content = f.read()
-        rendered = self._env.from_string(content).render(**self._variables)
+        try:
+            rendered = self._env.from_string(content).render(**self._variables)
+        except TemplateSyntaxError as e:
+            raise TemplateSyntaxError(
+                f"{e.message}\n({full_path}, line {e.lineno})", e.lineno
+            ) from e
         return re.sub(r"\n{3,}", "\n\n", rendered)
 
     def _load_yaml(self, filepath: str) -> Any:

@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 from typing import Any
 
 from jinja2.nativetypes import NativeEnvironment
@@ -56,7 +57,8 @@ class TemplateResolver:
     def _load_string(self, filepath: str) -> str:
         with open(self._full_path(filepath)) as f:
             content = f.read()
-        return self._env.from_string(content).render(**self._variables)
+        rendered = self._env.from_string(content).render(**self._variables)
+        return re.sub(r"\n{3,}", "\n\n", rendered)
 
     def _load_yaml(self, filepath: str) -> Any:
         with open(self._full_path(filepath)) as f:

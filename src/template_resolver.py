@@ -13,7 +13,9 @@ class TemplateResolver:
         self._env = NativeEnvironment(
             trim_blocks=True, lstrip_blocks=True, autoescape=False
         )
-        self._env.globals["load"] = self._load_file
+        self._env.globals["load_string"] = self._load_string
+        self._env.globals["load_yaml"] = self._load_yaml
+        self._env.globals["load_section"] = self._load_section
         self._variables: dict[str, Any] = {}
 
     def resolve(
@@ -51,10 +53,20 @@ class TemplateResolver:
             return rendered, rendered != obj
         return obj, False
 
-    def _load_file(self, filepath: str) -> str | Any:
-        full_path = os.path.abspath(os.path.join(self._base_dir, filepath))
-        with open(full_path) as f:
-            if filepath.endswith((".yml", ".yaml")):
-                return yaml.load(f)
+    def _load_string(self, filepath: str) -> str:
+        with open(self._full_path(filepath)) as f:
             content = f.read()
         return self._env.from_string(content).render(**self._variables)
+
+    def _load_yaml(self, filepath: str) -> Any:
+        with open(self._full_path(filepath)) as f:
+            return yaml.load(f)
+
+    def _load_section(self, filepath: str | None) -> str:
+        if not filepath:
+            raise ValueError("load_section is missing a filepath")
+        content = self._load_string(filepath)
+        return "---\n\n" + content if content.strip() else ""
+
+    def _full_path(self, filepath: str) -> str:
+        return os.path.abspath(os.path.join(self._base_dir, filepath))

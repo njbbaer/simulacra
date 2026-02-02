@@ -23,8 +23,11 @@ class Session:
 
 
 class Context:
-    def __init__(self, filepath: str) -> None:
-        self._filepath = filepath
+    def __init__(self, path: str) -> None:
+        if os.path.isdir(path):
+            dirname = os.path.basename(os.path.normpath(path))
+            path = os.path.join(path, f"{dirname}.yml")
+        self._filepath = path
         self._session_version = 0
 
     @contextmanager

@@ -202,9 +202,10 @@ class TelegramBot:
         if not preset_name:
             await ctx.send_message(f"`❌ Unknown preset: {key}`")
             return
-        await ctx.send_message(f"`✅ Preset '{preset_name}' applied`")
         if message:
             await self._chat(ctx, message)
+        else:
+            await ctx.send_message(f"`✅ Applied preset '{preset_name}'`")
 
     @message_handler
     async def _apply_freeform_instruction(self, ctx: TelegramContext) -> None:
@@ -212,7 +213,7 @@ class TelegramBot:
             await ctx.send_message("`❌ No text provided`")
             return
         self.sim.apply_instruction(ctx.command_body)
-        await ctx.send_message("`✅ Instruction applied to next response`")
+        await ctx.send_message("`✅ Applied instructions`")
 
     @message_handler
     async def _help(self, ctx: TelegramContext) -> None:

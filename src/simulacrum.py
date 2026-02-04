@@ -1,6 +1,7 @@
 import asyncio
 import os
 import textwrap
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from . import notifications
@@ -17,6 +18,13 @@ if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
     from .message import Message
 
+
+@dataclass
+class PendingInstruction:
+    content: str
+    preset_key: str | None = None
+
+
 ChatExecutor: type[_ChatExecutor]
 if os.getenv("ENABLE_EXPERIMENT_EXECUTOR") == "true":
     ChatExecutor = ExperimentExecutor
@@ -28,8 +36,7 @@ class Simulacrum:
     def __init__(self, context_file: str) -> None:
         self.context = Context(context_file)
         self.last_completion: ChatCompletion | None = None
-        self.instruction_text: str | None = None
-        self._pending_preset_key: str | None = None
+        self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
         self._current_task: asyncio.Task | None = None
 
@@ -119,10 +126,9 @@ class Simulacrum:
         presets = self.context.instruction_presets
         if text in presets:
             preset = presets[text]
-            self.instruction_text = preset.content
-            self._pending_preset_key = text
+            self._pending_instruction = PendingInstruction(preset.content, text)
             return preset.name or text
-        self.instruction_text = text
+        self._pending_instruction = PendingInstruction(text)
         return None
 
     def sync_book(self, query: str) -> str:
@@ -178,31 +184,31 @@ class Simulacrum:
                 self.context.conversation_messages.append(message)
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
-        triggered_key: str | None = None
-        if self._pending_preset_key:
-            triggered_key = self._pending_preset_key
-            self.context.apply_preset_overrides(triggered_key)
-            self._pending_preset_key = None
-        else:
-            triggered_key = self._check_triggered_presets(text)
-        if self.instruction_text:
-            text = f"{text}\n\n<instruct>\n{self.instruction_text}\n</instruct>"
-            self.instruction_text = None
-        return text, triggered_key
+        instruction: str | None = None
+        preset_key: str | None = None
 
-    def _check_triggered_presets(self, text: str) -> str | None:
-        match = InstructionPreset.find_match(
-            self.context.instruction_presets,
-            text,
-            self.context.triggered_preset_keys,
-        )
-        if match:
-            key, preset = match
-            self.instruction_text = preset.content
-            self.context.apply_preset_overrides(key)
-            notifications.send(f"Preset '{preset.name or key}' triggered")
-            return key
-        return None
+        if self._pending_instruction:
+            instruction = self._pending_instruction.content
+            preset_key = self._pending_instruction.preset_key
+            self._pending_instruction = None
+        else:
+            match = InstructionPreset.find_match(
+                self.context.instruction_presets,
+                text,
+                self.context.triggered_preset_keys,
+            )
+            if match:
+                preset_key, preset = match
+                instruction = preset.content
+                notifications.send(f"Preset '{preset.name or preset_key}' triggered")
+
+        if preset_key:
+            self.context.apply_preset_overrides(preset_key)
+
+        if instruction:
+            text = f"{text}\n\n<instruct>\n{instruction}\n</instruct>"
+
+        return text, preset_key
 
     @staticmethod
     def _append_document(text: str | None, document: str) -> str | None:

@@ -10,6 +10,7 @@ from .instruction_preset import InstructionPreset
 from .message import Message
 from .scaffold_config import ScaffoldConfig
 from .template_resolver import TemplateResolver
+from .utilities import merge_dicts
 from .yaml_config import yaml
 
 
@@ -49,6 +50,7 @@ class Context:
         self._data = copy.deepcopy(self._raw_data)
         self._load_conversation()
         self._resolve_templates()
+        self._apply_triggered_preset_overrides()
 
     def save(self) -> None:
         with open(self._filepath, "w") as file:
@@ -223,3 +225,15 @@ class Context:
             "model": self.model,
         }
         self._data = resolver.resolve(self._data, extra_vars)
+
+    def apply_preset_overrides(self, key: str) -> None:
+        presets = self.instruction_presets
+        if key in presets:
+            overrides = presets[key].overrides
+            if overrides:
+                self._data = merge_dicts(self._data, overrides)
+
+    def _apply_triggered_preset_overrides(self) -> None:
+        for message in self._conversation.messages:
+            if message.metadata and "triggered_preset" in message.metadata:
+                self.apply_preset_overrides(message.metadata["triggered_preset"])

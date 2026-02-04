@@ -185,6 +185,14 @@ class Context:
         return InstructionPreset.from_dict(self._data.get("instruction_presets", {}))
 
     @property
+    def triggered_preset_keys(self) -> list[str]:
+        return [
+            msg.metadata["triggered_preset"]
+            for msg in self._conversation.messages
+            if msg.metadata and "triggered_preset" in msg.metadata
+        ]
+
+    @property
     def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params", {})
 

@@ -191,13 +191,10 @@ class Simulacrum:
         return text, triggered_key
 
     def _check_triggered_presets(self, text: str) -> str | None:
-        triggered = [
-            msg.metadata["triggered_preset"]
-            for msg in self.context.conversation_messages
-            if msg.metadata and "triggered_preset" in msg.metadata
-        ]
         match = InstructionPreset.find_match(
-            self.context.instruction_presets, text, triggered
+            self.context.instruction_presets,
+            text,
+            self.context.triggered_preset_keys,
         )
         if match:
             key, preset = match

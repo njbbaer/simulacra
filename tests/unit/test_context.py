@@ -69,7 +69,7 @@ class TestConversationId:
         context_fs.create_file("/test/conversations/alice_1.yml")
         context_fs.create_file("/test/conversations/alice_5.yml")
         context_fs.create_file("/test/conversations/alice_3.yml")
-        assert context._next_conversation_id() == 6
+        assert context._conversation_files.next_id() == 6
 
 
 class TestNewConversation:
@@ -95,6 +95,55 @@ class TestExtendConversation:
         assert len(context.conversation_memories) == 1
         assert "BOB:" in context.conversation_memories[0]
         assert "ALICE:" in context.conversation_memories[0]
+
+    def test_preserves_conversation_name(self, context):
+        context.save()  # Create the conversation file on disk
+        context.name_conversation("adventure")
+        context.add_message("user", "Hello")
+        context.extend_conversation()
+
+        assert context.conversation_name == "adventure"
+        assert context.conversation_id == 2  # New conversation with next ID
+
+
+class TestSwitchConversation:
+    @pytest.fixture
+    def base_conversation_data(self):
+        return {"created_at": "2024-01-01", "cost": 0, "messages": []}
+
+    def test_switch_by_id(
+        self,
+        context_fs,  # noqa: ARG002
+        context,
+        base_conversation_data,
+    ):
+        with open("/test/conversations/alice_5.yml", "w") as f:
+            yaml.dump(base_conversation_data, f)
+        conv_id, conv_name = context.switch_conversation("5")
+        assert conv_id == 5
+        assert conv_name is None
+        assert context.conversation_id == 5
+
+    def test_switch_by_name(
+        self,
+        context_fs,  # noqa: ARG002
+        context,
+        base_conversation_data,
+    ):
+        with open("/test/conversations/alice_3_quest.yml", "w") as f:
+            yaml.dump(base_conversation_data, f)
+        conv_id, conv_name = context.switch_conversation("quest")
+        assert conv_id == 3
+        assert conv_name == "quest"
+
+
+class TestNameConversation:
+    def test_renames_conversation_file(self, context):
+        context.save()  # Create the conversation file on disk
+        sanitized = context.name_conversation("My Adventure")
+        assert sanitized == "my_adventure"
+        assert context.conversation_name == "my_adventure"
+        assert "my_adventure" in context.conversation_file
 
 
 class TestCostTracking:

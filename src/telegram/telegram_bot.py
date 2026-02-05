@@ -83,6 +83,8 @@ class TelegramBot:
             (["syncbook", "sb"], self._sync_book),
             (["version", "v"], self._version),
             (["help", "h"], self._help),
+            (["switch", "sw"], self._switch_conversation),
+            (["name", "nm"], self._name_conversation),
             (["parrot"], self._parrot),
             (["start"], self._do_nothing),
         ]
@@ -223,6 +225,8 @@ class TelegramBot:
                 *Actions*
                 /new - Start a new conversation
                 /extend - Extend conversation with memory
+                /switch <id|name> - Switch conversation
+                /name <name> - Name current conversation
                 /retry - Retry the last response
                 /undoretry - Undo a retry
                 /undo - Undo the last exchange
@@ -255,6 +259,34 @@ class TelegramBot:
             await ctx.send_message("`❌ No text provided`")
             return
         await ctx.send_response(ctx.command_body)
+
+    @message_handler
+    async def _switch_conversation(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
+            await ctx.send_message("`❌ Usage: /switch <id|name>`")
+            return
+        try:
+            conv_id, conv_name = self.sim.switch_conversation(ctx.command_body)
+            self.cost_tracker.reset()
+            if conv_name:
+                await ctx.send_message(
+                    f"`✅ Switched to conversation #{conv_id} ({conv_name})`"
+                )
+            else:
+                await ctx.send_message(f"`✅ Switched to conversation #{conv_id}`")
+        except ValueError as e:
+            await ctx.send_message(f"`❌ {e}`")
+
+    @message_handler
+    async def _name_conversation(self, ctx: TelegramContext) -> None:
+        if not ctx.command_body:
+            await ctx.send_message("`❌ Usage: /name <name>`")
+            return
+        try:
+            sanitized = self.sim.name_conversation(ctx.command_body)
+            await ctx.send_message(f"`✅ Conversation named '{sanitized}'`")
+        except ValueError as e:
+            await ctx.send_message(f"`❌ {e}`")
 
     @message_handler
     async def _version(self, ctx: TelegramContext) -> None:

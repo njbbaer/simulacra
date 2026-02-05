@@ -1,11 +1,11 @@
 import copy
 import os
-import re
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 
 from .conversation import Conversation
+from .conversation_files import ConversationFiles
 from .instruction_preset import InstructionPreset
 from .message import Message
 from .scaffold_config import ScaffoldConfig
@@ -73,11 +73,10 @@ class Context:
         self._conversation = Conversation.__new__(Conversation)
         self.reset_conversation()
 
-    def new_conversation(self) -> None:
-        next_id = self._next_conversation_id()
-        self._raw_data["conversation_file"] = self._generate_conversation_path(next_id)
-        self._data["conversation_file"] = self._raw_data["conversation_file"]
-        self._load_conversation()
+    def new_conversation(self, name: str | None = None) -> None:
+        mgr = self._conversation_files
+        filename = mgr.generate_filename(mgr.next_id(), name)
+        self._set_conversation_file(filename)
 
     def extend_conversation(self) -> None:
         memory = self._conversation.format_as_memory(
@@ -85,12 +84,36 @@ class Context:
             self.user_name,
         )
         memories = [*self._conversation.memories, memory]
-        self.new_conversation()
+        current_name = self.conversation_name
+        self.new_conversation(current_name)
         self._conversation.memories = memories
+
+    def switch_conversation(self, identifier: str) -> tuple[int, str | None]:
+        conv = self._conversation_files.find(identifier)
+        self._set_conversation_file(conv.filename)
+        return (conv.id, conv.name)
+
+    def name_conversation(self, name: str) -> str:
+        old_filename = os.path.basename(self.conversation_file.replace("file://./", ""))
+        new_filename, sanitized = self._conversation_files.rename(old_filename, name)
+        self._set_conversation_file(new_filename)
+        return sanitized
 
     def increment_cost(self, cost: float) -> None:
         self._raw_data["total_cost"] = float(self._raw_data["total_cost"]) + cost
         self._conversation.increment_cost(cost)
+
+    def set_conversation_var(self, key: str, value: Any) -> None:
+        self._conversation.set_var(key, value)
+
+    def apply_preset_overrides(self, key: str) -> None:
+        presets = self.instruction_presets
+        if key in presets:
+            overrides = presets[key].overrides
+            if overrides:
+                self._data = merge_dicts(self._data, overrides)
+
+    # Public properties
 
     @property
     def conversation_messages(self) -> list[Message]:
@@ -107,9 +130,6 @@ class Context:
     @property
     def conversation_vars(self) -> dict[str, Any]:
         return self._conversation.vars
-
-    def set_conversation_var(self, key: str, value: Any) -> None:
-        self._conversation.set_var(key, value)
 
     @property
     def dir(self) -> str:
@@ -141,12 +161,16 @@ class Context:
 
     @property
     def conversation_id(self) -> int:
+        conv = self._current_conversation_file
+        if conv:
+            return conv.id
         file_path = self.conversation_file.replace("file://./", "")
-        filename = os.path.basename(file_path)
-        match = re.match(rf"^{self.character_name.lower()}_(\d+)\.yml$", filename)
-        if match:
-            return int(match.group(1))
         raise ValueError(f"Invalid conversation file format: {file_path}")
+
+    @property
+    def conversation_name(self) -> str | None:
+        conv = self._current_conversation_file
+        return conv.name if conv else None
 
     @property
     def pricing(self) -> dict[str, Any] | None:
@@ -202,8 +226,9 @@ class Context:
 
     def _load_conversation(self) -> None:
         if "conversation_file" not in self._data:
-            next_id = self._next_conversation_id()
-            path = self._generate_conversation_path(next_id)
+            mgr = self._conversation_files
+            filename = mgr.generate_filename(mgr.next_id())
+            path = f"file://./conversations/{filename}"
             self._data["conversation_file"] = path
             self._raw_data["conversation_file"] = path
         os.makedirs(self.conversations_dir, exist_ok=True)
@@ -211,19 +236,11 @@ class Context:
         full_path = os.path.join(self.dir, file_path)
         self._conversation = Conversation(full_path)
 
-    def _generate_conversation_path(self, conversation_id: int) -> str:
-        return f"file://./conversations/{self.character_name.lower()}_{conversation_id}.yml"
-
-    def _next_conversation_id(self) -> int:
-        max_id = max(
-            (
-                int(os.path.splitext(file)[0].split("_")[1])
-                for file in os.listdir(self.conversations_dir)
-                if re.match(rf"^{self.character_name.lower()}_\d+\.yml$", file)
-            ),
-            default=0,
-        )
-        return max_id + 1
+    def _set_conversation_file(self, filename: str) -> None:
+        path = f"file://./conversations/{filename}"
+        self._raw_data["conversation_file"] = path
+        self._data["conversation_file"] = path
+        self._load_conversation()
 
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir)
@@ -234,14 +251,19 @@ class Context:
         }
         self._data = resolver.resolve(self._data, extra_vars)
 
-    def apply_preset_overrides(self, key: str) -> None:
-        presets = self.instruction_presets
-        if key in presets:
-            overrides = presets[key].overrides
-            if overrides:
-                self._data = merge_dicts(self._data, overrides)
-
     def _apply_triggered_preset_overrides(self) -> None:
         for message in self._conversation.messages:
             if message.metadata and "triggered_preset" in message.metadata:
                 self.apply_preset_overrides(message.metadata["triggered_preset"])
+
+    # Private properties
+
+    @property
+    def _conversation_files(self) -> ConversationFiles:
+        return ConversationFiles(self.conversations_dir, self.character_name)
+
+    @property
+    def _current_conversation_file(self):
+        file_path = self.conversation_file.replace("file://./", "")
+        filename = os.path.basename(file_path)
+        return self._conversation_files.parse_filename(filename)

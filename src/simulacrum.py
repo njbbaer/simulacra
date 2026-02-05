@@ -153,6 +153,15 @@ class Simulacrum:
         self.context.load()
         return self.context.conversation_cost
 
+    def switch_conversation(self, identifier: str) -> tuple[int, str | None]:
+        self.retry_stack.clear()
+        with self.context.session():
+            return self.context.switch_conversation(identifier)
+
+    def name_conversation(self, name: str) -> str:
+        with self.context.session():
+            return self.context.name_conversation(name)
+
     @property
     def last_message_role(self) -> str:
         self.context.load()

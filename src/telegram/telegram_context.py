@@ -4,7 +4,6 @@ import uuid
 
 import aiofiles
 import backoff
-import httpx
 from openai import AsyncOpenAI
 from telegram.error import BadRequest, TimedOut
 
@@ -38,10 +37,8 @@ class TelegramContext:
             return None
 
         document = await self._message.document.get_file()
-        async with httpx.AsyncClient() as client:
-            response = await client.get(document.file_path)
-            response.raise_for_status()
-            return parse_pdf(response.content)
+        data = await document.download_as_bytearray()
+        return parse_pdf(bytes(data))
 
     async def get_text(self) -> str | None:
         if self._message.voice:

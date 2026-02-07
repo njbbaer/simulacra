@@ -9,7 +9,7 @@ from .context import Context
 from .instruction_preset import InstructionPreset
 from .lm_executors import ChatExecutor, ExperimentExecutor
 from .post_processor import post_process_response
-from .response_scaffold import ResponseScaffold
+from .response_transform import strip_tags, transform_response
 from .utilities import parse_value
 
 if TYPE_CHECKING:
@@ -58,15 +58,19 @@ class Simulacrum:
                 executor_cls(self.context).execute()
             )
             self.last_completion = completion
-            scaffold = ResponseScaffold(
-                completion.content, self.context.response_scaffold
+            content = transform_response(
+                completion.content,
+                self.context.response_patterns,
+                self.context.required_response_tags,
             )
-            scaffold.transformed_content = await post_process_response(
-                scaffold.transformed_content,
-                self.context.post_process_prompt,
+            content = await post_process_response(
+                content, self.context.post_process_prompt
             )
-            self.context.add_message("assistant", scaffold.transformed_content)
-        return scaffold.display if not session.superseded else ""
+            self.context.add_message("assistant", content)
+            display = strip_tags(content)
+            if not display:
+                raise ValueError("No displayable content")
+        return display if not session.superseded else ""
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()

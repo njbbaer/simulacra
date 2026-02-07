@@ -6,7 +6,7 @@ from typing import Any
 import aiofiles
 
 from ..chat_completion import ChatCompletion
-from ..response_scaffold import ResponseScaffold
+from ..response_transform import strip_tags, transform_response
 from ..utilities import merge_dicts
 from .chat_executor import ChatExecutor
 
@@ -40,9 +40,13 @@ class ExperimentExecutor(ChatExecutor):
         results = await asyncio.gather(*tasks)
 
         for i, result in enumerate(results):
-            scaffold = ResponseScaffold(result.content, self.context.response_scaffold)
+            content = transform_response(
+                result.content,
+                self.context.response_patterns,
+                self.context.required_response_tags,
+            )
             print(f"\n---------- (#{i + 1}) ----------\n")
-            print(scaffold.extract())
+            print(strip_tags(content))
 
         choice = int(input("\nSelect response (1-" + str(len(results)) + "): ")) - 1
 

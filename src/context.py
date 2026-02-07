@@ -8,7 +8,7 @@ from .conversation import Conversation
 from .conversation_files import ConversationFiles
 from .instruction_preset import InstructionPreset
 from .message import Message
-from .scaffold_config import ScaffoldConfig
+from .response_transform import Pattern
 from .template_resolver import TemplateResolver
 from .utilities import merge_dicts
 from .yaml_config import yaml
@@ -192,9 +192,15 @@ class Context:
         return None
 
     @property
-    def response_scaffold(self) -> ScaffoldConfig:
-        scaffold_config_dict = self._data.get("response_scaffold", {})
-        return ScaffoldConfig.from_dict(scaffold_config_dict)
+    def response_patterns(self) -> list[Pattern]:
+        raw = self._data.get("transform_patterns", [])
+        return [
+            Pattern(p["pattern"], p.get("replacement"), p.get("notify")) for p in raw
+        ]
+
+    @property
+    def required_response_tags(self) -> set[str]:
+        return set(self._data.get("require_tags", []))
 
     @property
     def experiment_variations(self) -> dict[str, Any]:

@@ -4,6 +4,7 @@ import re
 import httpx
 
 from . import notifications
+from .response_transform import strip_tags
 
 
 async def post_process_response(
@@ -14,7 +15,7 @@ async def post_process_response(
     if not prompt:
         return tagged_content
 
-    plain_text = _strip_all_tags(tagged_content)
+    plain_text = strip_tags(tagged_content)
     if not plain_text:
         return tagged_content
 
@@ -45,10 +46,6 @@ async def _quick_completion(user_content: str, system_prompt: str) -> str:
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
         return _strip_content_tags(content)
-
-
-def _strip_all_tags(tagged_content: str) -> str:
-    return re.sub(r"<[^>]+>.*?</[^>]+>", "", tagged_content, flags=re.DOTALL).strip()
 
 
 def _strip_content_tags(text: str) -> str:

@@ -1,4 +1,5 @@
 import logging
+import os
 import textwrap
 import tomllib
 
@@ -17,6 +18,8 @@ from .telegram_context import TelegramContext
 
 # fmt: on
 
+API_BASE = os.environ.get("BOT_API_BASE")
+
 
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)
@@ -31,13 +34,16 @@ class TelegramBot:
             read_timeout=30.0,
             write_timeout=30.0,
         )
-        self.app = (
+        builder = (
             ApplicationBuilder()
             .token(telegram_token)
             .request(request)
             .concurrent_updates(True)
-            .build()
         )
+        if API_BASE:
+            builder = builder.base_url(f"{API_BASE}/bot")
+            builder = builder.base_file_url(f"{API_BASE}/file/bot")
+        self.app = builder.build()
         self.sim = Simulacrum(context_filepath)
         self.cost_tracker = CostTracker()
 

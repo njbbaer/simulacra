@@ -342,6 +342,8 @@ class TelegramBot:
         documents: list[str] | None = None,
     ) -> None:
         response = await self.sim.chat(user_message, image, documents)
+        if not response:
+            return
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 

@@ -1,5 +1,4 @@
 import asyncio
-import os
 import textwrap
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -8,8 +7,7 @@ from . import notifications
 from .book_reader import BookReader
 from .context import Context
 from .instruction_preset import InstructionPreset
-from .lm_executors import ChatExecutor as _ChatExecutor
-from .lm_executors import ExperimentExecutor
+from .lm_executors import ChatExecutor, ExperimentExecutor
 from .post_processor import post_process_response
 from .response_scaffold import ResponseScaffold
 from .utilities import parse_value
@@ -25,17 +23,11 @@ class PendingInstruction:
     preset_key: str | None = None
 
 
-ChatExecutor: type[_ChatExecutor]
-if os.getenv("ENABLE_EXPERIMENT_EXECUTOR") == "true":
-    ChatExecutor = ExperimentExecutor
-else:
-    ChatExecutor = _ChatExecutor
-
-
 class Simulacrum:
     def __init__(self, context_file: str) -> None:
         self.context = Context(context_file)
         self.last_completion: ChatCompletion | None = None
+        self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
         self._current_task: asyncio.Task | None = None
@@ -61,8 +53,9 @@ class Simulacrum:
                     metadata = None
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
+            executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
             completion = await self._execute_with_cancellation(
-                ChatExecutor(self.context).execute()
+                executor_cls(self.context).execute()
             )
             self.last_completion = completion
             scaffold = ResponseScaffold(

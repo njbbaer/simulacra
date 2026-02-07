@@ -92,6 +92,8 @@ class TelegramBot:
             (["parrot"], self._parrot),
             (["start"], self._do_nothing),
         ]
+        if os.getenv("ENVIRONMENT") == "development":
+            command_map.append((["experiment", "exp"], self._toggle_experiment))
         for commands, handler in command_map:
             for cmd in commands:
                 self.app.add_handler(CommandHandler(cmd, handler))  # type: ignore
@@ -243,6 +245,8 @@ class TelegramBot:
                 *Information*
                 /stats - Show conversation statistics
                 /help - Show this help message
+                *Dev*
+                /experiment - Toggle experiment mode
                 """
             )
         )
@@ -298,6 +302,12 @@ class TelegramBot:
             content = await f.read()
             pyproject = tomllib.loads(content.decode())
         await ctx.send_message(f"`📦 Version: {pyproject['project']['version']}`")
+
+    @message_handler
+    async def _toggle_experiment(self, ctx: TelegramContext) -> None:
+        self.sim.experiment_mode = not self.sim.experiment_mode
+        state = "on" if self.sim.experiment_mode else "off"
+        await ctx.send_message(f"`⚖️ Experiment mode: {state}`")
 
     @message_handler
     async def _unauthorized(self, ctx: TelegramContext) -> None:

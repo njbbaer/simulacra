@@ -18,7 +18,7 @@ from .telegram_context import TelegramContext
 
 # fmt: on
 
-API_BASE = os.environ.get("BOT_API_BASE")
+TELEGRAM_BOT_API = os.environ.get("TELEGRAM_BOT_API")
 
 
 logger = logging.getLogger("telegram_bot")
@@ -40,9 +40,9 @@ class TelegramBot:
             .request(request)
             .concurrent_updates(True)
         )
-        if API_BASE:
-            builder = builder.base_url(f"{API_BASE}/bot")
-            builder = builder.base_file_url(f"{API_BASE}/file/bot")
+        if TELEGRAM_BOT_API:
+            builder = builder.base_url(f"{TELEGRAM_BOT_API}/bot")
+            builder = builder.base_file_url(f"{TELEGRAM_BOT_API}/file/bot")
         self.app = builder.build()
         self.sim = Simulacrum(context_filepath)
         self.cost_tracker = CostTracker()

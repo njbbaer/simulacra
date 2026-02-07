@@ -29,6 +29,7 @@ class TelegramBot:
     def __init__(
         self, context_filepath: str, telegram_token: str, authorized_user: str
     ) -> None:
+        self._token = telegram_token
         request = HTTPXRequest(
             connect_timeout=30.0,
             read_timeout=30.0,
@@ -310,14 +311,17 @@ class TelegramBot:
 
     @message_handler
     async def _error_handler(self, ctx: TelegramContext) -> None:
-        logger.error(ctx.context.error, exc_info=True)
+        logger.error(self._redact(ctx.context.error), exc_info=True)
         if ctx.update:
             try:
                 error = ctx.context.error
                 error_msg = str(error) or type(error).__name__
-                await ctx.send_message(f"`❌ Error: {error_msg}`")
+                await ctx.send_message(f"`❌ Error: {self._redact(error_msg)}`")
             except Exception as e:
-                logger.error(f"Failed to send error message: {e}")
+                logger.error(f"Failed to send error message: {self._redact(e)}")
+
+    def _redact(self, text) -> str:
+        return str(text).replace(self._token, "[REDACTED]")
 
     async def _do_nothing(self, *_) -> None:
         pass

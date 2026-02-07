@@ -41,11 +41,7 @@ class TelegramBot:
             .concurrent_updates(True)
         )
         if TELEGRAM_BOT_API:
-            builder = (
-                builder.base_url(f"{TELEGRAM_BOT_API}/bot")
-                .base_file_url(f"{TELEGRAM_BOT_API}/file/bot")
-                .local_mode(True)
-            )
+            builder = builder.base_url(f"{TELEGRAM_BOT_API}/bot").local_mode(True)
         self.app = builder.build()
         self.sim = Simulacrum(context_filepath)
         self.cost_tracker = CostTracker()

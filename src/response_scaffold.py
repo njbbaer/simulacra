@@ -12,7 +12,10 @@ class ResponseScaffold:
 
     @property
     def display(self) -> str:
-        return self._strip_all_tags(self.transformed_content)
+        text = self._strip_all_tags(self.transformed_content)
+        if not text:
+            raise ValueError("No displayable content")
+        return text
 
     def extract(self, tag_name: str | None = None) -> str:
         if not tag_name:

@@ -18,9 +18,6 @@ from .telegram_context import TelegramContext
 
 # fmt: on
 
-TELEGRAM_BOT_API = os.environ.get("TELEGRAM_BOT_API")
-
-
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)
 
@@ -30,6 +27,7 @@ class TelegramBot:
         self, context_filepath: str, telegram_token: str, authorized_user: str
     ) -> None:
         self._token = telegram_token
+        bot_api = os.environ.get("TELEGRAM_BOT_API")
         request = HTTPXRequest(
             connect_timeout=30.0,
             read_timeout=30.0,
@@ -41,8 +39,8 @@ class TelegramBot:
             .request(request)
             .concurrent_updates(True)
         )
-        if TELEGRAM_BOT_API:
-            builder = builder.base_url(f"{TELEGRAM_BOT_API}/bot").local_mode(True)
+        if bot_api:
+            builder = builder.base_url(f"{bot_api}/bot").local_mode(True)
         self.app = builder.build()
         self.sim = Simulacrum(context_filepath)
         self.cost_tracker = CostTracker()

@@ -106,6 +106,7 @@ Configure your container with the following:
 - Mount a directory containing your config and context files to `/config`.
 - Set the path to your config file in the environment as `CONFIG_FILEPATH`.
 - Set your OpenRouter API key in the environment as `OPENROUTER_API_KEY`.
+- Optionally set `TELEGRAM_BOT_API` to a [local Telegram Bot API server](https://github.com/tdlib/telegram-bot-api) URL for lower latency and larger file handling.
 
 Ensure the context file paths in your config are accessible within the container (i.e. `/config`).
 
@@ -118,6 +119,7 @@ docker run --name simulacra \
   --volume /var/lib/simulacra:/config \
   --env OPENROUTER_API_KEY=your_openai_api_key \
   --env CONFIG_FILEPATH=/config/config.toml \
+  --env TELEGRAM_BOT_API=http://telegram-bot-api:8081 \
   --restart unless-stopped \
   ghcr.io/njbbaer/simulacra:latest
 ```
@@ -134,6 +136,7 @@ services:
     environment:
       - OPENROUTER_API_KEY={{ your_openai_api_key }}
       - CONFIG_FILEPATH=/config/config.toml
+      - TELEGRAM_BOT_API=http://telegram-bot-api:8081
     restart: unless-stopped
 ```
 
@@ -148,6 +151,20 @@ export ENVIRONMENT=development
 ```
 
 Note: Development mode can only run a single bot.
+
+### Local Telegram Bot API
+
+A `docker-compose.yml` is included for running a [local Telegram Bot API server](https://github.com/tdlib/telegram-bot-api). Set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in your `.env`, then:
+
+```sh
+docker compose up -d
+```
+
+Grant your user read access to files created by the container:
+
+```sh
+sudo setfacl -R -m u:$(whoami):rX -d -m u:$(whoami):rX /var/lib/telegram-bot-api/
+```
 
 ### Pre-commit hooks
 

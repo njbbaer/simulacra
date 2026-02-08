@@ -50,7 +50,6 @@ class Context:
         self._data = copy.deepcopy(self._raw_data)
         self._load_conversation()
         self._resolve_templates()
-        self._apply_triggered_preset_overrides()
 
     def save(self) -> None:
         with open(self._filepath, "w") as file:
@@ -256,11 +255,6 @@ class Context:
             "model": self.model,
         }
         self._data = resolver.resolve(self._data, extra_vars)
-
-    def _apply_triggered_preset_overrides(self) -> None:
-        for message in self._conversation.messages:
-            if message.metadata and "triggered_preset" in message.metadata:
-                self.apply_preset_overrides(message.metadata["triggered_preset"])
 
     # Private properties
 

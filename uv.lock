@@ -1065,7 +1065,7 @@ wheels = [
 
 [[package]]
 name = "simulacra"
-version = "2.54.7"
+version = "2.55.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aiofiles" },

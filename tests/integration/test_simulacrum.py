@@ -25,6 +25,7 @@ def context_data() -> dict[str, Any]:
         "pricing": [1, 2],
         "api_params": {"model": "anthropic/claude"},
         "system_prompt": "Say something!",
+        "scene_instructions": "Describe the scene.",
     }
 
 
@@ -197,6 +198,50 @@ async def test_new_conversation(
         assert new_conversation_data["cost"] == 0.0
         assert isinstance(new_conversation_data["messages"], list)
         assert len(new_conversation_data["messages"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_retry(
+    simulacrum: Simulacrum,
+    mock_openrouter,  # noqa: ARG001
+) -> None:
+    response = await simulacrum.retry()
+
+    assert response == "Something"
+    msgs = simulacrum.context.conversation_messages
+    assert len(msgs) == 1
+    assert msgs[0].role == "assistant"
+    assert msgs[0].content == "Something"
+    assert len(simulacrum.retry_stack) == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_detects_scene_message(
+    simulacrum: Simulacrum,
+    mock_openrouter,  # noqa: ARG001
+) -> None:
+    # Replace the existing assistant message with a scene message
+    simulacrum.context.load()
+    simulacrum.context.conversation_messages.clear()
+    simulacrum.context.add_message(
+        "user", "A dark room.", metadata={"scene": True, "scene_input": "darkness"}
+    )
+    simulacrum.context.save()
+
+    response = await simulacrum.retry()
+
+    assert response == "Something"
+    # Verify the scene message was replaced (not an assistant message added)
+    msgs = simulacrum.context.conversation_messages
+    assert len(msgs) == 1
+    assert msgs[0].role == "user"
+    metadata = msgs[0].metadata
+    assert metadata is not None
+    assert metadata["scene"] is True
+    assert metadata["scene_input"] == "darkness"
+    # Verify retry stack has the old scene message
+    assert len(simulacrum.retry_stack) == 1
+    assert simulacrum.retry_stack[0][0].content == "A dark room."
 
 
 def test_reset_conversation(

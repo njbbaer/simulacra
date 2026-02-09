@@ -1,6 +1,6 @@
 [project]
 name = "simulacra"
-version = "2.55.0"
+version = "2.56.0"
 requires-python = "~=3.13.0"
 dependencies = [
     "openai",

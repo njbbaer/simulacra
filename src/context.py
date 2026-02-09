@@ -206,6 +206,10 @@ class Context:
         return self._data.get("experiment_variations", {})
 
     @property
+    def scene_instructions(self) -> str | None:
+        return self._data.get("scene_instructions")
+
+    @property
     def post_process_prompt(self) -> str | None:
         return self._data.get("post_process_prompt")
 

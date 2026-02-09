@@ -53,23 +53,8 @@ class Simulacrum:
                     metadata = None
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
-            executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
-            completion = await self._execute_with_cancellation(
-                executor_cls(self.context).execute()
-            )
-            self.last_completion = completion
-            content = transform_response(
-                completion.content,
-                self.context.response_patterns,
-                self.context.required_response_tags,
-            )
-            content = await post_process_response(
-                content, self.context.post_process_prompt
-            )
+            content, display = await self._generate()
             self.context.add_message("assistant", content)
-            display = strip_tags(content)
-            if not display:
-                raise ValueError("No displayable content")
         return display if not session.superseded else ""
 
     async def new_conversation(self) -> None:
@@ -90,8 +75,29 @@ class Simulacrum:
     async def continue_conversation(self) -> str:
         return await self.chat(None, None, None)
 
+    async def scene(self, user_input: str | None = None) -> str:
+        with self.context.session() as session:
+            instructions = self.context.scene_instructions
+            prompt = f"<instruct>\n{instructions}\n</instruct>"
+            if user_input:
+                prompt += f"\n{user_input}"
+            self.context.add_message("user", prompt)
+            self.context.save()
+            content, display = await self._generate(skip_required_tags=True)
+            self.context.conversation_messages.pop()  # remove temp prompt
+            metadata = {"scene": True, "scene_input": user_input}
+            self.context.add_message("user", content, metadata=metadata)
+        return display if not session.superseded else ""
+
     async def retry(self) -> str:
-        if self.last_message_role == "assistant":
+        self.context.load()
+        msgs = self.context.conversation_messages
+        if msgs and msgs[-1].metadata and msgs[-1].metadata.get("scene"):
+            scene_input = msgs[-1].metadata.get("scene_input")
+            removed = self._undo_last_messages_by_role("user")
+            self.retry_stack.append(removed)
+            return await self.scene(scene_input)
+        if msgs and msgs[-1].role == "assistant":
             removed_messages = self._undo_last_messages_by_role("assistant")
             self.retry_stack.append(removed_messages)
         return await self.chat(None, None, None)
@@ -165,6 +171,24 @@ class Simulacrum:
         if not self.context.conversation_messages:
             raise ValueError("No messages in conversation")
         return self.context.conversation_messages[-1].role
+
+    async def _generate(self, skip_required_tags: bool = False) -> tuple[str, str]:
+        executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
+        completion = await self._execute_with_cancellation(
+            executor_cls(self.context).execute()
+        )
+        self.last_completion = completion
+        required_tags = (
+            None if skip_required_tags else self.context.required_response_tags
+        )
+        content = transform_response(
+            completion.content, self.context.response_patterns, required_tags
+        )
+        content = await post_process_response(content, self.context.post_process_prompt)
+        display = strip_tags(content)
+        if not display:
+            raise ValueError("No displayable content")
+        return content, display
 
     async def _execute_with_cancellation(self, coro) -> "ChatCompletion":
         self._current_task = asyncio.create_task(coro)

@@ -84,6 +84,7 @@ class TelegramBot:
             (["instruct", "i"], self._apply_freeform_instruction),
             (["stats", "s"], self._stats),
             (["clear"], self._clear),
+            (["scene", "sc"], self._scene),
             (["syncbook", "sb"], self._sync_book),
             (["version", "v"], self._version),
             (["help", "h"], self._help),
@@ -156,6 +157,17 @@ class TelegramBot:
         self.sim.cancel_pending_request()
         self.sim.undo()
         await ctx.send_message("`🗑️ Last message undone`")
+
+    @message_handler
+    async def _scene(self, ctx: TelegramContext) -> None:
+        if not self.sim.context.scene_instructions:
+            await ctx.send_message("`❌ No scene instructions configured`")
+            return
+        self.sim.retry_stack.clear()
+        response = await self.sim.scene(ctx.command_body or None)
+        if response:
+            await ctx.send_response(response)
+            await self._warn_cost(ctx)
 
     @message_handler
     async def _stats(self, ctx: TelegramContext) -> None:
@@ -237,6 +249,7 @@ class TelegramBot:
                 /undoretry - Undo a retry
                 /undo - Undo the last exchange
                 /clear - Clear the conversation
+                /scene (...) - Generate a scene narration
                 /continue - Request another response
                 /set <key> <value> - Set a variable
                 /preset (...) - Apply a preset

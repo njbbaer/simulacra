@@ -89,7 +89,7 @@ class Simulacrum:
             self.context.add_message("user", content, metadata=metadata)
         return display if not session.superseded else ""
 
-    async def retry(self) -> str:
+    async def retry(self, instruction: str | None = None) -> str:
         self.context.load()
         msgs = self.context.conversation_messages
         if msgs and msgs[-1].metadata and msgs[-1].metadata.get("scene"):
@@ -100,6 +100,9 @@ class Simulacrum:
         if msgs and msgs[-1].role == "assistant":
             removed_messages = self._undo_last_messages_by_role("assistant")
             self.retry_stack.append(removed_messages)
+        if instruction:
+            self._set_inline_instruction(instruction)
+            self.context.save()
         return await self.chat(None, None, None)
 
     def undo(self) -> None:
@@ -212,6 +215,14 @@ class Simulacrum:
         with self.context.session():
             for message in reversed(messages):
                 self.context.conversation_messages.append(message)
+
+    def _set_inline_instruction(self, instruction: str) -> None:
+        msgs = self.context.conversation_messages
+        for msg in reversed(msgs):
+            if msg.role == "user" and msg.content:
+                base = msg.content.rsplit("##", 1)[0].rstrip()
+                msg.content = f"{base} ## {instruction}"
+                return
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
         instruction: str | None = None

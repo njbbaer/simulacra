@@ -134,7 +134,7 @@ class TelegramBot:
 
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
-        response = await self.sim.retry()
+        response = await self.sim.retry(ctx.command_body or None)
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 

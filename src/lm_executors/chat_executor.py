@@ -33,8 +33,12 @@ class ChatExecutor:
 
     def _build_messages(self) -> list[dict[str, Any]]:
         template_vars = {**copy.deepcopy(self.context.resolved_data)}
-        template_vars["messages"] = self._strip_inline_instructions(
-            self.context.conversation_messages
+        messages = self.context.conversation_messages
+        template_vars["messages"] = self._strip_inline_instructions(messages)
+        template_vars["injected_prompt"] = self._build_injected_prompt(
+            messages,
+            template_vars.get("reinforcement_prompt"),
+            template_vars.get("continue_prompt"),
         )
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
         env.globals["load_base64"] = make_base64_loader(self.context.images_dir)
@@ -42,6 +46,19 @@ class ChatExecutor:
             template = env.from_string(file.read())
         rendered_str = template.render(template_vars)
         return yaml.safe_load(rendered_str)
+
+    @staticmethod
+    def _build_injected_prompt(
+        messages: list,
+        reinforcement_prompt: str | None,
+        continue_prompt: str | None,
+    ) -> str | None:
+        parts = []
+        if reinforcement_prompt:
+            parts.append(reinforcement_prompt)
+        if continue_prompt and messages and messages[-1].role == "assistant":
+            parts.append(f"<instruct>{continue_prompt}</instruct>")
+        return "\n\n".join(parts) if parts else None
 
     @staticmethod
     def _strip_inline_instructions(messages: list) -> list:

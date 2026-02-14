@@ -26,6 +26,7 @@ def context_data() -> dict[str, Any]:
         "api_params": {"model": "anthropic/claude"},
         "system_prompt": "Say something!",
         "scene_instructions": "Describe the scene.",
+        "continue_prompt": "Continue",
     }
 
 
@@ -242,6 +243,31 @@ async def test_retry_detects_scene_message(
     # Verify retry stack has the old scene message
     assert len(simulacrum.retry_stack) == 1
     assert simulacrum.retry_stack[0][0].content == "A dark room."
+
+
+@pytest.mark.asyncio
+async def test_continue_conversation(
+    simulacrum: Simulacrum,
+    mock_openrouter,
+) -> None:
+    response = await simulacrum.continue_conversation()
+
+    assert response == "Something"
+
+    # Verify the API request included the continue prompt
+    request = mock_openrouter.get_requests(
+        url="https://openrouter.ai/api/v1/chat/completions",
+    )[0]
+    body = json.loads(request.content)
+    messages = body["messages"]
+    assert messages[-1]["role"] == "user"
+    assert "<instruct>Continue</instruct>" in messages[-1]["content"][0]["text"]
+
+    # Verify the temp message is not persisted
+    msgs = simulacrum.context.conversation_messages
+    assert len(msgs) == 2
+    assert msgs[0].role == "assistant"
+    assert msgs[1].role == "assistant"
 
 
 def test_reset_conversation(

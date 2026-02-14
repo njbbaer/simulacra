@@ -108,7 +108,10 @@ class Simulacrum:
 
     def undo(self) -> None:
         self.retry_stack.clear()
-        self._undo_last_messages_by_role("user")
+        if self.last_message_role == "assistant":
+            self._undo_last_messages_by_role("assistant")
+        else:
+            self._undo_last_messages_by_role("user")
 
     def undo_retry(self) -> bool:
         if not self.retry_stack:

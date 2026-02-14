@@ -73,6 +73,7 @@ class Simulacrum:
             self.context.reset_conversation()
 
     async def continue_conversation(self) -> str:
+        self.retry_stack.clear()
         return await self.chat(None, None, None)
 
     async def scene(self, user_input: str | None = None) -> str:

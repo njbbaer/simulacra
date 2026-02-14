@@ -101,6 +101,13 @@ class TelegramBot:
 
         self.app.add_handler(
             MessageHandler(
+                filters.Regex(r"^/"),
+                self._unknown_message,  # type: ignore
+            )
+        )
+
+        self.app.add_handler(
+            MessageHandler(
                 (filters.TEXT & ~filters.COMMAND)
                 | filters.PHOTO
                 | filters.VOICE

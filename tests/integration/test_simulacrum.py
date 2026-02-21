@@ -63,14 +63,9 @@ def simulacrum(simulacrum_context) -> Simulacrum:  # noqa: ARG001
 
 
 @pytest.fixture
-def generation_id() -> str:
-    return "gen-4567291038-XpT8aKfqs2wRvZyLmEgC"
-
-
-@pytest.fixture
-def mock_completion_response(generation_id: str) -> dict[str, Any]:
+def mock_completion_response() -> dict[str, Any]:
     return {
-        "id": generation_id,
+        "id": "gen-test",
         "choices": [
             {
                 "message": {
@@ -78,28 +73,23 @@ def mock_completion_response(generation_id: str) -> dict[str, Any]:
                 },
             }
         ],
+        "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "cost": 0.1,
+            "prompt_tokens_details": {"cached_tokens": 0},
+        },
     }
-
-
-@pytest.fixture
-def mock_cost_response() -> dict[str, Any]:
-    return {"data": {"upstream_inference_cost": 0.1}}
 
 
 @pytest.fixture
 def mock_openrouter(
     httpx_mock,
-    generation_id: str,
     mock_completion_response: dict[str, Any],
-    mock_cost_response: dict[str, Any],
 ):
     httpx_mock.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",
         json=mock_completion_response,
-    )
-    httpx_mock.add_response(
-        url=f"https://openrouter.ai/api/v1/generation?id={generation_id}",
-        json=mock_cost_response,
     )
     return httpx_mock
 
@@ -110,7 +100,6 @@ async def test_simulacrum_chat(
     mock_openrouter,
     context_data: dict[str, Any],
     conversation_data: dict[str, Any],
-    generation_id: str,
 ) -> None:
     initial_context_cost = context_data["total_cost"]
     initial_conversation_cost = conversation_data["cost"]
@@ -146,11 +135,6 @@ async def test_simulacrum_chat(
 
     assert actual_body["messages"][2]["role"] == "user"
     assert actual_body["messages"][2]["content"][0]["text"] == user_message
-
-    # Verify OpenRouter cost tracking request was made
-    assert mock_openrouter.get_requests(
-        url=f"https://openrouter.ai/api/v1/generation?id={generation_id}"
-    )
 
     # Verify contents of the context file
     with open("context.yml") as f:

@@ -188,8 +188,8 @@ class TelegramBot:
             last_message_stats += "\n".join(
                 [
                     f"`Cost: ${lc.cost:.4f}`",
-                    f"`Cache discount: {lc.cache_discount_string}`",
                     f"`Prompt tokens: {lc.prompt_tokens}`",
+                    f"`Cached tokens: {lc.cached_tokens}`",
                     f"`Completion tokens: {lc.completion_tokens}`",
                 ]
             )

@@ -1,4 +1,3 @@
-import asyncio
 import os
 from typing import Any
 
@@ -50,19 +49,4 @@ class OpenRouterAPIClient:
             if "error" in completion_data:
                 raise Exception(completion_data["error"])
             completion_response.raise_for_status()
-            details_data = await self._fetch_details(completion_data["id"])
-            return {**completion_data, "details": details_data}
-
-    async def _fetch_details(self, generation_id: str) -> dict[str, Any]:
-        details_url = f"https://openrouter.ai/api/v1/generation?id={generation_id}"
-        async with httpx.AsyncClient() as client:
-            for _ in range(20):
-                try:
-                    response = await client.get(
-                        details_url, headers=self._get_headers()
-                    )
-                    response.raise_for_status()
-                    return response.json()["data"]
-                except httpx.HTTPError:
-                    await asyncio.sleep(0.5)
-            return {}
+            return completion_data

@@ -6,8 +6,12 @@ from src.chat_completion import ChatCompletion
 def _make_response(**overrides):
     return {
         "choices": [{"message": {"content": "Hello"}, "finish_reason": "stop"}],
-        "usage": {"prompt_tokens": 10, "completion_tokens": 5},
-        "details": {"upstream_inference_cost": 0.01},
+        "usage": {
+            "prompt_tokens": 10,
+            "completion_tokens": 5,
+            "cost": 0.01,
+            "prompt_tokens_details": {"cached_tokens": 0},
+        },
     } | overrides
 
 
@@ -21,9 +25,23 @@ class TestChatCompletionProperties:
         assert c.prompt_tokens == 10
         assert c.completion_tokens == 5
 
-    def test_cost(self):
+    def test_cost_from_usage(self):
         c = ChatCompletion(_make_response())
         assert c.cost == 0.01
+
+    def test_cost_falls_back_to_upstream_inference_cost(self):
+        c = ChatCompletion(
+            _make_response(
+                usage={
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": 0,
+                    "prompt_tokens_details": {"cached_tokens": 0},
+                    "cost_details": {"upstream_inference_cost": 0.02},
+                }
+            )
+        )
+        assert c.cost == 0.02
 
 
 class TestChatCompletionValidation:
@@ -44,19 +62,20 @@ class TestChatCompletionValidation:
             ChatCompletion(resp)
 
 
-class TestCacheDiscountString:
-    def test_no_discount(self):
+class TestCachedTokens:
+    def test_cached_tokens(self):
         c = ChatCompletion(_make_response())
-        assert c.cache_discount_string == "N/A"
+        assert c.cached_tokens == 0
 
-    def test_positive_discount(self):
-        resp = _make_response()
-        resp["details"]["cache_discount"] = 0.05
-        c = ChatCompletion(resp)
-        assert c.cache_discount_string == "$0.05"
-
-    def test_negative_discount(self):
-        resp = _make_response()
-        resp["details"]["cache_discount"] = -0.03
-        c = ChatCompletion(resp)
-        assert c.cache_discount_string == "-$0.03"
+    def test_with_cached_tokens(self):
+        c = ChatCompletion(
+            _make_response(
+                usage={
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "cost": 0.01,
+                    "prompt_tokens_details": {"cached_tokens": 42},
+                }
+            )
+        )
+        assert c.cached_tokens == 42

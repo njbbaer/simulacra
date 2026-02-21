@@ -12,25 +12,21 @@ class ChatCompletion:
 
     @property
     def prompt_tokens(self) -> int:
-        return self.response["usage"]["prompt_tokens"]
+        return self._usage["prompt_tokens"]
 
     @property
     def completion_tokens(self) -> int:
-        return self.response["usage"]["completion_tokens"]
+        return self._usage["completion_tokens"]
 
     @property
-    def cache_discount_string(self) -> str:
-        if self._cache_discount is None:
-            return "N/A"
-
-        sign = "-" if self._cache_discount < 0 else ""
-        amount = f"${abs(self._cache_discount):.2f}"
-        return f"{sign}{amount}"
+    def cached_tokens(self) -> int:
+        return self._usage["prompt_tokens_details"]["cached_tokens"]
 
     @property
     def cost(self) -> float:
-        return self._details.get("total_cost", 0.0) + self._details.get(
-            "upstream_inference_cost", 0.0
+        return (
+            self._usage["cost"]
+            or self._usage["cost_details"]["upstream_inference_cost"]
         )
 
     def _validate(self) -> None:
@@ -40,6 +36,10 @@ class ChatCompletion:
             raise Exception("Response exceeded maximum length")
         if not self.content:
             raise Exception("Response was empty")
+
+    @property
+    def _usage(self) -> dict[str, Any]:
+        return self.response["usage"]
 
     @property
     def _choice(self) -> dict[str, Any]:
@@ -52,11 +52,3 @@ class ChatCompletion:
     @property
     def _error_message(self) -> str:
         return self.response.get("error", {}).get("message", "")
-
-    @property
-    def _cache_discount(self) -> float | None:
-        return self._details.get("cache_discount")
-
-    @property
-    def _details(self) -> dict[str, Any]:
-        return self.response.get("details", {})

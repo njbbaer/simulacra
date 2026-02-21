@@ -29,7 +29,9 @@ class ChatCompletion:
 
     @property
     def cost(self) -> float:
-        return self.response["details"]["upstream_inference_cost"]
+        return self._details.get("total_cost", 0.0) + self._details.get(
+            "upstream_inference_cost", 0.0
+        )
 
     def _validate(self) -> None:
         if self._error_message:
@@ -52,5 +54,9 @@ class ChatCompletion:
         return self.response.get("error", {}).get("message", "")
 
     @property
-    def _cache_discount(self) -> float:
-        return self.response["details"].get("cache_discount", None)
+    def _cache_discount(self) -> float | None:
+        return self._details.get("cache_discount")
+
+    @property
+    def _details(self) -> dict[str, Any]:
+        return self.response.get("details", {})

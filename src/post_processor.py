@@ -34,7 +34,7 @@ async def _quick_completion(user_content: str, system_prompt: str) -> str:
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "openai/gpt-oss-120b",
+                "model": "minimax/minimax-m2.5",
                 "provider": {"sort": "latency"},
                 "temperature": 0.0,
                 "messages": [

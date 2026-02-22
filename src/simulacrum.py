@@ -148,7 +148,7 @@ class Simulacrum:
             book = BookReader(self.context.book_path)
             start_idx = self.context.last_book_position or 0
             book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
-            message_content = f"<book_continuation>\n{book_chunk}\n</book_continuation>"
+            message_content = f"<book_content>\n{book_chunk}\n</book_content>"
             self.retry_stack.clear()
             self.context.add_message(
                 "user", message_content, metadata={"end_idx": end_idx}

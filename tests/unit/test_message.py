@@ -9,7 +9,7 @@ class TestMessageRoundTrip:
         assert restored.role == "user"
         assert restored.content == "Hello"
         assert restored.image is None
-        assert restored.metadata is None
+        assert restored.metadata == {}
 
     def test_with_image(self):
         msg = Message("user", "Look", image="img.png")

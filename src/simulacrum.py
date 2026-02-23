@@ -1,4 +1,5 @@
 import asyncio
+import re
 import textwrap
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -39,18 +40,12 @@ class Simulacrum:
         documents: list[str] | None,
     ) -> str:
         with self.context.session() as session:
+            user_input, metadata = self._parse_user_input(user_input)
             if documents:
                 for document in documents:
                     user_input = self._append_document(user_input, document)
             if user_input or image:
                 self.retry_stack.clear()
-                if user_input:
-                    user_input, triggered_key = self._apply_pending_preset(user_input)
-                    metadata = (
-                        {"triggered_preset": triggered_key} if triggered_key else None
-                    )
-                else:
-                    metadata = None
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
             content, display = await self._generate()
@@ -221,13 +216,31 @@ class Simulacrum:
             for message in reversed(messages):
                 self.context.conversation_messages.append(message)
 
+    @staticmethod
+    def _extract_inline_instruction(text: str) -> tuple[str, str | None]:
+        match = re.search(r"\s*\[([^\]]+)\]$", text)
+        if not match:
+            return text, None
+        return text[: match.start()], match.group(1)
+
+    def _parse_user_input(self, text: str | None) -> tuple[str | None, dict]:
+        metadata: dict[str, str] = {}
+        if not text:
+            return text, metadata
+        text, triggered_key = self._apply_pending_preset(text)
+        text, instruction = self._extract_inline_instruction(text)
+        if triggered_key:
+            metadata["triggered_preset"] = triggered_key
+        if instruction:
+            metadata["inline_instruction"] = instruction
+        return text, metadata
+
     def _set_inline_instruction(self, instruction: str) -> None:
         with self.context.session():
             msgs = self.context.conversation_messages
             for msg in reversed(msgs):
                 if msg.role == "user" and msg.content:
-                    base = msg.content.rsplit("##", 1)[0].rstrip()
-                    msg.content = f"{base} ## {instruction}"
+                    msg.metadata["inline_instruction"] = instruction
                     return
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:

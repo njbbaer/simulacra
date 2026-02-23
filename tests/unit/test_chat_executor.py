@@ -2,51 +2,59 @@ from src.lm_executors.chat_executor import ChatExecutor
 from src.message import Message
 
 
-class TestStripInlineInstructions:
-    def test_no_assistant_keeps_original(self):
-        messages = [Message("user", "Hello ## in a friendly tone")]
-        result = ChatExecutor._strip_inline_instructions(messages)
-        assert result[0].content == "Hello ## in a friendly tone"
-
-    def test_strips_instruction_before_assistant(self):
+class TestInjectInlineInstructions:
+    def test_no_assistant_injects_instruction(self):
         messages = [
-            Message("user", "Hello ## in a friendly tone"),
+            Message("user", "Hello", metadata={"inline_instruction": "be friendly"})
+        ]
+        result = ChatExecutor._inject_inline_instructions(messages)
+        assert result[0].content == "Hello [be friendly]"
+
+    def test_instruction_before_assistant_not_injected(self):
+        messages = [
+            Message("user", "Hello", metadata={"inline_instruction": "be friendly"}),
             Message("assistant", "Hi there!"),
         ]
-        result = ChatExecutor._strip_inline_instructions(messages)
+        result = ChatExecutor._inject_inline_instructions(messages)
         assert result[0].content == "Hello"
         assert result[1].content == "Hi there!"
 
-    def test_users_after_last_assistant_kept(self):
+    def test_instruction_after_last_assistant_injected(self):
         messages = [
-            Message("user", "Old ## instruction"),
+            Message("user", "Old", metadata={"inline_instruction": "instruction"}),
             Message("assistant", "Response"),
-            Message("user", "New ## instruction"),
+            Message("user", "New", metadata={"inline_instruction": "instruction"}),
         ]
-        result = ChatExecutor._strip_inline_instructions(messages)
+        result = ChatExecutor._inject_inline_instructions(messages)
         assert result[0].content == "Old"
-        assert result[2].content == "New ## instruction"
+        assert result[2].content == "New [instruction]"
 
     def test_does_not_mutate_originals(self):
         messages = [
-            Message("user", "Hello ## instruction"),
-            Message("assistant", "Hi"),
+            Message("user", "Hello", metadata={"inline_instruction": "instruction"}),
         ]
-        ChatExecutor._strip_inline_instructions(messages)
-        assert messages[0].content == "Hello ## instruction"
+        ChatExecutor._inject_inline_instructions(messages)
+        assert messages[0].content == "Hello"
 
     def test_none_content_unchanged(self):
         messages = [
             Message("user", None, image="img.png"),
             Message("assistant", "Response"),
         ]
-        result = ChatExecutor._strip_inline_instructions(messages)
+        result = ChatExecutor._inject_inline_instructions(messages)
         assert result[0].content is None
 
-    def test_only_last_double_pound_splits(self):
+    def test_no_metadata_unchanged(self):
         messages = [
-            Message("user", "a ## b ## c"),
+            Message("user", "Hello"),
+        ]
+        result = ChatExecutor._inject_inline_instructions(messages)
+        assert result[0].content == "Hello"
+
+    def test_brackets_in_content_without_instruction_unchanged(self):
+        messages = [
+            Message("user", "<document>text [footnote 1]</document>"),
             Message("assistant", "Response"),
         ]
-        result = ChatExecutor._strip_inline_instructions(messages)
-        assert result[0].content == "a ## b"
+        result = ChatExecutor._inject_inline_instructions(messages)
+        assert result[0].content == "<document>text [footnote 1]</document>"

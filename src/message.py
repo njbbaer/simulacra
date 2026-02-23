@@ -14,7 +14,7 @@ class Message:
         self.role = role
         self.content = content
         self.image = image
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     def to_dict(self) -> dict[str, Any]:
         return {

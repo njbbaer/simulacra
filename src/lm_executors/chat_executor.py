@@ -34,7 +34,7 @@ class ChatExecutor:
     def _build_messages(self) -> list[dict[str, Any]]:
         template_vars = {**copy.deepcopy(self.context.resolved_data)}
         messages = self.context.conversation_messages
-        template_vars["messages"] = self._strip_inline_instructions(messages)
+        template_vars["messages"] = self._inject_inline_instructions(messages)
         template_vars["injected_prompt"] = self._build_injected_prompt(
             messages,
             template_vars.get("reinforcement_prompt"),
@@ -61,8 +61,8 @@ class ChatExecutor:
         return "\n\n".join(parts) if parts else None
 
     @staticmethod
-    def _strip_inline_instructions(messages: list) -> list:
-        """Strip ## instructions from user messages that already have a response."""
+    def _inject_inline_instructions(messages: list) -> list:
+        """Inject inline instructions from metadata into unresponded user messages."""
         last_assistant_idx = -1
         for i, msg in enumerate(messages):
             if msg.role == "assistant":
@@ -70,13 +70,10 @@ class ChatExecutor:
 
         result = []
         for i, msg in enumerate(messages):
-            if msg.role != "user" or not msg.content or "##" not in msg.content:
-                result.append(msg)
-                continue
-
-            if i > last_assistant_idx:
-                result.append(msg)
+            instruction = (msg.metadata or {}).get("inline_instruction")
+            if instruction and i > last_assistant_idx:
+                content = f"{msg.content} [{instruction}]"
+                result.append(Message(msg.role, content, msg.image, msg.metadata))
             else:
-                body = msg.content.rsplit("##", 1)[0].rstrip()
-                result.append(Message(msg.role, body, msg.image, msg.metadata))
+                result.append(msg)
         return result

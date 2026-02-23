@@ -72,8 +72,10 @@ class Simulacrum:
         with self.context.session():
             self.context.reset_conversation()
 
-    async def continue_conversation(self) -> str:
+    async def continue_conversation(self, instruction: str | None = None) -> str:
         self.retry_stack.clear()
+        if instruction:
+            self._set_inline_instruction(instruction)
         return await self.chat(None, None, None)
 
     async def scene(self, user_input: str | None = None) -> str:
@@ -103,7 +105,6 @@ class Simulacrum:
             self.retry_stack.append(removed_messages)
         if instruction:
             self._set_inline_instruction(instruction)
-            self.context.save()
         return await self.chat(None, None, None)
 
     def undo(self) -> None:
@@ -221,12 +222,13 @@ class Simulacrum:
                 self.context.conversation_messages.append(message)
 
     def _set_inline_instruction(self, instruction: str) -> None:
-        msgs = self.context.conversation_messages
-        for msg in reversed(msgs):
-            if msg.role == "user" and msg.content:
-                base = msg.content.rsplit("##", 1)[0].rstrip()
-                msg.content = f"{base} ## {instruction}"
-                return
+        with self.context.session():
+            msgs = self.context.conversation_messages
+            for msg in reversed(msgs):
+                if msg.role == "user" and msg.content:
+                    base = msg.content.rsplit("##", 1)[0].rstrip()
+                    msg.content = f"{base} ## {instruction}"
+                    return
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
         instruction: str | None = None

@@ -141,7 +141,7 @@ class TelegramBot:
 
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
-        response = await self.sim.retry(ctx.command_body or None)
+        response = await self.sim.retry(ctx.command_body)
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 
@@ -155,7 +155,7 @@ class TelegramBot:
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
-        response = await self.sim.continue_conversation()
+        response = await self.sim.continue_conversation(ctx.command_body)
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 
@@ -171,7 +171,7 @@ class TelegramBot:
             await ctx.send_message("`❌ No scene instructions configured`")
             return
         self.sim.retry_stack.clear()
-        response = await self.sim.scene(ctx.command_body or None)
+        response = await self.sim.scene(ctx.command_body)
         if response:
             await ctx.send_response(response)
             await self._warn_cost(ctx)
@@ -335,7 +335,7 @@ class TelegramBot:
 
     @message_handler
     async def _unknown_message(self, ctx: TelegramContext) -> None:
-        await ctx.send_message("`❌ Not recognized`")
+        await ctx.send_message("`❌ Command not recognized`")
 
     @message_handler
     async def _error_handler(self, ctx: TelegramContext) -> None:

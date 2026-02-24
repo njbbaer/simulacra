@@ -1,8 +1,9 @@
 import asyncio
 import re
 import textwrap
+from collections.abc import Coroutine
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from . import notifications
 from .book_reader import BookReader
@@ -190,14 +191,16 @@ class Simulacrum:
             raise ValueError("No displayable content")
         return content, display
 
-    async def _execute_with_cancellation(self, coro) -> "ChatCompletion":
+    async def _execute_with_cancellation(
+        self, coro: Coroutine[Any, Any, "ChatCompletion"]
+    ) -> "ChatCompletion":
         self._current_task = asyncio.create_task(coro)
         try:
             return await self._current_task
         finally:
             self._current_task = None
 
-    def _undo_last_messages_by_role(self, role: str) -> list:
+    def _undo_last_messages_by_role(self, role: str) -> list["Message"]:
         with self.context.session():
             removed_messages = []
             num_messages = len(self.context.conversation_messages)
@@ -208,7 +211,7 @@ class Simulacrum:
                     break
         return removed_messages
 
-    def _restore_messages(self, messages: list) -> None:
+    def _restore_messages(self, messages: list["Message"]) -> None:
         with self.context.session():
             for message in reversed(messages):
                 self.context.conversation_messages.append(message)

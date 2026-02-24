@@ -92,7 +92,7 @@ class Context:
         return (conv.id, conv.name)
 
     def name_conversation(self, name: str) -> str:
-        old_filename = os.path.basename(self.conversation_file.replace("file://./", ""))
+        old_filename = os.path.basename(self._conversation_relpath)
         new_filename, sanitized = self._conversation_files.rename(old_filename, name)
         self._set_conversation_file(new_filename)
         return sanitized
@@ -162,8 +162,9 @@ class Context:
         conv = self._current_conversation_file
         if conv:
             return conv.id
-        file_path = self.conversation_file.replace("file://./", "")
-        raise ValueError(f"Invalid conversation file format: {file_path}")
+        raise ValueError(
+            f"Invalid conversation file format: {self._conversation_relpath}"
+        )
 
     @property
     def conversation_name(self) -> str | None:
@@ -240,8 +241,7 @@ class Context:
             self._data["conversation_file"] = path
             self._raw_data["conversation_file"] = path
         os.makedirs(self.conversations_dir, exist_ok=True)
-        file_path = self.conversation_file.replace("file://./", "")
-        full_path = os.path.join(self.dir, file_path)
+        full_path = os.path.join(self.dir, self._conversation_relpath)
         self._conversation = Conversation(full_path)
 
     def _set_conversation_file(self, filename: str) -> None:
@@ -266,7 +266,10 @@ class Context:
         return ConversationFiles(self.conversations_dir, self.character_name)
 
     @property
+    def _conversation_relpath(self) -> str:
+        return self.conversation_file.replace("file://./", "")
+
+    @property
     def _current_conversation_file(self):
-        file_path = self.conversation_file.replace("file://./", "")
-        filename = os.path.basename(file_path)
+        filename = os.path.basename(self._conversation_relpath)
         return self._conversation_files.parse_filename(filename)

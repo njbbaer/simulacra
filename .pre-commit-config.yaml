@@ -10,7 +10,7 @@ repos:
 
       - id: ruff-format
         name: ruff-format
-        entry: uv run ruff format
+        entry: uv run ruff format --quiet
         language: system
         types: [python]
 

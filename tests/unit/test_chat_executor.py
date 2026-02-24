@@ -58,3 +58,20 @@ class TestInjectInlineInstructions:
         ]
         result = ChatExecutor._inject_inline_instructions(messages)
         assert result[0].content == "<document>text [footnote 1]</document>"
+
+    def test_synthetic_message_injects_instruction_only(self):
+        messages = [
+            Message("user", None, metadata={"inline_instruction": "be creative"}),
+        ]
+        result = ChatExecutor._inject_inline_instructions(messages)
+        assert len(result) == 1
+        assert result[0].content == "[be creative]"
+
+    def test_synthetic_message_dropped_after_response(self):
+        messages = [
+            Message("user", None, metadata={"inline_instruction": "be creative"}),
+            Message("assistant", "Response"),
+        ]
+        result = ChatExecutor._inject_inline_instructions(messages)
+        assert len(result) == 1
+        assert result[0].content == "Response"

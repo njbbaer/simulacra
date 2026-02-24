@@ -242,6 +242,10 @@ class Simulacrum:
                 if msg.role == "user" and msg.content:
                     msg.metadata["inline_instruction"] = instruction
                     return
+            # No user message found; create a synthetic one for the instruction
+            self.context.add_message(
+                "user", None, metadata={"inline_instruction": instruction}
+            )
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
         instruction: str | None = None

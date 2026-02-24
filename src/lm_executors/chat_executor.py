@@ -72,8 +72,8 @@ class ChatExecutor:
         for i, msg in enumerate(messages):
             instruction = (msg.metadata or {}).get("inline_instruction")
             if instruction and i > last_assistant_idx:
-                content = f"{msg.content} [{instruction}]"
+                content = f"{msg.content or ''} [{instruction}]".strip()
                 result.append(Message(msg.role, content, msg.image, msg.metadata))
-            else:
+            elif msg.content or msg.image:
                 result.append(msg)
         return result

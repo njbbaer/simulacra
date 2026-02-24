@@ -31,11 +31,11 @@ class ChatCompletion:
 
     def _validate(self) -> None:
         if self._error_message:
-            raise Exception(self._error_message)
+            raise RuntimeError(self._error_message)
         if self._finish_reason == "length":
-            raise Exception("Response exceeded maximum length")
+            raise RuntimeError("Response exceeded maximum length")
         if not self.content:
-            raise Exception("Response was empty")
+            raise RuntimeError("Response was empty")
 
     @property
     def _usage(self) -> dict[str, Any]:

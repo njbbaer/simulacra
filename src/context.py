@@ -69,8 +69,7 @@ class Context:
         self._conversation.reset()
 
     def use_temp_conversation(self) -> None:
-        self._conversation = Conversation.__new__(Conversation)
-        self.reset_conversation()
+        self._conversation = Conversation.empty()
 
     def new_conversation(self, name: str | None = None) -> None:
         mgr = self._conversation_files
@@ -173,11 +172,11 @@ class Context:
 
     @property
     def pricing(self) -> dict[str, Any] | None:
-        return self._data.get("pricing", None)
+        return self._data.get("pricing")
 
     @property
     def book_path(self) -> str | None:
-        path = self._data.get("book_path", None)
+        path = self._data.get("book_path")
         if path:
             return os.path.join(self.dir, path)
         return None

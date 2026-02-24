@@ -26,6 +26,12 @@ class Conversation:
         else:
             self.reset()
 
+    @classmethod
+    def empty(cls) -> "Conversation":
+        conv = cls.__new__(cls)
+        conv.reset()
+        return conv
+
     def save(self) -> None:
         data_to_save = {
             "created_at": self.created_at,

@@ -7,13 +7,13 @@ class BookReader:
         self._load()
 
     def next_chunk(self, query: str, start_idx: int = 0) -> tuple[str, int]:
-        if query and query.strip() != "":
+        if query and query.strip():
             end_idx = self._find_position(query)
         else:
             end_idx = len(self.text)
 
         if start_idx >= end_idx:
-            raise Exception("Match cannot be before latest position")
+            raise ValueError("Match cannot be before latest position")
 
         chunk = self.text[start_idx:end_idx].strip()
         return chunk, end_idx
@@ -21,7 +21,7 @@ class BookReader:
     def _find_position(self, query: str) -> int:
         match = rapidfuzz.fuzz.partial_ratio_alignment(query, self.text)
         if match is None or match.score < 80:
-            raise Exception("No match found in text")
+            raise ValueError("No match found in text")
 
         return self.text.find("\n", match.dest_end)
 

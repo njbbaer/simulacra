@@ -104,10 +104,7 @@ class Simulacrum:
 
     def undo(self) -> None:
         self.retry_stack.clear()
-        if self.last_message_role == "assistant":
-            self._undo_last_messages_by_role("assistant")
-        else:
-            self._undo_last_messages_by_role("user")
+        self._undo_last_messages_by_role(self.last_message_role)
 
     def undo_retry(self) -> bool:
         if not self.retry_stack:
@@ -140,7 +137,7 @@ class Simulacrum:
     def sync_book(self, query: str) -> str:
         with self.context.session():
             if not self.context.book_path:
-                raise Exception("No book path set.")
+                raise ValueError("No book path set.")
             book = BookReader(self.context.book_path)
             start_idx = self.context.last_book_position or 0
             book_chunk, end_idx = book.next_chunk(query, start_idx=start_idx)
@@ -153,7 +150,7 @@ class Simulacrum:
 
     def has_messages(self) -> bool:
         self.context.load()
-        return len(self.context.conversation_messages) > 0
+        return bool(self.context.conversation_messages)
 
     def get_conversation_cost(self) -> float:
         self.context.load()

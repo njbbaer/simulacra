@@ -25,7 +25,7 @@ class OpenRouterAPIClient:
             self.trace.record(parameters, messages, completion.content)
             return completion
         except httpx.ReadTimeout as err:
-            raise Exception("Request timed out") from err
+            raise RuntimeError("Request timed out") from err
 
     def _get_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
@@ -47,6 +47,6 @@ class OpenRouterAPIClient:
             )
             completion_data = completion_response.json()
             if "error" in completion_data:
-                raise Exception(completion_data["error"])
+                raise RuntimeError(completion_data["error"])
             completion_response.raise_for_status()
             return completion_data

@@ -75,7 +75,7 @@ class TemplateResolver:
         if not filepath:
             raise ValueError("load_section is missing a filepath")
         content = self._load_string(filepath)
-        return content if content.strip() + "\n\n---" else ""
+        return content.strip() + "\n\n---" if content.strip() else ""
 
     def _full_path(self, filepath: str) -> str:
         return os.path.abspath(os.path.join(self._base_dir, filepath))

@@ -348,7 +348,7 @@ class TelegramBot:
             except Exception as e:
                 logger.error(f"Failed to send error message: {self._redact(e)}")
 
-    def _redact(self, text) -> str:
+    def _redact(self, text: object) -> str:
         return str(text).replace(self._token, "[REDACTED]")
 
     async def _do_nothing(self, *_) -> None:

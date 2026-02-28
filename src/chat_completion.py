@@ -8,7 +8,7 @@ class ChatCompletion:
 
     @property
     def content(self) -> str:
-        return self._choice["message"]["content"]
+        return self._choice["message"]["content"].strip()
 
     @property
     def prompt_tokens(self) -> int:

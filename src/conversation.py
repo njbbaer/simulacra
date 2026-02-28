@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -6,6 +5,7 @@ from typing import Any
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from .message import Message
+from .response_transform import strip_tags
 from .yaml_config import yaml
 
 
@@ -60,17 +60,12 @@ class Conversation:
     def format_as_memory(self, character_name: str, user_name: str) -> str:
         lines = []
         for msg in self.messages:
-            content = self._extract_display_content(msg.content or "")
-            if content := content.strip():
+            if content := strip_tags(msg.content or ""):
                 role = (
                     user_name.upper() if msg.role == "user" else character_name.upper()
                 )
                 lines.append(f"{role}:\n\n{content}")
         return "\n\n".join(lines)
-
-    def _extract_display_content(self, text: str) -> str:
-        """Strip all tags and return content outside of them."""
-        return re.sub(r"<[^>]+>.*?</[^>]+>", "", text, flags=re.DOTALL)
 
     def add_message(
         self,

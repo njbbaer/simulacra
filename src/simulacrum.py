@@ -96,22 +96,27 @@ class Simulacrum:
             removed = self._undo_last_messages_by_role("user")
             self.retry_stack.append(removed)
             return await self.scene(scene_input)
-        if msgs and msgs[-1].role == "assistant":
-            removed_messages = self._undo_last_messages_by_role("assistant")
-            self.retry_stack.append(removed_messages)
+        with self.context.session():
+            popped = self._pop_last_message("assistant")
+            if popped:
+                self.retry_stack.append([popped])
         if instruction:
             self._set_inline_instruction(instruction)
         return await self.chat(None, None, None)
 
     def undo(self) -> None:
         self.retry_stack.clear()
-        self._undo_last_messages_by_role(self.last_message_role)
+        with self.context.session():
+            msgs = self.context.conversation_messages
+            last_role = msgs.pop().role
+            if last_role == "assistant":
+                self._pop_last_message("user")
 
     def undo_retry(self) -> bool:
         if not self.retry_stack:
             return False
-        if self.last_message_role == "assistant":
-            self._undo_last_messages_by_role("assistant")
+        with self.context.session():
+            self._pop_last_message("assistant")
         messages_to_restore = self.retry_stack.pop()
         self._restore_messages(messages_to_restore)
         return True
@@ -166,13 +171,6 @@ class Simulacrum:
         with self.context.session():
             return self.context.name_conversation(name)
 
-    @property
-    def last_message_role(self) -> str:
-        self.context.load()
-        if not self.context.conversation_messages:
-            raise ValueError("No messages in conversation")
-        return self.context.conversation_messages[-1].role
-
     async def _generate(self, skip_required_tags: bool = False) -> tuple[str, str]:
         executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
         completion = await self._execute_with_cancellation(
@@ -200,16 +198,20 @@ class Simulacrum:
         finally:
             self._current_task = None
 
+    def _pop_last_message(self, role: str) -> "Message | None":
+        msgs = self.context.conversation_messages
+        if msgs and msgs[-1].role == role:
+            return msgs.pop()
+        return None
+
     def _undo_last_messages_by_role(self, role: str) -> list["Message"]:
         with self.context.session():
-            removed_messages = []
-            num_messages = len(self.context.conversation_messages)
-            for _ in range(num_messages):
-                message = self.context.conversation_messages.pop()
-                removed_messages.append(message)
-                if message.role == role:
-                    break
-        return removed_messages
+            removed = []
+            msgs = self.context.conversation_messages
+            while msgs and msgs[-1].role != role:
+                removed.append(msgs.pop())
+            removed.append(msgs.pop())
+            return removed
 
     def _restore_messages(self, messages: list["Message"]) -> None:
         with self.context.session():

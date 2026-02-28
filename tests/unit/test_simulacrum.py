@@ -74,11 +74,29 @@ class TestAppendDocument:
 
 
 class TestUndoRetry:
-    def test_undo_removes_last_assistant_message(self, sim):
+    def test_undo_removes_user_and_assistant_pair(self, sim):
+        sim.undo()
+        assert len(sim.context.conversation_messages) == 0
+
+    def test_undo_removes_only_user_when_last_message_is_user(self, sim):
+        sim.context.load()
+        with sim.context.session():
+            sim.context.conversation_messages.append(Message("user", "another"))
         sim.undo()
         msgs = sim.context.conversation_messages
-        assert len(msgs) == 1
-        assert msgs[0].role == "user"
+        assert len(msgs) == 2
+        assert msgs[0].role == "user" and msgs[0].content == "Hi"
+        assert msgs[1].role == "assistant" and msgs[1].content == "Hello"
+
+    def test_undo_removes_only_last_assistant_when_consecutive(self, sim):
+        sim.context.load()
+        with sim.context.session():
+            sim.context.conversation_messages.append(Message("assistant", "continued"))
+        sim.undo()
+        msgs = sim.context.conversation_messages
+        assert len(msgs) == 2
+        assert msgs[0].role == "user" and msgs[0].content == "Hi"
+        assert msgs[1].role == "assistant" and msgs[1].content == "Hello"
 
     def test_undo_clears_retry_stack(self, sim):
         sim.retry_stack.append([Message("assistant", "old")])
@@ -171,12 +189,6 @@ class TestApplyPendingPreset:
         text, key = sim._apply_pending_preset("Please be formal again")
         assert key is None
         assert "<instruct>" not in text
-
-
-def test_last_message_role_raises_when_empty(sim):
-    sim.reset_conversation()
-    with pytest.raises(ValueError, match="No messages"):
-        sim.last_message_role  # noqa: B018
 
 
 class TestChat:

@@ -108,18 +108,20 @@ class Simulacrum:
         self.retry_stack.clear()
         with self.context.session():
             msgs = self.context.conversation_messages
+            if not msgs:
+                raise ValueError("No messages to undo")
             last_role = msgs.pop().role
             if last_role == "assistant":
                 self._pop_last_message("user")
 
-    def undo_retry(self) -> bool:
+    def undo_retry(self) -> list["Message"]:
         if not self.retry_stack:
-            return False
+            raise ValueError("No retry to undo")
         with self.context.session():
             self._pop_last_message("assistant")
         messages_to_restore = self.retry_stack.pop()
         self._restore_messages(messages_to_restore)
-        return True
+        return messages_to_restore
 
     def cancel_pending_request(self) -> None:
         if self._current_task:

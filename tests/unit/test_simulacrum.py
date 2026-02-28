@@ -103,18 +103,27 @@ class TestUndoRetry:
         sim.undo()
         assert sim.retry_stack == []
 
+    def test_undo_raises_when_no_messages(self, sim):
+        sim.context.load()
+        with sim.context.session():
+            sim.context.conversation_messages.clear()
+        with pytest.raises(ValueError, match="No messages to undo"):
+            sim.undo()
+
     def test_undo_retry_restores_previous_message(self, sim):
         sim.retry_stack.append([Message("assistant", "original response")])
 
-        result = sim.undo_retry()
+        restored = sim.undo_retry()
 
-        assert result is True
+        assert len(restored) == 1
+        assert restored[0].content == "original response"
         msgs = sim.context.conversation_messages
         assert msgs[-1].content == "original response"
         assert sim.retry_stack == []
 
     def test_undo_retry_with_empty_stack(self, sim):
-        assert sim.undo_retry() is False
+        with pytest.raises(ValueError, match="No retry to undo"):
+            sim.undo_retry()
 
 
 class TestApplyInstruction:

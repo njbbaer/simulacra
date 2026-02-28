@@ -148,9 +148,7 @@ class TelegramBot:
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        if not self.sim.undo_retry():
-            await ctx.send_message("`❌ No retry to undo`")
-            return
+        self.sim.undo_retry()
         await ctx.send_message("`↩️ Retry undone`")
 
     @message_handler
@@ -162,12 +160,8 @@ class TelegramBot:
     @message_handler
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        self.sim.context.load()
-        if not self.sim.context.conversation_messages:
-            await ctx.send_message("`❌ No messages to undo`")
-        else:
-            self.sim.undo()
-            await ctx.send_message("`🗑️ Last message undone`")
+        self.sim.undo()
+        await ctx.send_message("`🗑️ Last message undone`")
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:

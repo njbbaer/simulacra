@@ -1,6 +1,6 @@
-.PHONY: run test lint release agent-test agent-lint
+.PHONY: app test lint test-quiet lint-quiet release
 
-run:
+app:
 	uv run app.py
 
 test:

@@ -56,10 +56,13 @@ class TelegramContext:
 
     @backoff.on_exception(backoff.expo, TimedOut, max_tries=5)
     async def send_message(self, text: str) -> None:
-        try:
-            await self.app.bot.send_message(self._chat_id, text, parse_mode="Markdown")
-        except BadRequest:
-            await self.app.bot.send_message(self._chat_id, text)
+        for chunk in self._split_message(text):
+            try:
+                await self.app.bot.send_message(
+                    self._chat_id, chunk, parse_mode="Markdown"
+                )
+            except BadRequest:
+                await self.app.bot.send_message(self._chat_id, chunk)
 
     async def send_typing_action(self) -> None:
         await self.app.bot.send_chat_action(chat_id=self._chat_id, action="typing")
@@ -71,6 +74,22 @@ class TelegramContext:
     @property
     def _message(self):
         return self.update.message
+
+    @staticmethod
+    def _split_message(text: str, max_length: int = 4096) -> list[str]:
+        if len(text) <= max_length:
+            return [text]
+
+        for sep in ["\n\n", "\n", " "]:
+            idx = text.rfind(sep, 0, max_length)
+            if idx != -1:
+                break
+        else:
+            idx = max_length
+
+        head = text[:idx].rstrip()
+        tail = text[idx:].lstrip()
+        return [head, *TelegramContext._split_message(tail, max_length)]
 
     async def _transcribe_voice(self) -> str:
         file_id = self._message.voice.file_id

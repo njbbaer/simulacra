@@ -10,7 +10,7 @@ from .book_reader import BookReader
 from .context import Context
 from .instruction_preset import InstructionPreset
 from .lm_executors import ChatExecutor, ExperimentExecutor
-from .post_processor import post_process_response
+from .post_processor import clean_document, post_process_response
 from .response_transform import strip_tags, transform_response
 from .utilities import parse_value
 
@@ -43,8 +43,7 @@ class Simulacrum:
         with self.context.session() as session:
             user_input, metadata = self._parse_user_input(user_input)
             if documents:
-                for document in documents:
-                    user_input = self._append_document(user_input, document)
+                user_input = await self._process_documents(user_input, documents)
             if user_input or image:
                 self.retry_stack.clear()
                 self.context.add_message("user", user_input, image, metadata)
@@ -277,6 +276,17 @@ class Simulacrum:
             text = f"{text}\n\n<instruct>\n{instruction}\n</instruct>"
 
         return text, preset_key
+
+    async def _process_documents(
+        self, text: str | None, documents: list[str]
+    ) -> str | None:
+        prompt = self.context.document_cleanup_prompt
+        for document in documents:
+            document = await clean_document(document, prompt)
+            tokens = len(document) // 4
+            notifications.send(f"Document added: {tokens:,} tokens")
+            text = self._append_document(text, document)
+        return text
 
     @staticmethod
     def _append_document(text: str | None, document: str) -> str | None:

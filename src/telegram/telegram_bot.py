@@ -57,9 +57,6 @@ class TelegramBot:
         text = await ctx.get_text()
         text, url_content = await extract_url_content(text)
         documents = [d for d in [pdf_content, url_content] if d]
-        for document in documents:
-            tokens = len(document) // 4
-            await ctx.send_message(f"`📄 Document added: {tokens:,} tokens`")
         await self._chat(ctx, text, image, documents=documents)
 
     def _register_handlers(self, authorized_user: str) -> None:
@@ -342,7 +339,7 @@ class TelegramBot:
             try:
                 error = ctx.context.error
                 error_msg = str(error) or type(error).__name__
-                await ctx.send_message(f"`❌ Error: {self._redact(error_msg)}`")
+                await ctx.send_message(f"`❌ {self._redact(error_msg)}`")
             except Exception as e:
                 logger.error(f"Failed to send error message: {self._redact(e)}")
 

@@ -10,8 +10,9 @@ from .yaml_config import yaml
 
 
 class TemplateResolver:
-    def __init__(self, base_dir: str) -> None:
+    def __init__(self, base_dir: str, search_dirs: list[str] | None = None) -> None:
         self._base_dir = base_dir
+        self._search_dirs = search_dirs or []
         self._env = NativeEnvironment(
             trim_blocks=True, lstrip_blocks=True, autoescape=False
         )
@@ -78,4 +79,10 @@ class TemplateResolver:
         return content.strip() + "\n\n---" if content.strip() else ""
 
     def _full_path(self, filepath: str) -> str:
-        return os.path.abspath(os.path.join(self._base_dir, filepath))
+        path = os.path.join(self._base_dir, filepath)
+        if not os.path.exists(path):
+            for search_dir in self._search_dirs:
+                candidate = os.path.join(search_dir, filepath)
+                if os.path.exists(candidate):
+                    return os.path.abspath(candidate)
+        return os.path.abspath(path)

@@ -38,6 +38,25 @@ def test_load_resolves_external_file(fs_with_templates):  # noqa: ARG001
     assert result["content"] == "Hello, World!"
 
 
+def test_search_dirs_fallback(fs):
+    fs.create_file("/shared/common.md", contents="shared content")
+    fs.create_file("/character/local.md", contents="local content")
+    resolver = TemplateResolver("/character", search_dirs=["/shared"])
+    data = {"a": "{{ load_string('common.md') }}", "b": "{{ load_string('local.md') }}"}
+    result = resolver.resolve(data, {})
+    assert result["a"] == "shared content"
+    assert result["b"] == "local content"
+
+
+def test_search_dirs_local_takes_priority(fs):
+    fs.create_file("/shared/file.md", contents="from shared")
+    fs.create_file("/character/file.md", contents="from local")
+    resolver = TemplateResolver("/character", search_dirs=["/shared"])
+    data = {"content": "{{ load_string('file.md') }}"}
+    result = resolver.resolve(data, {})
+    assert result["content"] == "from local"
+
+
 def test_load_yaml_file(fs):
     fs.create_file("/config/data.yml", contents="key: value\ncount: 42")
     resolver = TemplateResolver("/config")

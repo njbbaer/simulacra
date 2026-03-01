@@ -265,7 +265,7 @@ class Context:
         self._data = merge_dicts(base_data, self._data)
 
     def _resolve_templates(self) -> None:
-        resolver = TemplateResolver(self.dir)
+        resolver = TemplateResolver(self.dir, self._search_dirs)
         extra_vars = {
             "memories": self.conversation_memories,
             "vars": self.conversation_vars,
@@ -274,6 +274,14 @@ class Context:
         self._data = resolver.resolve(self._data, extra_vars)
 
     # Private properties
+
+    @property
+    def _search_dirs(self) -> list[str]:
+        dirs = [os.path.join(self.dir, "content")]
+        shared_dir = self._data.get("shared_dir")
+        if shared_dir:
+            dirs.append(os.path.join(self.dir, shared_dir))
+        return dirs
 
     @property
     def _conversation_files(self) -> ConversationFiles:

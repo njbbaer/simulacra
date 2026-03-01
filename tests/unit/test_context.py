@@ -155,6 +155,42 @@ class TestCostTracking:
         assert context.conversation_cost == initial_conv_cost + 0.5
 
 
+class TestExtends:
+    def test_inherits_base_values(self, fs):
+        fs.create_dir("/test/conversations")
+        fs.create_file(
+            "/base.yml",
+            contents=dedent("""
+                api_params:
+                  model: base/model
+                require_tags:
+                  - tag_a
+                shared_field: from_base
+            """),
+        )
+        fs.create_file(
+            "/test/context.yml",
+            contents=dedent("""
+                extends: ../base.yml
+                character_name: Alice
+                user_name: Bob
+                total_cost: 0
+                api_params:
+                  model: test/model
+            """),
+        )
+        ctx = Context("/test/context.yml")
+        ctx.load()
+        assert ctx._data["api_params"]["model"] == "test/model"
+        assert ctx._data["shared_field"] == "from_base"
+        assert ctx._data["require_tags"] == ["tag_a"]
+        assert "extends" not in ctx._data
+
+    def test_no_extends_key(self, context):
+        assert "extends" not in context._data
+        assert context._data["character_name"] == "Alice"
+
+
 class TestTemplateResolution:
     def test_resolves_templates_with_context_vars(self, context):
         assert context._data["system_prompt"] == "You are Alice."

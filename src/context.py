@@ -48,6 +48,7 @@ class Context:
         with open(self._filepath) as file:
             self._raw_data = yaml.load(file)
         self._data = copy.deepcopy(self._raw_data)
+        self._apply_extends()
         self._load_conversation()
         self._resolve_templates()
 
@@ -253,6 +254,15 @@ class Context:
         self._raw_data["conversation_file"] = path
         self._data["conversation_file"] = path
         self._load_conversation()
+
+    def _apply_extends(self) -> None:
+        extends = self._data.pop("extends", None)
+        if not extends:
+            return
+        base_path = os.path.join(self.dir, extends)
+        with open(base_path) as f:
+            base_data = yaml.load(f)
+        self._data = merge_dicts(base_data, self._data)
 
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir)

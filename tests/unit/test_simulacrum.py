@@ -144,10 +144,15 @@ class TestApplyInstruction:
 
 class TestSetInlineInstruction:
     def test_on_existing_user_message(self, sim):
+        sim.context.load()
+        sim.context.conversation_messages.pop()  # remove assistant
+        sim.context.save()
+
         sim._set_inline_instruction("do something")
         msgs = sim.context.conversation_messages
-        user_msg = next(m for m in reversed(msgs) if m.role == "user")
-        assert user_msg.metadata["inline_instruction"] == "do something"
+        assert msgs[-1].role == "user"
+        assert msgs[-1].content == "Hi"
+        assert msgs[-1].metadata["inline_instruction"] == "do something"
 
     def test_creates_synthetic_when_no_user_message(self, sim):
         sim.context.load()
@@ -161,6 +166,21 @@ class TestSetInlineInstruction:
         assert len(synthetic) == 1
         assert synthetic[0].role == "user"
         assert synthetic[0].content is None
+
+    def test_creates_synthetic_when_last_message_is_assistant(self, sim):
+        sim._set_inline_instruction("do something")
+        msgs = sim.context.conversation_messages
+        assert msgs[-1].role == "user"
+        assert msgs[-1].content is None
+        assert msgs[-1].metadata["inline_instruction"] == "do something"
+
+    def test_replaces_instruction_on_existing_synthetic(self, sim):
+        sim._set_inline_instruction("first")
+        msg_count = len(sim.context.conversation_messages)
+        sim._set_inline_instruction("second")
+        msgs = sim.context.conversation_messages
+        assert len(msgs) == msg_count
+        assert msgs[-1].metadata["inline_instruction"] == "second"
 
 
 class TestApplyPendingPreset:

@@ -78,10 +78,7 @@ class Context:
         self._set_conversation_file(filename)
 
     def extend_conversation(self) -> None:
-        memory = self._conversation.format_as_memory(
-            self.character_name,
-            self.user_name,
-        )
+        memory = self._conversation.format_as_memory(self.character_name)
         memories = [*self._conversation.memories, memory]
         current_name = self.conversation_name
         self.new_conversation(current_name)

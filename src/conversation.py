@@ -57,13 +57,11 @@ class Conversation:
     def set_var(self, key: str, value: Any) -> None:
         self.vars[key] = value
 
-    def format_as_memory(self, character_name: str, user_name: str) -> str:
+    def format_as_memory(self, character_name: str) -> str:
         lines = []
         for msg in self.messages:
             if content := strip_tags(msg.content or ""):
-                role = (
-                    user_name.upper() if msg.role == "user" else character_name.upper()
-                )
+                role = "other" if msg.role == "user" else character_name.upper()
                 lines.append(f"{role}:\n\n{content}")
         return "\n\n".join(lines)
 

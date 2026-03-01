@@ -1,33 +1,38 @@
 import copy
 from typing import Any
 
+import httpx
 import jinja2
 import yaml
 
-from ..api_client import OpenRouterAPIClient
+from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
 from ..message import Message
+from ..trace import Trace
 from ..utilities import make_base64_loader
 
 
 class ChatExecutor:
     TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
+    TRACE_PATH = "trace.yml"
 
     def __init__(self, context) -> None:
         self.context = context
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
-        client = OpenRouterAPIClient()
-
         merged_params = {**self.context.api_params}
         if params:
             merged_params.update(params)
 
-        completion = await client.request_completion(
-            messages=self._build_messages(),
-            parameters=merged_params,
-        )
+        messages = self._build_messages()
+        body = {"messages": messages, **merged_params}
+        try:
+            data = await fetch_completion(body)
+        except httpx.ReadTimeout as err:
+            raise RuntimeError("Request timed out") from err
 
+        completion = ChatCompletion(data)
+        Trace(self.TRACE_PATH).record(merged_params, messages, completion.content)
         self.context.increment_cost(completion.cost)
         return completion
 

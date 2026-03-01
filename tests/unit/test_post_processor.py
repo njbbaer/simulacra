@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -7,20 +6,13 @@ import pytest
 from src.post_processor import clean_document, post_process_response
 
 
-@contextmanager
 def _mock_llm(content: str):
-    response = httpx.Response(
-        200,
-        json={"choices": [{"message": {"content": content}}]},
-        request=httpx.Request("POST", "http://test"),
+    response = {"choices": [{"message": {"content": content}}]}
+    return patch(
+        "src.post_processor.fetch_completion",
+        new_callable=AsyncMock,
+        return_value=response,
     )
-    mock_post = AsyncMock(return_value=response)
-    with patch("src.post_processor.httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__ = AsyncMock(
-            return_value=AsyncMock(post=mock_post)
-        )
-        mock_client.return_value.__aexit__ = AsyncMock(return_value=False)
-        yield
 
 
 @pytest.mark.asyncio
@@ -38,13 +30,15 @@ async def test_clean_document_calls_llm():
 
 @pytest.mark.asyncio
 async def test_clean_document_raises_on_http_error():
-    with patch("src.post_processor.httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.post.side_effect = httpx.ConnectTimeout("")
-        mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
-        mock_client.return_value.__aexit__ = AsyncMock(return_value=False)
-        with pytest.raises(ValueError, match="Post-processor: ConnectTimeout"):
-            await clean_document("text", "clean it")
+    with (
+        patch(
+            "src.post_processor.fetch_completion",
+            new_callable=AsyncMock,
+            side_effect=httpx.ConnectTimeout(""),
+        ),
+        pytest.raises(ValueError, match="Post-processor: ConnectTimeout"),
+    ):
+        await clean_document("text", "clean it")
 
 
 @pytest.mark.asyncio

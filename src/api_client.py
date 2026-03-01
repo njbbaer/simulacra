@@ -4,49 +4,24 @@ from typing import Any
 import backoff
 import httpx
 
-from .chat_completion import ChatCompletion
-from .trace import Trace
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
+DEFAULT_TIMEOUT = httpx.Timeout(10, read=60)
 
 
-class OpenRouterAPIClient:
-    def __init__(self) -> None:
-        self.api_key = os.environ.get("OPENROUTER_API_KEY")
-        self.trace = Trace("trace.yml")
-
-    async def request_completion(
-        self,
-        messages: list[dict[str, Any]],
-        parameters: dict[str, Any],
-    ) -> ChatCompletion:
-        body = self._prepare_body(messages, parameters)
-        try:
-            completion_data = await self._fetch_completion_data(body)
-            completion = ChatCompletion(completion_data)
-            self.trace.record(parameters, messages, completion.content)
-            return completion
-        except httpx.ReadTimeout as err:
-            raise RuntimeError("Request timed out") from err
-
-    def _get_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.api_key}"}
-
-    def _prepare_body(
-        self,
-        messages: list[dict[str, Any]],
-        parameters: dict[str, Any],
-    ) -> dict[str, Any]:
-        return {"messages": messages, **parameters}
-
-    @backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
-    async def _fetch_completion_data(self, body: dict[str, Any]) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10, read=60)) as client:
-            completion_response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=self._get_headers(),
-                json=body,
-            )
-            completion_data = completion_response.json()
-            if "error" in completion_data:
-                raise RuntimeError(completion_data["error"])
-            completion_response.raise_for_status()
-            return completion_data
+@backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
+async def fetch_completion(
+    body: dict[str, Any],
+    request_timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    async with httpx.AsyncClient(timeout=request_timeout) as client:
+        response = await client.post(
+            API_URL,
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=body,
+        )
+        data = response.json()
+        if "error" in data:
+            raise RuntimeError(data["error"])
+        response.raise_for_status()
+        return data

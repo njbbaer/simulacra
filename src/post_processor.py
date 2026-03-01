@@ -1,8 +1,8 @@
-import os
 import re
 
 import httpx
 
+from .api_client import fetch_completion
 from .response_transform import strip_tags
 
 
@@ -32,31 +32,21 @@ async def post_process_response(
 async def _quick_completion(
     user_content: str, system_prompt: str, request_timeout: float = 10
 ) -> str:
-    api_key = os.environ.get("OPENROUTER_API_KEY")
+    body = {
+        "model": "openai/gpt-oss-120b",
+        "provider": {"sort": "latency"},
+        "temperature": 0.0,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"<content>{user_content}</content>"},
+        ],
+    }
     try:
-        async with httpx.AsyncClient(timeout=request_timeout) as client:
-            response = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "openai/gpt-oss-120b",
-                    "provider": {"sort": "latency"},
-                    "temperature": 0.0,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {
-                            "role": "user",
-                            "content": f"<content>{user_content}</content>",
-                        },
-                    ],
-                },
-            )
-            response.raise_for_status()
-    except httpx.HTTPError as e:
+        data = await fetch_completion(body, request_timeout=request_timeout)
+    except (httpx.HTTPError, RuntimeError) as e:
         msg = str(e) or type(e).__name__
         raise ValueError(f"Post-processor: {msg}") from e
-    content = response.json()["choices"][0]["message"]["content"]
-    return _strip_content_tags(content)
+    return _strip_content_tags(data["choices"][0]["message"]["content"])
 
 
 def _strip_content_tags(text: str) -> str:

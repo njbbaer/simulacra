@@ -7,13 +7,15 @@ test:
 	uv run pytest
 
 lint:
-	uv run pre-commit run --all-files
+	uv run ruff check --fix --unsafe-fixes
+	uv run ruff format --quiet
+	uv run mypy src tests
 
 test-quiet:
 	@./scripts/run_quiet.sh "tests" uv run pytest -q --no-header --no-cov
 
 lint-quiet:
-	@./scripts/run_quiet.sh "lint" uv run pre-commit run --all-files
+	@./scripts/run_quiet.sh "lint" $(MAKE) --no-print-directory lint
 
 release:
 	./scripts/release.sh $(type)

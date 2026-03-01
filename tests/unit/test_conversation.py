@@ -59,19 +59,19 @@ class TestFormatAsMemory:
     def test_formats_messages(self, conv):
         conv.add_message("user", "Hi")
         conv.add_message("assistant", "Hello")
-        result = conv.format_as_memory("Bot", "User")
-        assert "USER:\n\nHi" in result
+        result = conv.format_as_memory("Bot")
+        assert "OTHER:\n\nHi" in result
         assert "BOT:\n\nHello" in result
 
     def test_strips_tags(self, conv):
         conv.add_message("assistant", "Hello <secret>hidden</secret>world")
-        result = conv.format_as_memory("Bot", "User")
+        result = conv.format_as_memory("Bot")
         assert "hidden" not in result
         assert "Hello " in result
 
     def test_skips_empty_content(self, conv):
         conv.add_message("user", "<tag>only tags</tag>")
-        result = conv.format_as_memory("Bot", "User")
+        result = conv.format_as_memory("Bot")
         assert result == ""
 
 

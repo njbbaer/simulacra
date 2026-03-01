@@ -93,7 +93,7 @@ class TestExtendConversation:
         assert context.conversation_file == "file://./conversations/alice_1.yml"
         assert len(context.conversation_messages) == 0
         assert len(context.conversation_memories) == 1
-        assert "BOB:" in context.conversation_memories[0]
+        assert "OTHER:" in context.conversation_memories[0]
         assert "ALICE:" in context.conversation_memories[0]
 
     def test_preserves_conversation_name(self, context):

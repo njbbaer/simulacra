@@ -30,6 +30,7 @@ class Context:
             path = os.path.join(path, f"{dirname}.yml")
         self._filepath = path
         self._session_version = 0
+        self._is_ephemeral = False
 
     @contextmanager
     def session(self) -> Iterator[Session]:
@@ -49,10 +50,13 @@ class Context:
             self._raw_data = yaml.load(file)
         self._data = copy.deepcopy(self._raw_data)
         self._apply_extends()
-        self._load_conversation()
+        if not self._is_ephemeral:
+            self._load_conversation()
         self._resolve_templates()
 
     def save(self) -> None:
+        if self._is_ephemeral:
+            return
         with open(self._filepath, "w") as file:
             yaml.dump(self._raw_data, file)
         self._conversation.save()
@@ -69,8 +73,9 @@ class Context:
     def reset_conversation(self) -> None:
         self._conversation.reset()
 
-    def use_temp_conversation(self) -> None:
+    def use_ephemeral_conversation(self) -> None:
         self._conversation = Conversation.empty()
+        self._is_ephemeral = True
 
     def new_conversation(self, name: str | None = None) -> None:
         mgr = self._conversation_files

@@ -220,6 +220,53 @@ class TestApplyPendingPreset:
         assert "<instruct>" not in text
 
 
+class TestEphemeral:
+    @pytest.fixture
+    def ephemeral_sim(self, fs, context_data):
+        fs.add_real_file("src/lm_executors/chat_executor_template.j2")
+        with open("context.yml", "w") as f:
+            yaml.dump(context_data, f)
+        os.makedirs("conversations", exist_ok=True)
+        conv_data = {
+            "cost": 0.5,
+            "messages": [
+                {"role": "user", "content": "old"},
+                {"role": "assistant", "content": "old reply"},
+            ],
+        }
+        with open("conversations/test_0.yml", "w") as f:
+            yaml.dump(conv_data, f)
+        return Simulacrum("context.yml", ephemeral=True)
+
+    @pytest.mark.asyncio
+    async def test_starts_with_empty_conversation(self, ephemeral_sim):
+        sim = ephemeral_sim
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.return_value = ("response", "response")
+            await sim.chat("hello", None, None)
+
+        msgs = sim.context.conversation_messages
+        assert len(msgs) == 2
+        assert msgs[0].role == "user" and msgs[0].content == "hello"
+        assert msgs[1].role == "assistant" and msgs[1].content == "response"
+
+    @pytest.mark.asyncio
+    async def test_does_not_persist_changes(self, ephemeral_sim):
+        sim = ephemeral_sim
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.return_value = ("response", "response")
+            await sim.chat("hello", None, None)
+
+        with open("conversations/test_0.yml") as f:  # noqa: ASYNC230
+            saved_conv = yaml.load(f)
+        assert saved_conv["cost"] == 0.5
+        assert len(saved_conv["messages"]) == 2
+
+        with open("context.yml") as f:  # noqa: ASYNC230
+            saved_ctx = yaml.load(f)
+        assert saved_ctx["total_cost"] == 0.0
+
+
 class TestChat:
     @pytest.mark.asyncio
     async def test_documents_are_attached(self, sim):

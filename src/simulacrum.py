@@ -26,8 +26,10 @@ class PendingInstruction:
 
 
 class Simulacrum:
-    def __init__(self, context_file: str) -> None:
+    def __init__(self, context_file: str, ephemeral: bool = False) -> None:
         self.context = Context(context_file)
+        if ephemeral:
+            self.context.use_ephemeral_conversation()
         self.last_completion: ChatCompletion | None = None
         self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None

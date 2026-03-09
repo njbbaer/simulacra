@@ -84,11 +84,11 @@ class TestNewConversation:
         assert context.conversation_file == "file://./conversations/alice_2.yml"
 
 
-class TestExtendConversation:
+class TestCompactConversation:
     def test_preserves_messages_as_memory(self, context):
         context.add_message("user", "Hello")
         context.add_message("assistant", "Hi there")
-        context.extend_conversation()
+        context.compact_conversation()
 
         assert context.conversation_file == "file://./conversations/alice_1.yml"
         assert len(context.conversation_messages) == 0
@@ -100,7 +100,7 @@ class TestExtendConversation:
         context.save()  # Create the conversation file on disk
         context.name_conversation("adventure")
         context.add_message("user", "Hello")
-        context.extend_conversation()
+        context.compact_conversation()
 
         assert context.conversation_name == "adventure"
         assert context.conversation_id == 2  # New conversation with next ID

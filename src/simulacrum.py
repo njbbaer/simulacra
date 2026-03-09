@@ -59,10 +59,10 @@ class Simulacrum:
         with self.context.session():
             self.context.new_conversation()
 
-    async def extend_conversation(self) -> None:
+    async def compact_conversation(self) -> None:
         self.retry_stack.clear()
         with self.context.session():
-            self.context.extend_conversation()
+            self.context.compact_conversation()
 
     def reset_conversation(self) -> None:
         self.retry_stack.clear()

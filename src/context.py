@@ -82,7 +82,7 @@ class Context:
         filename = mgr.generate_filename(mgr.next_id(), name)
         self._set_conversation_file(filename)
 
-    def extend_conversation(self) -> None:
+    def compact_conversation(self) -> None:
         memory = self._conversation.format_as_memory(self.character_name)
         memories = [*self._conversation.memories, memory]
         current_name = self.conversation_name

@@ -71,7 +71,7 @@ class TelegramBot:
 
         command_map = [
             (["new", "n"], self._new_conversation),
-            (["extend", "e"], self._extend_conversation),
+            (["compact", "com"], self._compact_conversation),
             (["retry", "r"], self._retry),
             (["undoretry", "ur"], self._undo_retry),
             (["continue", "co"], self._continue),
@@ -128,11 +128,11 @@ class TelegramBot:
             await ctx.send_message("`❌ No messages in conversation`")
 
     @message_handler
-    async def _extend_conversation(self, ctx: TelegramContext) -> None:
+    async def _compact_conversation(self, ctx: TelegramContext) -> None:
         if self.sim.has_messages():
-            await self.sim.extend_conversation()
+            await self.sim.compact_conversation()
             self.cost_tracker.reset()
-            await ctx.send_message("`✅ Conversation extended with memory`")
+            await ctx.send_message("`✅ Conversation compacted with memory`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 
@@ -244,9 +244,9 @@ class TelegramBot:
                 """
                 *Actions*
                 /new - Start a new conversation
-                /extend - Extend conversation with memory
+                /compact - Compact conversation
                 /switch <id|name> - Switch conversation
-                /name <name> - Name current conversation
+                /name <name> - Name conversation
                 /retry - Retry the last response
                 /undoretry - Undo a retry
                 /undo - Undo the last exchange
@@ -256,7 +256,7 @@ class TelegramBot:
                 /set <key> <value> - Set a variable
                 /preset (...) - Apply a preset
                 /instruct (...) - Freeform instruction
-                /syncbook (...) - Sync current book position
+                /syncbook (...) - Sync book position
                 *Information*
                 /stats - Show conversation statistics
                 /help - Show this help message

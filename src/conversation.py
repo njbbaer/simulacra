@@ -61,8 +61,8 @@ class Conversation:
         lines = []
         for msg in self.messages:
             if content := strip_tags(msg.content or ""):
-                role = "---" if msg.role == "user" else character_name.upper()
-                lines.append(f"{role}:\n\n{content}")
+                role = "---" if msg.role == "user" else character_name.upper() + ":"
+                lines.append(f"{role}\n\n{content}")
         return "\n\n".join(lines)
 
     def add_message(

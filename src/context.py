@@ -31,6 +31,7 @@ class Context:
         self._filepath = path
         self._session_version = 0
         self._is_ephemeral = False
+        self.load()
 
     @contextmanager
     def session(self) -> Iterator[Session]:

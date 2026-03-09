@@ -50,6 +50,8 @@ class Context:
             self._raw_data = yaml.load(file)
         self._data = copy.deepcopy(self._raw_data)
         self._apply_extends()
+        self._state_data = self._load_state()
+        self._data.update(self._state_data)
         if not self._is_ephemeral:
             self._load_conversation()
         self._resolve_templates()
@@ -57,8 +59,8 @@ class Context:
     def save(self) -> None:
         if self._is_ephemeral:
             return
-        with open(self._filepath, "w") as file:
-            yaml.dump(self._raw_data, file)
+        with open(self._state_filepath, "w") as f:
+            yaml.dump(dict(self._state_data), f)
         self._conversation.save()
 
     def add_message(
@@ -101,7 +103,8 @@ class Context:
         return sanitized
 
     def increment_cost(self, cost: float) -> None:
-        self._raw_data["total_cost"] = float(self._raw_data["total_cost"]) + cost
+        current = float(self._state_data.get("total_cost", 0))
+        self._state_data["total_cost"] = current + cost
         self._conversation.increment_cost(cost)
 
     def set_conversation_var(self, key: str, value: Any) -> None:
@@ -240,20 +243,28 @@ class Context:
     def resolved_data(self) -> dict[str, Any]:
         return self._data
 
+    def _load_state(self) -> dict[str, Any]:
+        if os.path.exists(self._state_filepath):
+            with open(self._state_filepath) as f:
+                return yaml.load(f) or {}
+        return {}
+
     def _load_conversation(self) -> None:
         if "conversation_file" not in self._data:
             mgr = self._conversation_files
             filename = mgr.generate_filename(mgr.next_id())
             path = f"file://./conversations/{filename}"
             self._data["conversation_file"] = path
-            self._raw_data["conversation_file"] = path
+        self._state_data.setdefault(
+            "conversation_file", self._data["conversation_file"]
+        )
         os.makedirs(self.conversations_dir, exist_ok=True)
         full_path = os.path.join(self.dir, self._conversation_relpath)
         self._conversation = Conversation(full_path)
 
     def _set_conversation_file(self, filename: str) -> None:
         path = f"file://./conversations/{filename}"
-        self._raw_data["conversation_file"] = path
+        self._state_data["conversation_file"] = path
         self._data["conversation_file"] = path
         self._load_conversation()
 
@@ -276,6 +287,11 @@ class Context:
         self._data = resolver.resolve(self._data, extra_vars)
 
     # Private properties
+
+    @property
+    def _state_filepath(self) -> str:
+        base, _ = os.path.splitext(self._filepath)
+        return f"{base}.state.yml"
 
     @property
     def _search_dirs(self) -> list[str]:

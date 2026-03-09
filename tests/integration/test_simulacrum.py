@@ -101,7 +101,6 @@ async def test_simulacrum_chat(
     context_data: dict[str, Any],
     conversation_data: dict[str, Any],
 ) -> None:
-    initial_context_cost = context_data["total_cost"]
     initial_conversation_cost = conversation_data["cost"]
     initial_message_count = len(conversation_data["messages"])
     user_message = "Hello assistant"
@@ -136,14 +135,11 @@ async def test_simulacrum_chat(
     assert actual_body["messages"][2]["role"] == "user"
     assert actual_body["messages"][2]["content"][0]["text"] == user_message
 
-    # Verify contents of the context file
-    with open("context.yml") as f:
-        content = f.read()
-        new_context_data = YAML(typ="safe").load(content)
-        assert (
-            new_context_data["conversation_file"] == context_data["conversation_file"]
-        )
-        assert new_context_data["total_cost"] > initial_context_cost
+    # Verify contents of the state file
+    with open("context.state.yml") as f:
+        state_data = YAML(typ="safe").load(f)
+        assert state_data["conversation_file"] == context_data["conversation_file"]
+        assert state_data["total_cost"] > 0
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml") as f:
@@ -160,19 +156,13 @@ async def test_simulacrum_chat(
 
 
 @pytest.mark.asyncio
-async def test_new_conversation(
-    simulacrum: Simulacrum, context_data: dict[str, Any]
-) -> None:
+async def test_new_conversation(simulacrum: Simulacrum) -> None:
     await simulacrum.new_conversation()
 
-    # Verify context file updates
-    with open("context.yml") as f:
-        content = f.read()
-        new_context_data = YAML(typ="safe").load(content)
-        assert (
-            new_context_data["conversation_file"] == "file://./conversations/test_1.yml"
-        )
-        assert new_context_data["total_cost"] == context_data["total_cost"]
+    # Verify state file updates
+    with open("context.state.yml") as f:
+        state_data = YAML(typ="safe").load(f)
+        assert state_data["conversation_file"] == "file://./conversations/test_1.yml"
 
     # Verify contents of the new conversation file
     new_conversation_path = "conversations/test_1.yml"
@@ -261,11 +251,9 @@ def test_reset_conversation(
     simulacrum.reset_conversation()
 
     # Verify conversation file doesn't change
-    with open("context.yml") as f:
-        new_context_data = YAML(typ="safe").load(f)
-        assert (
-            new_context_data["conversation_file"] == context_data["conversation_file"]
-        )
+    with open("context.state.yml") as f:
+        state_data = YAML(typ="safe").load(f)
+        assert state_data["conversation_file"] == context_data["conversation_file"]
 
     # Verify conversation file was reset
     with open("conversations/test_0.yml") as f:

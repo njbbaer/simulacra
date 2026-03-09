@@ -48,6 +48,7 @@ async def test_raises_on_api_error():
 async def test_raises_on_http_error():
     with (
         _patch_httpx(_mock_response({}, status_code=500)),
+        patch("asyncio.sleep", new_callable=AsyncMock),
         pytest.raises(httpx.HTTPStatusError),
     ):
         await fetch_completion({"messages": []})

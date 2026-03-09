@@ -13,7 +13,6 @@ from src.yaml_config import yaml
 def context_data() -> dict[str, Any]:
     return {
         "character_name": "test",
-        "user_name": "user",
         "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.0,
         "api_params": {"model": "test/model"},

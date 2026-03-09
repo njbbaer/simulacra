@@ -152,10 +152,6 @@ class Context:
         return self._data["character_name"]
 
     @property
-    def user_name(self) -> str:
-        return self._data["user_name"]
-
-    @property
     def model(self) -> str:
         return self.api_params["model"]
 

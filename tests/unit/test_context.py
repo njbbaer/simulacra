@@ -10,7 +10,6 @@ from src.yaml_config import yaml
 def base_context_data():
     return {
         "character_name": "Alice",
-        "user_name": "Bob",
         "total_cost": 1.5,
         "api_params": {"model": "test/model"},
         "system_prompt": "You are {{ character_name }}.",
@@ -93,7 +92,7 @@ class TestCompactConversation:
         assert context.conversation_file == "file://./conversations/alice_1.yml"
         assert len(context.conversation_messages) == 0
         assert len(context.conversation_memories) == 1
-        assert "OTHER:" in context.conversation_memories[0]
+        assert "---" in context.conversation_memories[0]
         assert "ALICE:" in context.conversation_memories[0]
 
     def test_preserves_conversation_name(self, context):
@@ -172,7 +171,6 @@ class TestExtends:
             contents=dedent("""
                 extends: ../base.yml
                 character_name: Alice
-                user_name: Bob
                 total_cost: 0
                 api_params:
                   model: test/model
@@ -200,7 +198,6 @@ class TestTemplateResolution:
             "/test/context.yml",
             contents=dedent("""
                 character_name: Alice
-                user_name: Bob
                 total_cost: 0
                 conversation_file: file://./conversations/alice_1.yml
                 api_params:

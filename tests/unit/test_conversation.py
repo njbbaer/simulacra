@@ -60,7 +60,7 @@ class TestFormatAsMemory:
         conv.add_message("user", "Hi")
         conv.add_message("assistant", "Hello")
         result = conv.format_as_memory("Bot")
-        assert "OTHER:\n\nHi" in result
+        assert "---\n\nHi" in result
         assert "BOT:\n\nHello" in result
 
     def test_strips_tags(self, conv):

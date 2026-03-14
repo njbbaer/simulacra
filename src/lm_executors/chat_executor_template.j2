@@ -4,6 +4,9 @@
     - type: text
       text: |-
         {{ system_prompt | indent(8) }}
+      cache_control:
+        type: ephemeral
+        ttl: 1h
 {% for message in messages %}
 - role: {{ message.role }}
   content:
@@ -19,7 +22,7 @@
         {{ message.content | indent(8) }}
       {% if 'claude' in model %}
       {% set offset = messages|length - loop.index %}
-      {% if offset in [0, 1, 2, 3] %}
+      {% if offset in [0, 1, 2] %}
       cache_control:
         type: ephemeral
         ttl: 1h

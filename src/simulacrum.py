@@ -62,7 +62,8 @@ class Simulacrum:
     async def compact_conversation(self) -> None:
         self.retry_stack.clear()
         with self.context.session():
-            self.context.compact_conversation()
+            summary = await self._generate_compact_summary()
+            self.context.compact_conversation(summary)
 
     def reset_conversation(self) -> None:
         self.retry_stack.clear()
@@ -77,14 +78,12 @@ class Simulacrum:
 
     async def scene(self, user_input: str | None = None) -> str:
         with self.context.session() as session:
-            instructions = self.context.scene_instructions
+            instructions = self.context.scene_prompt
             prompt = f"<instruct>\n{instructions}\n</instruct>"
             if user_input:
                 prompt += f"\n{user_input}"
-            self.context.add_message("user", prompt)
             self.context.save()
-            content, display = await self._generate(skip_required_tags=True)
-            self.context.conversation_messages.pop()  # remove temp prompt
+            content, display = await self._generate_transient(prompt)
             metadata = {"scene": True, "scene_input": user_input}
             self.context.add_message("user", content, metadata=metadata)
         return display if not session.superseded else ""
@@ -174,11 +173,14 @@ class Simulacrum:
         with self.context.session():
             return self.context.name_conversation(name)
 
-    async def _generate(self, skip_required_tags: bool = False) -> tuple[str, str]:
+    async def _generate(
+        self,
+        skip_required_tags: bool = False,
+        skip_injected_prompt: bool = False,
+    ) -> tuple[str, str]:
         executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
-        completion = await self._execute_with_cancellation(
-            executor_cls(self.context).execute()
-        )
+        executor = executor_cls(self.context, skip_injected_prompt=skip_injected_prompt)
+        completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
         required_tags = (
             None if skip_required_tags else self.context.required_response_tags
@@ -191,6 +193,24 @@ class Simulacrum:
         if not display:
             raise ValueError("No displayable content")
         return content, display
+
+    async def _generate_compact_summary(self) -> str | None:
+        prompt = self.context.conversation_summary_prompt
+        if not prompt or not self.context.conversation_messages:
+            return None
+        content, _ = await self._generate_transient(
+            f"<instruct>\n{prompt}\n</instruct>"
+        )
+        return strip_tags(content)
+
+    async def _generate_transient(self, prompt: str) -> tuple[str, str]:
+        self.context.add_message("user", prompt)
+        try:
+            return await self._generate(
+                skip_required_tags=True, skip_injected_prompt=True
+            )
+        finally:
+            self.context.conversation_messages.pop()
 
     async def _execute_with_cancellation(
         self, coro: Coroutine[Any, Any, "ChatCompletion"]

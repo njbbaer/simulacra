@@ -16,8 +16,9 @@ class ChatExecutor:
     TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
     TRACE_PATH = "trace.yml"
 
-    def __init__(self, context) -> None:
+    def __init__(self, context, *, skip_injected_prompt: bool = False) -> None:
         self.context = context
+        self._skip_injected_prompt = skip_injected_prompt
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         merged_params = {**self.context.api_params}
@@ -40,10 +41,14 @@ class ChatExecutor:
         template_vars = {**copy.deepcopy(self.context.resolved_data)}
         messages = self.context.conversation_messages
         template_vars["messages"] = self._inject_inline_instructions(messages)
-        template_vars["injected_prompt"] = self._build_injected_prompt(
-            messages,
-            template_vars.get("reinforcement_prompt"),
-            template_vars.get("continue_prompt"),
+        template_vars["injected_prompt"] = (
+            None
+            if self._skip_injected_prompt
+            else self._build_injected_prompt(
+                messages,
+                template_vars.get("reinforcement_prompt"),
+                template_vars.get("continue_prompt"),
+            )
         )
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
         env.globals["load_base64"] = make_base64_loader(self.context.images_dir)

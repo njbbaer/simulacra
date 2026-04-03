@@ -162,7 +162,7 @@ class TelegramBot:
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:
-        if not self.sim.context.scene_instructions:
+        if not self.sim.context.scene_prompt:
             await ctx.send_message("`❌ No scene instructions configured`")
             return
         self.sim.retry_stack.clear()

@@ -15,8 +15,8 @@ class ExperimentExecutor(ChatExecutor):
     """Patched version of ChatExecutor for use in development to run multiple variations
     of Context data and choose the best response."""
 
-    def __init__(self, context) -> None:
-        super().__init__(context)
+    def __init__(self, context, **kwargs) -> None:
+        super().__init__(context, **kwargs)
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         async def execute_variation(variation_data):

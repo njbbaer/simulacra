@@ -85,8 +85,10 @@ class Context:
         filename = mgr.generate_filename(mgr.next_id(), name)
         self._set_conversation_file(filename)
 
-    def compact_conversation(self) -> None:
+    def compact_conversation(self, summary: str | None = None) -> None:
         memory = self._conversation.format_as_memory(self.character_name)
+        if summary:
+            memory = f"## Summary\n\n{summary}\n\n{memory}"
         memories = [*self._conversation.memories, memory]
         current_name = self.conversation_name
         self.new_conversation(current_name)
@@ -209,8 +211,8 @@ class Context:
         return self._data.get("experiment_variations", {})
 
     @property
-    def scene_instructions(self) -> str | None:
-        return self._data.get("scene_instructions")
+    def scene_prompt(self) -> str | None:
+        return self._data.get("scene_prompt")
 
     @property
     def post_process_prompt(self) -> str | None:
@@ -219,6 +221,10 @@ class Context:
     @property
     def document_cleanup_prompt(self) -> str | None:
         return self._data.get("document_cleanup_prompt")
+
+    @property
+    def conversation_summary_prompt(self) -> str | None:
+        return self._data.get("conversation_summary_prompt")
 
     @property
     def instruction_presets(self) -> dict[str, InstructionPreset]:

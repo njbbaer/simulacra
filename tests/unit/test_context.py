@@ -95,6 +95,18 @@ class TestCompactConversation:
         assert "---" in context.conversation_memories[0]
         assert "ALICE:" in context.conversation_memories[0]
 
+    def test_appends_summary_to_memory(self, context):
+        context.add_message("user", "Hello")
+        context.add_message("assistant", "Hi there")
+        context.compact_conversation(summary="They greeted each other.")
+
+        assert len(context.conversation_memories) == 1
+        memory = context.conversation_memories[0]
+        assert "---" in memory
+        assert "ALICE:" in memory
+        assert "## Summary" in memory
+        assert "They greeted each other." in memory
+
     def test_preserves_conversation_name(self, context):
         context.save()  # Create the conversation file on disk
         context.name_conversation("adventure")

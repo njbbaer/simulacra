@@ -85,7 +85,8 @@ class Context:
         filename = mgr.generate_filename(mgr.next_id(), name)
         self._set_conversation_file(filename)
 
-    def compact_conversation(self, summary: str | None = None) -> None:
+    def compact_conversation(self, summary: str | None = None) -> tuple[int, int]:
+        old_size = sum(len(m.content or "") for m in self._conversation.messages)
         memory = self._conversation.format_as_memory(self.character_name)
         if summary:
             memory = f"## Summary\n\n{summary}\n\n{memory}"
@@ -93,6 +94,7 @@ class Context:
         current_name = self.conversation_name
         self.new_conversation(current_name)
         self._conversation.memories = memories
+        return old_size, len(memory)
 
     def switch_conversation(self, identifier: str) -> tuple[int, str | None]:
         conv = self._conversation_files.find(identifier)

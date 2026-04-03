@@ -59,11 +59,11 @@ class Simulacrum:
         with self.context.session():
             self.context.new_conversation()
 
-    async def compact_conversation(self) -> None:
+    async def compact_conversation(self) -> tuple[int, int]:
         self.retry_stack.clear()
         with self.context.session():
             summary = await self._generate_compact_summary()
-            self.context.compact_conversation(summary)
+            return self.context.compact_conversation(summary)
 
     def reset_conversation(self) -> None:
         self.retry_stack.clear()

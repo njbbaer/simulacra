@@ -130,9 +130,11 @@ class TelegramBot:
     @message_handler
     async def _compact_conversation(self, ctx: TelegramContext) -> None:
         if self.sim.has_messages():
-            await self.sim.compact_conversation()
+            old_size, new_size = await self.sim.compact_conversation()
             self.cost_tracker.reset()
-            await ctx.send_message("`✅ Conversation compacted with memory`")
+            await ctx.send_message(
+                f"`✅ Compacted: {old_size // 4:,} → {new_size // 4:,} tokens`"
+            )
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 

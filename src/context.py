@@ -24,11 +24,12 @@ class Session:
 
 
 class Context:
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, overrides: dict | None = None) -> None:
         if os.path.isdir(path):
             dirname = os.path.basename(os.path.normpath(path))
             path = os.path.join(path, f"{dirname}.yml")
         self._filepath = path
+        self._overrides = overrides or {}
         self._session_version = 0
         self._is_ephemeral = False
         self.load()
@@ -51,6 +52,8 @@ class Context:
             self._raw_data = yaml.load(file)
         self._data = copy.deepcopy(self._raw_data)
         self._apply_extends()
+        if self._overrides:
+            self._data = merge_dicts(self._data, self._overrides)
         self._state_data = self._load_state()
         self._data.update(self._state_data)
         if not self._is_ephemeral:

@@ -55,6 +55,21 @@ Information
 /help - Show this help message
 ```
 
+### One-shot CLI
+
+`cli.py` returns a single response from a character without running the Telegram bot or persisting a conversation:
+
+```sh
+uv run cli.py example/context.yml "Hello"
+```
+
+The prompt can also be piped via stdin. Use `--set key=value` (repeatable, dotted keys nest) to override context values for the run:
+
+```sh
+uv run cli.py example/context.yml "Hello" \
+  --set api_params.temperature=0.7
+```
+
 ## Configuration
 
 The application is configured by a TOML config file, which initializes one or more Telegram bots and defines the path to their YAML context files.

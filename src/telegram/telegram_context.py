@@ -18,7 +18,7 @@ class TelegramContext:
 
     @property
     def command_body(self) -> str | None:
-        match = re.search(r"/\w+\s+(.*)", self._message.text)
+        match = re.search(r"/\w+\s+(.*)", self._message.text, re.DOTALL)
         return match.group(1) if match else None
 
     async def save_image_locally(self, base_path: str) -> str | None:

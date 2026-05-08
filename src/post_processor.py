@@ -34,7 +34,7 @@ async def _quick_completion(
 ) -> str:
     body = {
         "model": "openai/gpt-oss-120b",
-        "provider": {"sort": "latency"},
+        "provider": {"sort": "throughput"},
         "temperature": 0.0,
         "messages": [
             {"role": "system", "content": system_prompt},

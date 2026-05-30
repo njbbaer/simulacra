@@ -299,7 +299,7 @@ async def test_continue_conversation(
     )[0]
     body = json.loads(request.content)
     messages = body["messages"]
-    assert messages[-1]["role"] == "user"
+    assert messages[-1]["role"] == "system"
     assert "<instruct>Continue</instruct>" in messages[-1]["content"][0]["text"]
 
     # Verify the temp message is not persisted

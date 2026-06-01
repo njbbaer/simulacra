@@ -40,6 +40,11 @@ def main() -> None:
         metavar="KEY=VALUE",
         help="Override a context value (dotted keys for nesting). Repeatable.",
     )
+    parser.add_argument(
+        "--keep-tags",
+        action="store_true",
+        help="Keep tags in the response instead of stripping them.",
+    )
     args = parser.parse_args()
 
     prompt = args.prompt or sys.stdin.read().strip()
@@ -49,6 +54,8 @@ def main() -> None:
     overrides = _parse_overrides(args.overrides)
     sim = Simulacrum(args.context_file, ephemeral=True, overrides=overrides)
     response = asyncio.run(sim.chat(prompt, None, None))
+    if args.keep_tags:
+        response = sim.context.conversation_messages[-1].content or ""
     print(response)
 
 

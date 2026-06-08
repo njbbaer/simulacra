@@ -8,7 +8,7 @@ class ChatCompletion:
 
     @property
     def content(self) -> str:
-        return self._choice["message"]["content"].strip()
+        return (self._choice["message"]["content"] or "").strip()
 
     @property
     def prompt_tokens(self) -> int:
@@ -35,6 +35,10 @@ class ChatCompletion:
         if self._finish_reason == "length":
             raise RuntimeError("Response exceeded maximum length")
         if not self.content:
+            if self._finish_reason and self._finish_reason != "stop":
+                raise RuntimeError(
+                    f"Response was empty (finish reason: {self._finish_reason})"
+                )
             raise RuntimeError("Response was empty")
 
     @property

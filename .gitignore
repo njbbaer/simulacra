@@ -1,6 +1,6 @@
 __pycache__/
 .pytest_cache/
-trace.yml
+last_request.yml
 .env
 .vscode/
 data.csv

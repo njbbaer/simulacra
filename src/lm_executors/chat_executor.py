@@ -8,13 +8,13 @@ import yaml
 from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
 from ..message import Message
-from ..trace import Trace
+from ..request_recorder import RequestRecorder
 from ..utilities import make_base64_loader
 
 
 class ChatExecutor:
     TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
-    TRACE_PATH = "trace.yml"
+    LAST_REQUEST_PATH = "last_request.yml"
 
     def __init__(self, context, *, skip_injected_prompt: bool = False) -> None:
         self.context = context
@@ -33,7 +33,7 @@ class ChatExecutor:
             raise RuntimeError("Request timed out") from err
 
         completion = ChatCompletion(data)
-        Trace(self.TRACE_PATH).record(merged_params, messages, completion.content)
+        RequestRecorder(self.LAST_REQUEST_PATH).record(body, data)
         self.context.increment_cost(completion.cost)
         return completion
 

@@ -155,69 +155,13 @@ async def test_simulacrum_chat(
         assert new_conversation_data["messages"][-1]["content"] == "Something"
 
 
-@pytest.fixture
-def summary_context(context_data, custom_fs, conversation_data):  # noqa: ARG001
-    context_data["conversation_summary_prompt"] = "Summarize the conversation."
-    with open("context.yml", "w") as f:
-        yaml.dump(context_data, f)
-    os.makedirs("conversations", exist_ok=True)
-    with open("conversations/test_0.yml", "w") as f:
-        yaml.dump(conversation_data, f)
+def test_compact_conversation(simulacrum: Simulacrum) -> None:
+    simulacrum.compact_conversation()
 
-
-@pytest.mark.asyncio
-async def test_compact_with_summary(
-    summary_context,  # noqa: ARG001
-    mock_openrouter,
-) -> None:
-    sim = Simulacrum("context.yml")
-    await sim.compact_conversation()
-
-    # Verify the API request included the summary prompt
-    request = mock_openrouter.get_requests(
-        url="https://openrouter.ai/api/v1/chat/completions",
-    )[0]
-    body = json.loads(request.content)
-    messages = body["messages"]
-    assert messages[-1]["role"] == "user"
-    assert "<instruct>" in messages[-1]["content"][0]["text"]
-    assert "Summarize the conversation." in messages[-1]["content"][0]["text"]
-
-    # Verify the temp prompt was not persisted and conversation was compacted
-    assert len(sim.context.conversation_messages) == 0
-
-    # Verify memory includes summary
-    memories = sim.context.conversation_memories
-    assert len(memories) == 1
-    assert "## Summary" in memories[0]
-    assert "Something" in memories[0]
-
-
-@pytest.mark.asyncio
-async def test_compact_without_summary_prompt(simulacrum: Simulacrum) -> None:
-    await simulacrum.compact_conversation()
-
-    # No LLM call made, but memory still created
+    # Conversation compacted into a single memory
+    assert len(simulacrum.context.conversation_messages) == 0
     memories = simulacrum.context.conversation_memories
     assert len(memories) == 1
-    assert "## Summary" not in memories[0]
-
-
-@pytest.mark.asyncio
-async def test_compact_summary_propagates_errors(
-    summary_context,  # noqa: ARG001
-    httpx_mock,
-) -> None:
-    sim = Simulacrum("context.yml")
-    httpx_mock.add_exception(
-        RuntimeError("API error"),
-        url="https://openrouter.ai/api/v1/chat/completions",
-    )
-    with pytest.raises(RuntimeError, match="API error"):
-        await sim.compact_conversation()
-
-    # Conversation was not compacted
-    assert len(sim.context.conversation_messages) == 1
 
 
 @pytest.mark.asyncio

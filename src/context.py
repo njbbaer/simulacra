@@ -88,11 +88,9 @@ class Context:
         filename = mgr.generate_filename(mgr.next_id(), name)
         self._set_conversation_file(filename)
 
-    def compact_conversation(self, summary: str | None = None) -> tuple[int, int]:
+    def compact_conversation(self) -> tuple[int, int]:
         old_size = sum(len(m.content or "") for m in self._conversation.messages)
         memory = self._conversation.format_as_memory(self.character_name)
-        if summary:
-            memory = f"## Summary\n\n{summary}\n\n{memory}"
         memories = [*self._conversation.memories, memory]
         current_name = self.conversation_name
         self.new_conversation(current_name)
@@ -226,10 +224,6 @@ class Context:
     @property
     def document_cleanup_prompt(self) -> str | None:
         return self._data.get("document_cleanup_prompt")
-
-    @property
-    def conversation_summary_prompt(self) -> str | None:
-        return self._data.get("conversation_summary_prompt")
 
     @property
     def instruction_presets(self) -> dict[str, InstructionPreset]:

@@ -64,11 +64,10 @@ class Simulacrum:
         with self.context.session():
             self.context.new_conversation()
 
-    async def compact_conversation(self) -> tuple[int, int]:
+    def compact_conversation(self) -> tuple[int, int]:
         self.retry_stack.clear()
         with self.context.session():
-            summary = await self._generate_compact_summary()
-            return self.context.compact_conversation(summary)
+            return self.context.compact_conversation()
 
     def reset_conversation(self) -> None:
         self.retry_stack.clear()
@@ -198,15 +197,6 @@ class Simulacrum:
         if not display:
             raise ValueError("No displayable content")
         return content, display
-
-    async def _generate_compact_summary(self) -> str | None:
-        prompt = self.context.conversation_summary_prompt
-        if not prompt or not self.context.conversation_messages:
-            return None
-        content, _ = await self._generate_transient(
-            f"<instruct>\n{prompt}\n</instruct>"
-        )
-        return strip_tags(content)
 
     async def _generate_transient(self, prompt: str) -> tuple[str, str]:
         self.context.add_message("user", prompt)

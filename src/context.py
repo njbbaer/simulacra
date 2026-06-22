@@ -256,6 +256,7 @@ class Context:
         return {}
 
     def _load_conversation(self) -> None:
+        os.makedirs(self.conversations_dir, exist_ok=True)
         if "conversation_file" not in self._data:
             mgr = self._conversation_files
             filename = mgr.generate_filename(mgr.next_id())
@@ -264,7 +265,6 @@ class Context:
         self._state_data.setdefault(
             "conversation_file", self._data["conversation_file"]
         )
-        os.makedirs(self.conversations_dir, exist_ok=True)
         full_path = os.path.join(self.dir, self._conversation_relpath)
         self._conversation = Conversation(full_path)
 

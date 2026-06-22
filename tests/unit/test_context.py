@@ -19,14 +19,14 @@ def base_context_data():
 @pytest.fixture
 def context_fs(fs, base_context_data):
     fs.create_dir("/test/conversations")
-    with open("/test/context.yml", "w") as f:
+    with open("/test/alice.yml", "w") as f:
         yaml.dump(base_context_data, f)
     return fs
 
 
 @pytest.fixture
 def context(context_fs) -> Context:  # noqa: ARG001
-    ctx = Context("/test/context.yml")
+    ctx = Context("/test/alice.yml")
     ctx.load()
     return ctx
 
@@ -76,6 +76,16 @@ class TestNewConversation:
         context.new_conversation()
         assert context.conversation_file == "file://./conversations/alice_1.yml"
         assert len(context.conversation_messages) == 0
+
+    def test_names_from_context_file_not_character_name(self, fs):
+        fs.create_dir("/test/conversations")
+        with open("/test/agatha.yml", "w") as f:
+            yaml.dump(
+                {"character_name": "Alice", "api_params": {"model": "test/model"}}, f
+            )
+        ctx = Context("/test/agatha.yml")
+        ctx.new_conversation()
+        assert ctx.conversation_file == "file://./conversations/agatha_1.yml"
 
     def test_increments_conversation_id(self, context_fs, context):
         context_fs.create_file("/test/conversations/alice_1.yml")
@@ -228,23 +238,23 @@ class TestStateFile:
     def test_creates_state_file_on_save(self, context):
         context.increment_cost(1.0)
         context.save()
-        with open("/test/context.state.yml") as f:
+        with open("/test/alice.state.yml") as f:
             state = yaml.load(f)
         assert state["total_cost"] == 1.0
         assert "conversation_file" in state
 
     def test_context_file_unchanged_after_save(self, context):
-        with open("/test/context.yml") as f:
+        with open("/test/alice.yml") as f:
             original = f.read()
         context.increment_cost(10.0)
         context.save()
-        with open("/test/context.yml") as f:
+        with open("/test/alice.yml") as f:
             after = f.read()
         assert original == after
 
     def test_loads_from_state_file(self, context):
         context.increment_cost(5.0)
         context.save()
-        ctx2 = Context("/test/context.yml")
+        ctx2 = Context("/test/alice.yml")
         ctx2.load()
         assert ctx2._state_data["total_cost"] == 5.0

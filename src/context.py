@@ -308,8 +308,12 @@ class Context:
         return dirs
 
     @property
+    def _context_name(self) -> str:
+        return os.path.splitext(os.path.basename(self._filepath))[0]
+
+    @property
     def _conversation_files(self) -> ConversationFiles:
-        return ConversationFiles(self.conversations_dir, self.character_name)
+        return ConversationFiles(self.conversations_dir, self._context_name)
 
     @property
     def _conversation_relpath(self) -> str:

@@ -6,10 +6,10 @@ ConversationFile = namedtuple("ConversationFile", ["filename", "id", "name"])
 
 
 class ConversationFiles:
-    def __init__(self, conversations_dir: str, character_name: str):
+    def __init__(self, conversations_dir: str, prefix: str):
         self._dir = conversations_dir
-        self._character = character_name.lower()
-        self._pattern = re.compile(rf"^{self._character}_(\d+)(?:_(.+))?\.yml$")
+        self._prefix = prefix.lower()
+        self._pattern = re.compile(rf"^{self._prefix}_(\d+)(?:_(.+))?\.yml$")
 
     def list(self) -> list[ConversationFile]:
         return [
@@ -48,8 +48,8 @@ class ConversationFiles:
 
     def generate_filename(self, conv_id: int, name: str | None = None) -> str:
         if name:
-            return f"{self._character}_{conv_id}_{self.sanitize_name(name)}.yml"
-        return f"{self._character}_{conv_id}.yml"
+            return f"{self._prefix}_{conv_id}_{self.sanitize_name(name)}.yml"
+        return f"{self._prefix}_{conv_id}.yml"
 
     def sanitize_name(self, name: str) -> str:
         sanitized = re.sub(r"[^a-z0-9_]", "", name.lower().replace(" ", "_"))

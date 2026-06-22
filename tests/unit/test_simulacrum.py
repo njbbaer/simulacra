@@ -310,20 +310,20 @@ class TestSyncBook:
         assert msg.metadata["end_idx"] == BOOK_TEXT.index("\n", BOOK_TEXT.index("hero"))
         assert 0 < progress < 1
 
-    def test_appends_reminder_from_context(self, book_sim):
+    def test_appends_postscript_from_context(self, book_sim):
         with open("context.yml") as f:
             data = yaml.load(f)
-        data["book_reminder"] = "Stay in character."
+        data["book_postscript"] = "Stay in character."
         with open("context.yml", "w") as f:
             yaml.dump(data, f)
         book_sim.sync_book("hero sets out")
         msg = book_sim.context.conversation_messages[-1]
-        assert "<reminder>\nStay in character.\n</reminder>" in msg.content
+        assert msg.content.endswith("</book_content>\n\nStay in character.")
 
-    def test_omits_reminder_when_unset(self, book_sim):
+    def test_omits_postscript_when_unset(self, book_sim):
         book_sim.sync_book("hero sets out")
         msg = book_sim.context.conversation_messages[-1]
-        assert "<reminder>" not in msg.content
+        assert msg.content.endswith("</book_content>")
 
     def test_raises_without_book_path(self, sim):
         with pytest.raises(ValueError, match="No book path set"):

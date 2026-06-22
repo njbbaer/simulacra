@@ -191,8 +191,8 @@ class Context:
         return None
 
     @property
-    def book_reminder(self) -> str | None:
-        return self._data.get("book_reminder")
+    def book_postscript(self) -> str | None:
+        return self._data.get("book_postscript")
 
     @property
     def last_book_position(self) -> int | None:

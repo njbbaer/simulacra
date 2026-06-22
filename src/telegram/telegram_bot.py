@@ -271,11 +271,12 @@ class TelegramBot:
     @message_handler
     async def _sync_book(self, ctx: TelegramContext) -> None:
         query = ctx.command_body or ""
-        book_chunk = self.sim.sync_book(query)
-        num_words = len(book_chunk.split())
-        chunk_sample = " ".join(book_chunk.split()[-10:])
+        chunk, progress = self.sim.sync_book(query)
+        num_words = len(chunk.split())
+        chunk_sample = " ".join(chunk.split()[-10:])
         await ctx.send_message(
-            f"`_...{chunk_sample}_\n\n📖 Synced {num_words:,} words.`"
+            f"`_...{chunk_sample}_\n\n📖 Synced {num_words:,} words, "
+            f"now {progress:.0%} through the book.`"
         )
 
     @message_handler

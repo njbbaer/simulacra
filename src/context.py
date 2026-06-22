@@ -191,6 +191,10 @@ class Context:
         return None
 
     @property
+    def book_reminder(self) -> str | None:
+        return self._data.get("book_reminder")
+
+    @property
     def last_book_position(self) -> int | None:
         for message in reversed(self.conversation_messages):
             metadata = message.metadata or {}

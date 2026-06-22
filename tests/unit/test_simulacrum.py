@@ -49,6 +49,22 @@ def sim(fs, context_data, conversation_data):
     return Simulacrum("context.yml")
 
 
+BOOK_TEXT = "Page one begins.\nThe hero sets out.\nThe quest is complete.\n"
+
+
+@pytest.fixture
+def book_sim(sim):
+    with open("book.txt", "w") as f:
+        f.write(BOOK_TEXT)
+    with open("context.yml") as f:
+        data = yaml.load(f)
+    data["book_path"] = "book.txt"
+    with open("context.yml", "w") as f:
+        yaml.dump(data, f)
+    sim.context.load()
+    return sim
+
+
 class TestExtractInlineInstruction:
     def test_with_instruction(self):
         text, instruction = Simulacrum._extract_inline_instruction("Hello [be concise]")
@@ -281,3 +297,34 @@ class TestChat:
         )
         assert "<document>\ndoc1\n</document>" in user_msg.content
         assert "<document>\ndoc2\n</document>" in user_msg.content
+
+
+class TestSyncBook:
+    def test_appends_book_content_with_bookmark(self, book_sim):
+        chunk, progress = book_sim.sync_book("hero sets out")
+        msg = book_sim.context.conversation_messages[-1]
+        assert msg.role == "user"
+        assert "<book_content>" in msg.content
+        assert "The hero sets out." in msg.content
+        assert chunk == msg.content[len("<book_content>\n") : -len("\n</book_content>")]
+        assert msg.metadata["end_idx"] == BOOK_TEXT.index("\n", BOOK_TEXT.index("hero"))
+        assert 0 < progress < 1
+
+    def test_appends_reminder_from_context(self, book_sim):
+        with open("context.yml") as f:
+            data = yaml.load(f)
+        data["book_reminder"] = "Stay in character."
+        with open("context.yml", "w") as f:
+            yaml.dump(data, f)
+        book_sim.sync_book("hero sets out")
+        msg = book_sim.context.conversation_messages[-1]
+        assert "<reminder>\nStay in character.\n</reminder>" in msg.content
+
+    def test_omits_reminder_when_unset(self, book_sim):
+        book_sim.sync_book("hero sets out")
+        msg = book_sim.context.conversation_messages[-1]
+        assert "<reminder>" not in msg.content
+
+    def test_raises_without_book_path(self, sim):
+        with pytest.raises(ValueError, match="No book path set"):
+            sim.sync_book("anything")

@@ -108,8 +108,15 @@ A context file contains the following keys:
 | `vars` | Template variables object |
 | `├─ system_prompt` | The bot's system prompt |
 | `└─ <key>` | Additional template variables |
+| `book_path` | Relative path to a book text file for co-reading (see below) |
 
 Conversations are stored separately in a `conversations/` directory. Changes to the context file take effect immediately.
+
+### Co-reading with /syncbook
+
+If `book_path` points to a plain-text book, you can read it on your own and keep the bot in sync with where you are, so it has read exactly what you have and won't spoil what's ahead.
+
+Send `/syncbook <a short quote from where you stopped>`. The quote is fuzzy-matched in the book, and everything from your last position up to that point is added to the conversation as the bot's reading. The bookmark is tracked automatically, so each `/syncbook` continues from where the previous one left off. Send `/syncbook` with no quote to sync the entire remainder of the book.
 
 ## Docker
 

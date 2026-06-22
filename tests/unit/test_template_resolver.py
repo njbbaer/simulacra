@@ -57,6 +57,17 @@ def test_search_dirs_local_takes_priority(fs):
     assert result["content"] == "from local"
 
 
+def test_nested_load_resolves_relative_to_including_file(fs):
+    fs.create_file(
+        "/character_a/template.j2", contents="{{ load_string('detail.md') }}"
+    )
+    fs.create_file("/character_a/detail.md", contents="a's detail")
+    resolver = TemplateResolver("/character_b")
+    data = {"content": "{{ load_string('../character_a/template.j2') }}"}
+    result = resolver.resolve(data, {})
+    assert result["content"] == "a's detail"
+
+
 def test_load_yaml_file(fs):
     fs.create_file("/config/data.yml", contents="key: value\ncount: 42")
     resolver = TemplateResolver("/config")

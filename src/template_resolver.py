@@ -13,6 +13,7 @@ class TemplateResolver:
     def __init__(self, base_dir: str, search_dirs: list[str] | None = None) -> None:
         self._base_dir = base_dir
         self._search_dirs = search_dirs or []
+        self._dir_stack = [base_dir]
         self._env = NativeEnvironment(
             trim_blocks=True, lstrip_blocks=True, autoescape=False
         )
@@ -60,12 +61,15 @@ class TemplateResolver:
         full_path = self._full_path(filepath)
         with open(full_path) as f:
             content = f.read()
+        self._dir_stack.append(os.path.dirname(full_path))
         try:
             rendered = self._env.from_string(content).render(**self._variables)
         except TemplateSyntaxError as e:
             raise TemplateSyntaxError(
                 f"{e.message}\n({full_path}, line {e.lineno})", e.lineno
             ) from e
+        finally:
+            self._dir_stack.pop()
         return re.sub(r"\n{3,}", "\n\n", rendered)
 
     def _load_yaml(self, filepath: str) -> Any:
@@ -79,10 +83,14 @@ class TemplateResolver:
         return content.strip() + "\n\n---" if content.strip() else ""
 
     def _full_path(self, filepath: str) -> str:
-        path = os.path.join(self._base_dir, filepath)
+        path = os.path.join(self._current_dir, filepath)
         if not os.path.exists(path):
             for search_dir in self._search_dirs:
                 candidate = os.path.join(search_dir, filepath)
                 if os.path.exists(candidate):
                     return os.path.abspath(candidate)
         return os.path.abspath(path)
+
+    @property
+    def _current_dir(self) -> str:
+        return self._dir_stack[-1]

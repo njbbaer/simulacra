@@ -4,6 +4,7 @@ import sys
 
 import dotenv
 
+from src.context import Context
 from src.simulacrum import Simulacrum
 from src.utilities import parse_value
 
@@ -45,13 +46,22 @@ def main() -> None:
         action="store_true",
         help="Keep tags in the response instead of stripping them.",
     )
+    parser.add_argument(
+        "--render",
+        action="store_true",
+        help="Print the resolved system prompt and exit.",
+    )
     args = parser.parse_args()
+    overrides = _parse_overrides(args.overrides)
+
+    if args.render:
+        context = Context(args.context_file, overrides=overrides)
+        print(context.resolved_data["system_prompt"].rstrip())
+        return
 
     prompt = args.prompt or sys.stdin.read().strip()
     if not prompt:
         parser.error("No prompt provided")
-
-    overrides = _parse_overrides(args.overrides)
     sim = Simulacrum(args.context_file, ephemeral=True, overrides=overrides)
     response = asyncio.run(sim.chat(prompt, None, None))
     if args.keep_tags:

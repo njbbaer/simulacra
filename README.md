@@ -70,6 +70,12 @@ uv run cli.py example/context.yml "Hello" \
   --set api_params.temperature=0.7
 ```
 
+Use `--render` to print the resolved system prompt without calling the API:
+
+```sh
+uv run cli.py example/context.yml --render
+```
+
 ## Configuration
 
 The application is configured by a TOML config file, which initializes one or more Telegram bots and defines the path to their YAML context files.

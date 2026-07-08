@@ -197,6 +197,66 @@ class TestExtends:
         assert "extends" not in context._data
         assert context._data["character_name"] == "Alice"
 
+    def test_chained_extends(self, fs):
+        fs.create_dir("/test/conversations")
+        fs.create_file(
+            "/shared/root.yml",
+            contents=dedent("""
+                api_params:
+                  model: root/model
+                root_field: from_root
+            """),
+        )
+        fs.create_file(
+            "/parent/parent.yml",
+            contents=dedent("""
+                extends: ../shared/root.yml
+                character_name: Alice
+                parent_field: from_parent
+            """),
+        )
+        fs.create_file(
+            "/test/context.yml",
+            contents=dedent("""
+                extends: ../parent/parent.yml
+                total_cost: 0
+                parent_field: overridden
+            """),
+        )
+        ctx = Context("/test/context.yml")
+        ctx.load()
+        assert ctx._data["character_name"] == "Alice"
+        assert ctx._data["root_field"] == "from_root"
+        assert ctx._data["parent_field"] == "overridden"
+        assert "extends" not in ctx._data
+
+    def test_inherits_extended_content_dirs(self, fs):
+        fs.create_dir("/test/conversations")
+        fs.create_file("/parent/content/doc.md", contents="parent doc")
+        fs.create_file("/parent/content/shadowed.md", contents="from parent")
+        fs.create_file("/test/content/shadowed.md", contents="from child")
+        fs.create_file(
+            "/parent/parent.yml",
+            contents=dedent("""
+                character_name: Alice
+                api_params:
+                  model: test/model
+            """),
+        )
+        fs.create_file(
+            "/test/context.yml",
+            contents=dedent("""
+                extends: ../parent/parent.yml
+                total_cost: 0
+                system_prompt: "{{ load_string('doc.md') }}"
+                other_prompt: "{{ load_string('shadowed.md') }}"
+            """),
+        )
+        ctx = Context("/test/context.yml")
+        ctx.load()
+        assert ctx._data["system_prompt"] == "parent doc"
+        assert ctx._data["other_prompt"] == "from child"
+
 
 class TestTemplateResolution:
     def test_resolves_templates_with_context_vars(self, context):

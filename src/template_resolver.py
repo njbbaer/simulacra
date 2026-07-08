@@ -70,7 +70,8 @@ class TemplateResolver:
             ) from e
         finally:
             self._dir_stack.pop()
-        return re.sub(r"\n{3,}", "\n\n", rendered)
+        # NativeEnvironment renders templates with no output as None
+        return re.sub(r"\n{3,}", "\n\n", rendered or "")
 
     def _load_yaml(self, filepath: str) -> Any:
         with open(self._full_path(filepath)) as f:

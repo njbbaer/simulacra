@@ -275,13 +275,18 @@ class Context:
         self._load_conversation()
 
     def _apply_extends(self) -> None:
-        extends = self._data.pop("extends", None)
+        self._extend_dirs: list[str] = []
+        self._data = self._extend_data(self._data, self.dir)
+
+    def _extend_data(self, data: dict[str, Any], base_dir: str) -> dict[str, Any]:
+        extends = data.pop("extends", None)
         if not extends:
-            return
-        base_path = os.path.join(self.dir, extends)
-        with open(base_path) as f:
-            base_data = yaml.load(f)
-        self._data = merge_dicts(base_data, self._data)
+            return data
+        path = os.path.join(base_dir, extends)
+        self._extend_dirs.append(os.path.dirname(path))
+        with open(path) as f:
+            base_data = self._extend_data(yaml.load(f), os.path.dirname(path))
+        return merge_dicts(base_data, data)
 
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir, self._search_dirs)
@@ -301,7 +306,7 @@ class Context:
 
     @property
     def _search_dirs(self) -> list[str]:
-        dirs = [os.path.join(self.dir, "content")]
+        dirs = [os.path.join(d, "content") for d in [self.dir, *self._extend_dirs]]
         shared_dir = self._data.get("shared_dir")
         if shared_dir:
             dirs.append(os.path.join(self.dir, shared_dir))

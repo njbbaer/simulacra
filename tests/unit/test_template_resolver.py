@@ -68,6 +68,14 @@ def test_nested_load_resolves_relative_to_including_file(fs):
     assert result["content"] == "a's detail"
 
 
+def test_load_string_empty_output_returns_empty_string(fs):
+    fs.create_file("/templates/empty.j2", contents="{# comment only #}\n")
+    resolver = TemplateResolver("/templates")
+    data = {"content": "x{{ load_string('empty.j2') }}"}
+    result = resolver.resolve(data, {})
+    assert result["content"] == "x"
+
+
 def test_load_yaml_file(fs):
     fs.create_file("/config/data.yml", contents="key: value\ncount: 42")
     resolver = TemplateResolver("/config")

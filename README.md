@@ -100,7 +100,9 @@ A context file contains the following keys:
 
 | Key | Description |
 | --- | ----------- |
+| `extends` | Relative path to a base context file to inherit from (chainable) |
 | `character_name` | The bot's character name |
+| `shared_dir` | Relative path to a directory of shared template files |
 | `conversation_file` | Relative file link to the conversation file (auto-generated) |
 | `api_params` | API configuration object |
 | `├─ model` | The model to use for the API |

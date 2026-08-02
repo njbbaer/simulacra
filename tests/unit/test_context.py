@@ -289,6 +289,36 @@ class TestTemplateResolution:
         ctx.load()
         assert ctx._data["system_prompt"] == "Mood: happy"
 
+    def test_provides_model_to_templates(self, fs, base_context_data):
+        fs.create_dir("/test/conversations")
+        base_context_data["system_prompt"] = "Model: {{ api_params.model }}"
+        with open("/test/alice.yml", "w") as f:
+            yaml.dump(base_context_data, f)
+        ctx = Context("/test/alice.yml")
+        assert ctx._data["system_prompt"] == "Model: test/model"
+
+
+class TestModel:
+    def test_extending_context_overrides_model(self, context_fs):  # noqa: ARG002
+        with open("/test/base.yml", "w") as f:
+            yaml.dump(
+                {
+                    "character_name": "Alice",
+                    "api_params": {"model": "base/model", "temperature": 0.5},
+                },
+                f,
+            )
+        with open("/test/child.yml", "w") as f:
+            child = {"extends": "base.yml", "api_params": {"model": "child/model"}}
+            yaml.dump(child, f)
+        ctx = Context("/test/child.yml")
+        assert ctx.model == "child/model"
+        assert ctx.api_params["temperature"] == 0.5  # Siblings survive the merge
+
+    def test_override_sets_model(self, context_fs):  # noqa: ARG002
+        ctx = Context("/test/alice.yml", overrides={"api_params": {"model": "other"}})
+        assert ctx.model == "other"
+
 
 class TestStateFile:
     def test_empty_state_when_no_state_file(self, context):

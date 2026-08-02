@@ -110,12 +110,11 @@ A context file contains the following keys:
 | `character_name` | The bot's character name |
 | `shared_dir` | Relative path to a directory of shared template files |
 | `conversation_file` | Relative file link to the conversation file (auto-generated) |
-| `api_params` | API configuration object |
+| `api_params` | API request body |
 | `├─ model` | The model to use for the API |
 | `└─ <key>` | Additional API parameters (e.g. temperature, max_tokens) |
-| `vars` | Template variables object |
-| `├─ system_prompt` | The bot's system prompt |
-| `└─ <key>` | Additional template variables |
+| `system_prompt` | The bot's system prompt |
+| `<key>` | Any additional key is available to templates as a variable |
 | `book_path` | Relative path to a book text file for co-reading (see below) |
 
 Conversations are stored separately in a `conversations/` directory. Changes to the context file take effect immediately.

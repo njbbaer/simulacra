@@ -293,7 +293,6 @@ class Context:
         extra_vars = {
             "memories": self.conversation_memories,
             "vars": self.conversation_vars,
-            "model": self.model,
         }
         self._data = resolver.resolve(self._data, extra_vars)
 

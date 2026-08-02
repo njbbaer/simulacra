@@ -28,14 +28,6 @@ def strip_tags(content: str) -> str:
     return re.sub(r"<[^>]+>.*?</[^>]+>", "", content, flags=re.DOTALL).strip()
 
 
-def extract_tag(content: str, tag: str) -> str:
-    pattern = rf"<{re.escape(tag)}(?:\s[^>]*)?>(?P<content>.*?)</{re.escape(tag)}>"
-    match = re.search(pattern, content, flags=re.DOTALL)
-    if match is None:
-        raise ValueError(f"Tag '{tag}' not found in response")
-    return match.group("content").strip()
-
-
 def _apply_patterns(content: str, patterns: list[Pattern]) -> str:
     for p in patterns:
         if re.search(p.pattern, content, flags=re.DOTALL):

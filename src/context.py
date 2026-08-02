@@ -180,10 +180,6 @@ class Context:
         return conv.name if conv else None
 
     @property
-    def pricing(self) -> dict[str, Any] | None:
-        return self._data.get("pricing")
-
-    @property
     def book_path(self) -> str | None:
         path = self._data.get("book_path")
         if path:

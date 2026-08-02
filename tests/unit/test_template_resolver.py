@@ -74,11 +74,3 @@ def test_load_string_empty_output_returns_empty_string(fs):
     data = {"content": "x{{ load_string('empty.j2') }}"}
     result = resolver.resolve(data, {})
     assert result["content"] == "x"
-
-
-def test_load_yaml_file(fs):
-    fs.create_file("/config/data.yml", contents="key: value\ncount: 42")
-    resolver = TemplateResolver("/config")
-    data = {"loaded": "{{ load_yaml('data.yml') }}"}
-    result = resolver.resolve(data, {})
-    assert result["loaded"] == {"key": "value", "count": 42}

@@ -1,6 +1,6 @@
 import pytest
 
-from src.response_transform import Pattern, extract_tag, strip_tags, transform_response
+from src.response_transform import Pattern, strip_tags, transform_response
 
 
 def test_raises_when_required_tag_missing():
@@ -11,11 +11,6 @@ def test_raises_when_required_tag_missing():
 def test_display_returns_content_outside_tags():
     content = "<thinking>ignore</thinking>show this<response>also ignore</response>"
     assert strip_tags(content) == "show this"
-
-
-def test_extracts_tag_content():
-    content = "<outer><inner>value</inner></outer>"
-    assert extract_tag(content, "inner") == "value"
 
 
 def test_apply_patterns():

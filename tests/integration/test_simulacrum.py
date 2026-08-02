@@ -23,7 +23,6 @@ def context_data() -> dict[str, Any]:
         "character_name": "test",
         "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.1,
-        "pricing": [1, 2],
         "api_params": {"model": "anthropic/claude", "temperature": 0.7},
         "system_prompt": "Say something!",
         "scene_prompt": "Describe the scene.",

@@ -6,8 +6,6 @@ from typing import Any
 from jinja2 import TemplateSyntaxError
 from jinja2.nativetypes import NativeEnvironment
 
-from .yaml_config import yaml
-
 
 class TemplateResolver:
     def __init__(self, base_dir: str, search_dirs: list[str] | None = None) -> None:
@@ -18,7 +16,6 @@ class TemplateResolver:
             trim_blocks=True, lstrip_blocks=True, autoescape=False
         )
         self._env.globals["load_string"] = self._load_string
-        self._env.globals["load_yaml"] = self._load_yaml
         self._env.globals["load_section"] = self._load_section
         self._variables: dict[str, Any] = {}
 
@@ -72,10 +69,6 @@ class TemplateResolver:
             self._dir_stack.pop()
         # NativeEnvironment renders templates with no output as None
         return re.sub(r"\n{3,}", "\n\n", rendered or "")
-
-    def _load_yaml(self, filepath: str) -> Any:
-        with open(self._full_path(filepath)) as f:
-            return yaml.load(f)
 
     def _load_section(self, filepath: str | None) -> str:
         if not filepath:

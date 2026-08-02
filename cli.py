@@ -55,7 +55,7 @@ def main() -> None:
     overrides = _parse_overrides(args.overrides)
 
     if args.render:
-        context = Context(args.context_file, overrides=overrides)
+        context = Context(args.context_file, overrides=overrides, ephemeral=True)
         print(context.resolved_data["system_prompt"].rstrip())
         return
 

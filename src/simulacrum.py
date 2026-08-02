@@ -32,9 +32,7 @@ class Simulacrum:
         ephemeral: bool = False,
         overrides: dict | None = None,
     ) -> None:
-        self.context = Context(context_file, overrides=overrides)
-        if ephemeral:
-            self.context.use_ephemeral_conversation()
+        self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
         self.last_completion: ChatCompletion | None = None
         self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None

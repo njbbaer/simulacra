@@ -24,14 +24,18 @@ class Session:
 
 
 class Context:
-    def __init__(self, path: str, overrides: dict | None = None) -> None:
+    def __init__(
+        self, path: str, overrides: dict | None = None, ephemeral: bool = False
+    ) -> None:
         if os.path.isdir(path):
             dirname = os.path.basename(os.path.normpath(path))
             path = os.path.join(path, f"{dirname}.yml")
         self._filepath = path
         self._overrides = overrides or {}
         self._session_version = 0
-        self._is_ephemeral = False
+        self._is_ephemeral = ephemeral
+        if ephemeral:
+            self._conversation = Conversation.empty()
         self.load()
 
     @contextmanager
@@ -78,10 +82,6 @@ class Context:
 
     def reset_conversation(self) -> None:
         self._conversation.reset()
-
-    def use_ephemeral_conversation(self) -> None:
-        self._conversation = Conversation.empty()
-        self._is_ephemeral = True
 
     def new_conversation(self, name: str | None = None) -> None:
         mgr = self._conversation_files

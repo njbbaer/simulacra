@@ -28,7 +28,9 @@ class ExperimentExecutor(ChatExecutor):
                 variation_context.resolved_data, variation_data
             )
 
-            executor = ChatExecutor(variation_context)
+            executor = ChatExecutor(
+                variation_context, skip_injected_prompt=self._skip_injected_prompt
+            )
             return await executor.execute(params)
 
         tasks = []
@@ -41,6 +43,10 @@ class ExperimentExecutor(ChatExecutor):
 
         print("Generating variations...")
         results = await asyncio.gather(*tasks)
+
+        # Variations bill their copied context, so charge every one to the real one
+        for result in results:
+            self.context.increment_cost(result.cost)
 
         for i, result in enumerate(results):
             content = transform_response(

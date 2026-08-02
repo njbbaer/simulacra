@@ -11,6 +11,8 @@ import trafilatura
 from curl_cffi.requests import AsyncSession
 from curl_cffi.requests.errors import RequestsError
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+
 
 @backoff.on_exception(backoff.expo, RequestsError, max_tries=3)
 async def extract_url_content(text: str | None) -> tuple[str | None, str | None]:

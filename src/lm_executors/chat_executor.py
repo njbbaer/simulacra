@@ -1,4 +1,5 @@
 import copy
+import os
 from typing import Any
 
 import httpx
@@ -9,12 +10,12 @@ from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
 from ..message import Message
 from ..request_recorder import RequestRecorder
-from ..utilities import make_base64_loader
+from ..utilities import PROJECT_ROOT, make_base64_loader
 
 
 class ChatExecutor:
-    TEMPLATE_PATH = "src/lm_executors/chat_executor_template.j2"
-    LAST_REQUEST_PATH = "last_request.yml"
+    TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "chat_executor_template.j2")
+    LAST_REQUEST_PATH = os.path.join(PROJECT_ROOT, "last_request.yml")
 
     def __init__(self, context, *, skip_injected_prompt: bool = False) -> None:
         self.context = context

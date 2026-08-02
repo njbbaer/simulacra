@@ -11,7 +11,7 @@ from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
-from ..utilities import extract_url_content
+from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
 from .message_handler import message_handler
 from .telegram_context import TelegramContext
@@ -20,6 +20,8 @@ from .telegram_context import TelegramContext
 
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)
+
+PYPROJECT_PATH = os.path.join(PROJECT_ROOT, "pyproject.toml")
 
 
 class TelegramBot:
@@ -316,7 +318,7 @@ class TelegramBot:
 
     @message_handler
     async def _version(self, ctx: TelegramContext) -> None:
-        async with aiofiles.open("pyproject.toml", "rb") as f:
+        async with aiofiles.open(PYPROJECT_PATH, "rb") as f:
             content = await f.read()
             pyproject = tomllib.loads(content.decode())
         await ctx.send_message(f"`📦 Version: {pyproject['project']['version']}`")

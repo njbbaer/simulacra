@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import os
 import random
 from typing import Any
 
@@ -7,13 +8,15 @@ import aiofiles
 
 from ..chat_completion import ChatCompletion
 from ..response_transform import strip_tags, transform_response
-from ..utilities import merge_dicts
+from ..utilities import PROJECT_ROOT, merge_dicts
 from .chat_executor import ChatExecutor
 
 
 class ExperimentExecutor(ChatExecutor):
     """Patched version of ChatExecutor for use in development to run multiple variations
     of Context data and choose the best response."""
+
+    LOG_PATH = os.path.join(PROJECT_ROOT, "experiment_log.txt")
 
     def __init__(self, context, **kwargs) -> None:
         super().__init__(context, **kwargs)
@@ -50,7 +53,7 @@ class ExperimentExecutor(ChatExecutor):
 
         choice = int(input(f"\nSelect response (1-{len(results)}): ")) - 1
 
-        async with aiofiles.open("experiment_log.txt", "a") as f:
+        async with aiofiles.open(self.LOG_PATH, "a") as f:
             await f.write(f"{variation_names[choice]}\n")
 
         return results[choice]

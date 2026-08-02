@@ -6,13 +6,14 @@ from typing import Any
 import pytest
 from ruamel.yaml import YAML
 
+from src.lm_executors import ChatExecutor
 from src.simulacrum import Simulacrum
 from src.yaml_config import yaml
 
 
 @pytest.fixture
 def custom_fs(fs):
-    fs.add_real_file("src/lm_executors/chat_executor_template.j2")
+    fs.add_real_file(ChatExecutor.TEMPLATE_PATH)
     return fs
 
 

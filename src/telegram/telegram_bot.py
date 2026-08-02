@@ -13,7 +13,7 @@ from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
 from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
-from .message_handler import message_handler
+from .message_handler import message_handler, requires_body
 from .telegram_context import TelegramContext
 
 # fmt: on
@@ -204,11 +204,9 @@ class TelegramBot:
         await ctx.send_message("`🗑️ Current conversation cleared`")
 
     @message_handler
-    async def _set_var(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ Usage: /set <key> <value>`")
-            return
-        parts = ctx.command_body.split(maxsplit=1)
+    @requires_body("/set <key> <value>")
+    async def _set_var(self, ctx: TelegramContext, body: str) -> None:
+        parts = body.split(maxsplit=1)
         if len(parts) < 2:
             await ctx.send_message("`❌ Usage: /set <key> <value>`")
             return
@@ -217,11 +215,9 @@ class TelegramBot:
         await ctx.send_message(f"`✅ Set {key} = {value}`")
 
     @message_handler
-    async def _apply_preset(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ Usage: /preset <key> [message]`")
-            return
-        parts = ctx.command_body.split(maxsplit=1)
+    @requires_body("/preset <key> [message]")
+    async def _apply_preset(self, ctx: TelegramContext, body: str) -> None:
+        parts = body.split(maxsplit=1)
         key = parts[0]
         message = parts[1] if len(parts) > 1 else None
         preset_name = self.sim.apply_instruction(key)
@@ -234,11 +230,11 @@ class TelegramBot:
             await ctx.send_message(f"`✅ Applied preset '{preset_name}'`")
 
     @message_handler
-    async def _apply_freeform_instruction(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ No text provided`")
-            return
-        self.sim.apply_instruction(ctx.command_body)
+    @requires_body("/instruct <text>")
+    async def _apply_freeform_instruction(
+        self, ctx: TelegramContext, body: str
+    ) -> None:
+        self.sim.apply_instruction(body)
         await ctx.send_message("`✅ Applied instructions`")
 
     @message_handler
@@ -282,39 +278,27 @@ class TelegramBot:
         )
 
     @message_handler
-    async def _parrot(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ No text provided`")
-            return
-        await ctx.send_response(ctx.command_body)
+    @requires_body("/parrot <text>")
+    async def _parrot(self, ctx: TelegramContext, body: str) -> None:
+        await ctx.send_response(body)
 
     @message_handler
-    async def _switch_conversation(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ Usage: /switch <id|name>`")
-            return
-        try:
-            conv_id, conv_name = self.sim.switch_conversation(ctx.command_body)
-            self.cost_tracker.reset()
-            if conv_name:
-                await ctx.send_message(
-                    f"`✅ Switched to conversation #{conv_id} ({conv_name})`"
-                )
-            else:
-                await ctx.send_message(f"`✅ Switched to conversation #{conv_id}`")
-        except ValueError as e:
-            await ctx.send_message(f"`❌ {e}`")
+    @requires_body("/switch <id|name>")
+    async def _switch_conversation(self, ctx: TelegramContext, body: str) -> None:
+        conv_id, conv_name = self.sim.switch_conversation(body)
+        self.cost_tracker.reset()
+        if conv_name:
+            await ctx.send_message(
+                f"`✅ Switched to conversation #{conv_id} ({conv_name})`"
+            )
+        else:
+            await ctx.send_message(f"`✅ Switched to conversation #{conv_id}`")
 
     @message_handler
-    async def _name_conversation(self, ctx: TelegramContext) -> None:
-        if not ctx.command_body:
-            await ctx.send_message("`❌ Usage: /name <name>`")
-            return
-        try:
-            sanitized = self.sim.name_conversation(ctx.command_body)
-            await ctx.send_message(f"`✅ Conversation named '{sanitized}'`")
-        except ValueError as e:
-            await ctx.send_message(f"`❌ {e}`")
+    @requires_body("/name <name>")
+    async def _name_conversation(self, ctx: TelegramContext, body: str) -> None:
+        sanitized = self.sim.name_conversation(body)
+        await ctx.send_message(f"`✅ Conversation named '{sanitized}'`")
 
     @message_handler
     async def _version(self, ctx: TelegramContext) -> None:

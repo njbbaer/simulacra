@@ -2,8 +2,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ruamel.yaml.scalarstring import LiteralScalarString
-
 from .message import Message
 from .response_transform import strip_tags
 from .yaml_config import yaml
@@ -37,11 +35,7 @@ class Conversation:
             "created_at": self.created_at,
             "cost": self.cost,
             **({"vars": self.vars} if self.vars else {}),
-            **(
-                {"memories": [LiteralScalarString(m) for m in self.memories]}
-                if self.memories
-                else {}
-            ),
+            **({"memories": self.memories} if self.memories else {}),
             "messages": [msg.to_dict() for msg in self.messages],
         }
         with open(self._filepath, "w") as file:

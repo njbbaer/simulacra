@@ -1,7 +1,5 @@
 from typing import Any
 
-from ruamel.yaml.scalarstring import LiteralScalarString
-
 
 class Message:
     def __init__(
@@ -19,7 +17,7 @@ class Message:
     def to_dict(self) -> dict[str, Any]:
         return {
             "role": self.role,
-            **({"content": LiteralScalarString(self.content)} if self.content else {}),
+            **({"content": self.content} if self.content else {}),
             **({"image": self.image} if self.image else {}),
             **({"metadata": self.metadata} if self.metadata else {}),
         }

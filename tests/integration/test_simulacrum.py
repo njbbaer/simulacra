@@ -1,4 +1,5 @@
 # ruff: noqa: ASYNC230
+import copy
 import json
 import os
 from typing import Any
@@ -92,6 +93,82 @@ def mock_openrouter(
         json=mock_completion_response,
     )
     return httpx_mock
+
+
+@pytest.fixture
+def post_process_simulacrum(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["post_process"] = {
+        "prompt": "Revise the draft.",
+        "api_params": {"model": "test/editor"},
+    }
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return simulacrum
+
+
+@pytest.fixture
+def mock_edited_response(
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+):
+    edited = copy.deepcopy(mock_completion_response)
+    edited["choices"][0]["message"]["content"] = "Edited"
+    mock_openrouter.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=edited,
+    )
+    return mock_openrouter
+
+
+@pytest.mark.asyncio
+async def test_post_process_replaces_response(
+    post_process_simulacrum: Simulacrum,
+    mock_edited_response,
+) -> None:
+    response = await post_process_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Edited"
+    message = post_process_simulacrum.context.conversation_messages[-1]
+    assert message.content == "Edited"
+    assert message.metadata["draft"] == "Something"
+
+    # The second request repeats the first, with the draft and prompt appended
+    requests = mock_edited_response.get_requests()
+    assert len(requests) == 2
+    body = json.loads(requests[1].content)
+    assert body["model"] == "test/editor"
+    assert body["messages"][-2]["role"] == "assistant"
+    assert body["messages"][-2]["content"][0]["text"] == "<draft>\nSomething\n</draft>"
+    assert body["messages"][-1]["role"] == "system"
+    assert body["messages"][-1]["content"][0]["text"] == "Revise the draft."
+
+
+@pytest.mark.asyncio
+async def test_post_process_logs_both_requests(
+    post_process_simulacrum: Simulacrum,
+    mock_edited_response,  # noqa: ARG001
+) -> None:
+    await post_process_simulacrum.chat("Hello assistant", None, None)
+
+    with open(ChatExecutor.LAST_REQUEST_PATH) as f:
+        log = YAML(typ="safe").load(f)
+    assert list(log) == ["chat", "post_process"]
+    edited = log["post_process"]["response"]["choices"][0]["message"]["content"]
+    assert edited == "Edited"
+
+
+@pytest.mark.asyncio
+async def test_post_process_skipped_for_scene(
+    post_process_simulacrum: Simulacrum,
+    mock_openrouter,
+) -> None:
+    response = await post_process_simulacrum.scene()
+
+    assert response == "Something"
+    assert len(mock_openrouter.get_requests()) == 1
 
 
 @pytest.mark.asyncio

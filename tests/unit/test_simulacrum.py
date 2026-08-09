@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.message import Message
-from src.simulacrum import Simulacrum
+from src.simulacrum import Generation, Simulacrum
 from src.yaml_config import yaml
 
 
@@ -257,7 +257,7 @@ class TestEphemeral:
     async def test_starts_with_empty_conversation(self, ephemeral_sim):
         sim = ephemeral_sim
         with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
-            mock_gen.return_value = ("response", "response")
+            mock_gen.return_value = Generation("response", "response")
             await sim.chat("hello", None, None)
 
         msgs = sim.context.conversation_messages
@@ -269,7 +269,7 @@ class TestEphemeral:
     async def test_does_not_persist_changes(self, ephemeral_sim):
         sim = ephemeral_sim
         with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
-            mock_gen.return_value = ("response", "response")
+            mock_gen.return_value = Generation("response", "response")
             await sim.chat("hello", None, None)
 
         with open("conversations/test_0.yml") as f:  # noqa: ASYNC230
@@ -286,7 +286,7 @@ class TestChat:
     @pytest.mark.asyncio
     async def test_documents_are_attached(self, sim):
         with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
-            mock_gen.return_value = ("response content", "response content")
+            mock_gen.return_value = Generation("response content", "response content")
             await sim.chat("hello", None, ["doc1", "doc2"])
 
         msgs = sim.context.conversation_messages

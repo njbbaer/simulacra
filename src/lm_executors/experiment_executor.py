@@ -18,9 +18,6 @@ class ExperimentExecutor(ChatExecutor):
 
     LOG_PATH = os.path.join(PROJECT_ROOT, "experiment_log.txt")
 
-    def __init__(self, context, **kwargs) -> None:
-        super().__init__(context, **kwargs)
-
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         async def execute_variation(variation_data):
             variation_context = copy.deepcopy(self.context)
@@ -29,7 +26,7 @@ class ExperimentExecutor(ChatExecutor):
             )
 
             executor = ChatExecutor(
-                variation_context, skip_injected_prompt=self._skip_injected_prompt
+                variation_context, injected_prompt=self._injected_prompt
             )
             return await executor.execute(params)
 

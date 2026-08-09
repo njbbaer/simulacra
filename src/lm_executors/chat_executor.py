@@ -17,9 +17,17 @@ class ChatExecutor:
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "chat_executor_template.j2")
     LAST_REQUEST_PATH = os.path.join(PROJECT_ROOT, "last_request.yml")
 
-    def __init__(self, context, *, skip_injected_prompt: bool = False) -> None:
+    def __init__(
+        self,
+        context,
+        *,
+        injected_prompt: str | None = None,
+        request_key: str = RequestRecorder.PRIMARY_KEY,
+    ) -> None:
         self.context = context
-        self._skip_injected_prompt = skip_injected_prompt
+        # Replaces the automatically built prompt; an empty string suppresses it
+        self._injected_prompt = injected_prompt
+        self._request_key = request_key
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         merged_params = {**self.context.api_params}
@@ -34,7 +42,7 @@ class ChatExecutor:
             raise RuntimeError("Request timed out") from err
 
         completion = ChatCompletion(data)
-        RequestRecorder(self.LAST_REQUEST_PATH).record(body, data)
+        RequestRecorder(self.LAST_REQUEST_PATH).record(body, data, self._request_key)
         self.context.increment_cost(completion.cost)
         return completion
 
@@ -43,13 +51,13 @@ class ChatExecutor:
         messages = self.context.conversation_messages
         template_vars["messages"] = self._inject_inline_instructions(messages)
         template_vars["injected_prompt"] = (
-            None
-            if self._skip_injected_prompt
-            else self._build_injected_prompt(
+            self._build_injected_prompt(
                 messages,
                 template_vars.get("reinforcement_prompt"),
                 template_vars.get("continue_prompt"),
             )
+            if self._injected_prompt is None
+            else self._injected_prompt
         )
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
         env.globals["load_base64"] = make_base64_loader(self.context.images_dir)

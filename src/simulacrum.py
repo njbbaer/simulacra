@@ -1,28 +1,36 @@
 import asyncio
 import re
 import textwrap
-from collections.abc import Coroutine
+from collections.abc import Coroutine, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from . import notifications
 from .book_reader import BookReader
 from .context import Context
+from .document_cleaner import clean_document
 from .instruction_preset import InstructionPreset
 from .lm_executors import ChatExecutor, ExperimentExecutor
-from .post_processor import clean_document, post_process_response
+from .message import Message
 from .response_transform import strip_tags, transform_response
 from .utilities import parse_value
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
-    from .message import Message
 
 
 @dataclass
 class PendingInstruction:
     content: str
     preset_key: str | None = None
+
+
+@dataclass
+class Generation:
+    content: str
+    display: str
+    draft: str | None = None
 
 
 class Simulacrum:
@@ -53,9 +61,13 @@ class Simulacrum:
                 self.retry_stack.clear()
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
-            content, display = await self._generate()
-            self.context.add_message("assistant", content)
-        return display if not session.superseded else ""
+            generation = await self._generate()
+            self.context.add_message(
+                "assistant",
+                generation.content,
+                metadata={"draft": generation.draft} if generation.draft else None,
+            )
+        return generation.display if not session.superseded else ""
 
     async def new_conversation(self) -> None:
         self.retry_stack.clear()
@@ -85,10 +97,10 @@ class Simulacrum:
             if user_input:
                 prompt += f"\n{user_input}"
             self.context.save()
-            content, display = await self._generate_transient(prompt)
+            generation = await self._generate_transient(prompt)
             metadata = {"scene": True, "scene_input": user_input}
-            self.context.add_message("user", content, metadata=metadata)
-        return display if not session.superseded else ""
+            self.context.add_message("user", generation.content, metadata=metadata)
+        return generation.display if not session.superseded else ""
 
     async def retry(self, instruction: str | None = None) -> str:
         self.context.load()
@@ -116,7 +128,7 @@ class Simulacrum:
             if last_role == "assistant":
                 self._pop_last_message("user")
 
-    def undo_retry(self) -> list["Message"]:
+    def undo_retry(self) -> list[Message]:
         if not self.retry_stack:
             raise ValueError("No retry to undo")
         with self.context.session():
@@ -182,9 +194,12 @@ class Simulacrum:
         self,
         skip_required_tags: bool = False,
         skip_injected_prompt: bool = False,
-    ) -> tuple[str, str]:
+        skip_post_process: bool = False,
+    ) -> Generation:
         executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
-        executor = executor_cls(self.context, skip_injected_prompt=skip_injected_prompt)
+        executor = executor_cls(
+            self.context, injected_prompt="" if skip_injected_prompt else None
+        )
         completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
         required_tags = (
@@ -193,20 +208,49 @@ class Simulacrum:
         content = transform_response(
             completion.content, self.context.response_patterns, required_tags
         )
-        content = await post_process_response(content, self.context.post_process_prompt)
+        draft = None
+        if not skip_post_process and self.context.post_process_prompt:
+            draft = content
+            content = await self._post_process(draft)
         display = strip_tags(content)
         if not display:
             raise ValueError("No displayable content")
-        return content, display
+        return Generation(content, display, draft)
 
-    async def _generate_transient(self, prompt: str) -> tuple[str, str]:
-        self.context.add_message("user", prompt)
-        try:
-            return await self._generate(
-                skip_required_tags=True, skip_injected_prompt=True
+    async def _post_process(self, draft: str) -> str:
+        """Re-generate the draft under the post-processing prompt."""
+        with self._temporary_message("assistant", f"<draft>\n{draft}\n</draft>"):
+            executor = ChatExecutor(
+                self.context,
+                injected_prompt=self.context.post_process_prompt,
+                request_key="post_process",
             )
+            completion = await self._execute_with_cancellation(
+                executor.execute(self.context.post_process_params)
+            )
+        return transform_response(
+            completion.content,
+            self.context.response_patterns,
+            self.context.required_response_tags,
+        )
+
+    async def _generate_transient(self, prompt: str) -> Generation:
+        with self._temporary_message("user", prompt):
+            return await self._generate(
+                skip_required_tags=True,
+                skip_injected_prompt=True,
+                skip_post_process=True,
+            )
+
+    @contextmanager
+    def _temporary_message(self, role: str, content: str) -> Iterator[None]:
+        """Add a message for the duration of a request without persisting it."""
+        messages = self.context.conversation_messages
+        messages.append(Message(role, content))
+        try:
+            yield
         finally:
-            self.context.conversation_messages.pop()
+            messages.pop()
 
     async def _execute_with_cancellation(
         self, coro: Coroutine[Any, Any, "ChatCompletion"]
@@ -223,7 +267,7 @@ class Simulacrum:
             return msgs.pop()
         return None
 
-    def _undo_last_messages_by_role(self, role: str) -> list["Message"]:
+    def _undo_last_messages_by_role(self, role: str) -> list[Message]:
         with self.context.session():
             removed = []
             msgs = self.context.conversation_messages
@@ -232,7 +276,7 @@ class Simulacrum:
             removed.append(msgs.pop())
             return removed
 
-    def _restore_messages(self, messages: list["Message"]) -> None:
+    def _restore_messages(self, messages: list[Message]) -> None:
         with self.context.session():
             for message in reversed(messages):
                 self.context.conversation_messages.append(message)

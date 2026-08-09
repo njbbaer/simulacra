@@ -184,14 +184,15 @@ class TelegramBot:
         last_message_stats = "*Last Message*\n"
         if self.sim.last_completion:
             lc = self.sim.last_completion
-            last_message_stats += "\n".join(
-                [
-                    f"`Cost: ${lc.cost:.4f}`",
-                    f"`Prompt tokens: {lc.prompt_tokens}`",
-                    f"`Cached tokens: {lc.cached_tokens}`",
-                    f"`Completion tokens: {lc.completion_tokens}`",
-                ]
-            )
+            lines = [
+                f"`Cost: ${self.sim.last_message_cost:.4f}`",
+                f"`Prompt tokens: {lc.prompt_tokens}`",
+                f"`Cached tokens: {lc.cached_tokens}`",
+                f"`Completion tokens: {lc.completion_tokens}`",
+            ]
+            if pp := self.sim.last_post_process_completion:
+                lines.append(f"`Post-processing: ${pp.cost:.4f}`")
+            last_message_stats += "\n".join(lines)
         else:
             last_message_stats += "`Not available`"
 
@@ -352,10 +353,8 @@ class TelegramBot:
         await self._warn_cost(ctx)
 
     async def _warn_cost(self, ctx: TelegramContext) -> None:
-        if not self.sim.last_completion:
-            return
         warnings = self.cost_tracker.get_cost_warnings(
-            self.sim.last_completion.cost, self.sim.get_conversation_cost()
+            self.sim.last_message_cost, self.sim.get_conversation_cost()
         )
         if warnings:
             await ctx.send_message("\n".join(warnings))

@@ -42,6 +42,7 @@ class Simulacrum:
     ) -> None:
         self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
         self.last_completion: ChatCompletion | None = None
+        self.last_post_process_completion: ChatCompletion | None = None
         self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
@@ -177,6 +178,14 @@ class Simulacrum:
         self.context.load()
         return bool(self.context.conversation_messages)
 
+    @property
+    def last_message_cost(self) -> float | None:
+        """Total cost of the last turn, including any post-processing pass."""
+        if not self.last_completion:
+            return None
+        post_process = self.last_post_process_completion
+        return self.last_completion.cost + (post_process.cost if post_process else 0.0)
+
     def get_conversation_cost(self) -> float:
         self.context.load()
         return self.context.conversation_cost
@@ -202,6 +211,7 @@ class Simulacrum:
         )
         completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
+        self.last_post_process_completion = None
         required_tags = (
             None if skip_required_tags else self.context.required_response_tags
         )
@@ -228,6 +238,7 @@ class Simulacrum:
             completion = await self._execute_with_cancellation(
                 executor.execute(self.context.post_process_params)
             )
+        self.last_post_process_completion = completion
         return transform_response(
             completion.content,
             self.context.response_patterns,

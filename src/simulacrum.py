@@ -206,9 +206,7 @@ class Simulacrum:
         skip_post_process: bool = False,
     ) -> Generation:
         executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
-        executor = executor_cls(
-            self.context, injected_prompt="" if skip_injected_prompt else None
-        )
+        executor = executor_cls(self.context, skip_injected_prompt=skip_injected_prompt)
         completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
         self.last_post_process_completion = None
@@ -229,10 +227,14 @@ class Simulacrum:
 
     async def _post_process(self, draft: str) -> str:
         """Re-generate the draft under the post-processing prompt."""
-        with self._temporary_message("assistant", f"<draft>\n{draft}\n</draft>"):
+        instruction = f"<instruct>\n{self.context.post_process_prompt}\n</instruct>"
+        with (
+            self._temporary_message("assistant", f"<draft>\n{draft}\n</draft>"),
+            self._temporary_message("user", instruction),
+        ):
             executor = ChatExecutor(
                 self.context,
-                injected_prompt=self.context.post_process_prompt,
+                skip_injected_prompt=True,
                 request_key="post_process",
             )
             completion = await self._execute_with_cancellation(

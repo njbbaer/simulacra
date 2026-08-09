@@ -142,8 +142,12 @@ async def test_post_process_replaces_response(
     assert body["model"] == "test/editor"
     assert body["messages"][-2]["role"] == "assistant"
     assert body["messages"][-2]["content"][0]["text"] == "<draft>\nSomething\n</draft>"
-    assert body["messages"][-1]["role"] == "system"
-    assert body["messages"][-1]["content"][0]["text"] == "Revise the draft."
+    # A trailing user message keeps the draft from being treated as a prefill
+    assert body["messages"][-1]["role"] == "user"
+    assert (
+        body["messages"][-1]["content"][0]["text"]
+        == "<instruct>\nRevise the draft.\n</instruct>"
+    )
 
 
 @pytest.mark.asyncio

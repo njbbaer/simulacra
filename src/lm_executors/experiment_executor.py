@@ -26,7 +26,7 @@ class ExperimentExecutor(ChatExecutor):
             )
 
             executor = ChatExecutor(
-                variation_context, injected_prompt=self._injected_prompt
+                variation_context, skip_injected_prompt=self._skip_injected_prompt
             )
             return await executor.execute(params)
 

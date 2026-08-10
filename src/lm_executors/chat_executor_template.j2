@@ -20,7 +20,7 @@
     - type: text
       text: |-
         {{ message.content | indent(8) }}
-      {% if 'claude' in model %}
+      {% if 'claude' in api_params.model %}
       {% set offset = messages|length - loop.index %}
       {% if offset in [0, 1, 2] %}
       cache_control:

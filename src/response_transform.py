@@ -28,6 +28,16 @@ def strip_tags(content: str) -> str:
     return re.sub(r"<[^>]+>.*?</[^>]+>", "", content, flags=re.DOTALL).strip()
 
 
+def extract_tag(content: str, tag: str) -> tuple[str | None, str]:
+    """Remove the first <tag> block and any orphan tags"""
+    match = re.search(rf"<{tag}>\s*(.*?)\s*</{tag}>", content, flags=re.DOTALL)
+    if not match:
+        return None, content
+    remainder = content[: match.start()] + content[match.end() :]
+    remainder = re.sub(rf"</?{tag}>", "", remainder).strip()
+    return match.group(1), remainder
+
+
 def _apply_patterns(content: str, patterns: list[Pattern]) -> str:
     for p in patterns:
         if re.search(p.pattern, content, flags=re.DOTALL):

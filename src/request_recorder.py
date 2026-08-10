@@ -2,14 +2,11 @@ import io
 import os
 from typing import Any
 
-from ruamel.yaml.scalarstring import LiteralScalarString
-
 from .yaml_config import yaml
 
 
 class RequestRecorder:
     URL_MAX_LENGTH = 80
-    LITERAL_MIN_LENGTH = 80
     PRIMARY_KEY = "chat"
 
     def __init__(self, filepath: str) -> None:
@@ -36,14 +33,11 @@ class RequestRecorder:
 
     @classmethod
     def _normalize(cls, data: Any, key: str | None = None) -> Any:
-        """Convert to plain types, truncating long URLs and blocking long strings."""
+        """Convert to plain types, truncating long URLs."""
         if isinstance(data, dict):
             return {k: cls._normalize(v, k) for k, v in data.items()}
         if isinstance(data, list):
             return [cls._normalize(item) for item in data]
-        if isinstance(data, str):
-            if key == "url" and len(data) > cls.URL_MAX_LENGTH:
-                return data[: cls.URL_MAX_LENGTH] + "..."
-            if len(data) > cls.LITERAL_MIN_LENGTH:
-                return LiteralScalarString(data)
+        if isinstance(data, str) and key == "url" and len(data) > cls.URL_MAX_LENGTH:
+            return data[: cls.URL_MAX_LENGTH] + "..."
         return data

@@ -158,6 +158,30 @@ async def test_post_process_replaces_response(
 
 
 @pytest.mark.asyncio
+async def test_post_process_extracts_editor_notes(
+    post_process_simulacrum: Simulacrum,
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+) -> None:
+    edited = copy.deepcopy(mock_completion_response)
+    edited["choices"][0]["message"]["content"] = (
+        "<think_editor>\nCut the hedge in the last line.\n</think_editor>\n\nEdited"
+    )
+    mock_openrouter.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=edited,
+    )
+
+    response = await post_process_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Edited"
+    message = post_process_simulacrum.context.conversation_messages[-1]
+    assert message.content == "Edited"
+    assert message.metadata["draft"] == "Something"
+    assert message.metadata["editor_notes"] == "Cut the hedge in the last line."
+
+
+@pytest.mark.asyncio
 async def test_post_process_logs_both_requests(
     post_process_simulacrum: Simulacrum,
     mock_edited_response,  # noqa: ARG001

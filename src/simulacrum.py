@@ -13,7 +13,7 @@ from .document_cleaner import clean_document
 from .instruction_preset import InstructionPreset
 from .lm_executors import ChatExecutor, ExperimentExecutor
 from .message import Message
-from .response_transform import strip_tags, transform_response
+from .response_transform import extract_tag, strip_tags, transform_response
 from .utilities import parse_value
 
 if TYPE_CHECKING:
@@ -31,6 +31,7 @@ class Generation:
     content: str
     display: str
     draft: str | None = None
+    editor_notes: str | None = None
 
 
 class Simulacrum:
@@ -63,10 +64,11 @@ class Simulacrum:
                 self.context.add_message("user", user_input, image, metadata)
             self.context.save()
             generation = await self._generate()
+            gen_metadata = {"draft": generation.draft} if generation.draft else None
+            if gen_metadata and generation.editor_notes:
+                gen_metadata["editor_notes"] = generation.editor_notes
             self.context.add_message(
-                "assistant",
-                generation.content,
-                metadata={"draft": generation.draft} if generation.draft else None,
+                "assistant", generation.content, metadata=gen_metadata
             )
         return generation.display if not session.superseded else ""
 
@@ -217,15 +219,16 @@ class Simulacrum:
             completion.content, self.context.response_patterns, required_tags
         )
         draft = None
+        editor_notes = None
         if not skip_post_process and self.context.post_process_prompt:
             draft = content
-            content = await self._post_process(draft)
+            content, editor_notes = await self._post_process(draft)
         display = strip_tags(content)
         if not display:
             raise ValueError("No displayable content")
-        return Generation(content, display, draft)
+        return Generation(content, display, draft, editor_notes)
 
-    async def _post_process(self, draft: str) -> str:
+    async def _post_process(self, draft: str) -> tuple[str, str | None]:
         """Re-generate the draft under the post-processing prompt."""
         instruction = f"<instruct>\n{self.context.post_process_prompt}\n</instruct>"
         with (
@@ -241,11 +244,13 @@ class Simulacrum:
                 executor.execute(self.context.post_process_params)
             )
         self.last_post_process_completion = completion
-        return transform_response(
+        content = transform_response(
             completion.content,
             self.context.response_patterns,
             self.context.required_response_tags,
         )
+        editor_notes, content = extract_tag(content, "think_editor")
+        return content, editor_notes
 
     async def _generate_transient(self, prompt: str) -> Generation:
         with self._temporary_message("user", prompt):

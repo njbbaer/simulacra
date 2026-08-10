@@ -56,11 +56,11 @@ class TestSession:
 
 class TestConversationId:
     def test_extracts_id_from_path(self, context):
-        context._data["conversation_file"] = "file://./conversations/alice_42.yml"
+        context._state_data["conversation_file"] = "file://./conversations/alice_42.yml"
         assert context.conversation_id == 42
 
     def test_raises_on_invalid_format(self, context):
-        context._data["conversation_file"] = "file://./conversations/invalid.yml"
+        context._state_data["conversation_file"] = "file://./conversations/invalid.yml"
         with pytest.raises(ValueError, match="Invalid conversation file format"):
             _ = context.conversation_id
 
@@ -269,11 +269,14 @@ class TestTemplateResolution:
             contents=dedent("""
                 character_name: Alice
                 total_cost: 0
-                conversation_file: file://./conversations/alice_1.yml
                 api_params:
                   model: test/model
                 system_prompt: "Mood: {{ vars.mood }}"
             """),
+        )
+        fs.create_file(
+            "/test/context.state.yml",
+            contents="conversation_file: file://./conversations/alice_1.yml\n",
         )
         fs.create_file(
             "/test/conversations/alice_1.yml",
@@ -341,6 +344,21 @@ class TestStateFile:
         with open("/test/alice.yml") as f:
             after = f.read()
         assert original == after
+
+    def test_state_owns_conversation_file(self, context):
+        context.new_conversation()
+        assert context.conversation_file == context._state_data["conversation_file"]
+
+    def test_reads_conversation_file_from_state(self, fs):
+        fs.create_dir("/test/conversations")
+        with open("/test/alice.yml", "w") as f:
+            yaml.dump(
+                {"character_name": "Alice", "api_params": {"model": "test/model"}}, f
+            )
+        with open("/test/alice.state.yml", "w") as f:
+            yaml.dump({"conversation_file": "file://./conversations/alice_9.yml"}, f)
+        ctx = Context("/test/alice.yml")
+        assert ctx.conversation_id == 9
 
     def test_loads_from_state_file(self, context):
         context.increment_cost(5.0)

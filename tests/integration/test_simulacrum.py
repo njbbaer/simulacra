@@ -22,13 +22,17 @@ def custom_fs(fs):
 def context_data() -> dict[str, Any]:
     return {
         "character_name": "test",
-        "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.1,
         "api_params": {"model": "anthropic/claude", "temperature": 0.7},
         "system_prompt": "Say something!",
         "scene_prompt": "Describe the scene.",
         "continue_prompt": "Continue",
     }
+
+
+@pytest.fixture
+def state_data() -> dict[str, Any]:
+    return {"conversation_file": "file://./conversations/test_0.yml"}
 
 
 @pytest.fixture
@@ -49,10 +53,13 @@ def conversation_data() -> dict[str, Any]:
 def simulacrum_context(
     custom_fs,  # noqa: ARG001
     context_data: dict[str, Any],
+    state_data: dict[str, Any],
     conversation_data: dict[str, Any],
 ) -> None:
     with open("test.yml", "w") as f:
         yaml.dump(context_data, f)
+    with open("test.state.yml", "w") as f:
+        yaml.dump(state_data, f)
     os.makedirs("conversations", exist_ok=True)
     with open("conversations/test_0.yml", "w") as f:
         yaml.dump(conversation_data, f)
@@ -180,6 +187,7 @@ async def test_simulacrum_chat(
     simulacrum: Simulacrum,
     mock_openrouter,
     context_data: dict[str, Any],
+    state_data: dict[str, Any],
     conversation_data: dict[str, Any],
 ) -> None:
     initial_conversation_cost = conversation_data["cost"]
@@ -218,9 +226,9 @@ async def test_simulacrum_chat(
 
     # Verify contents of the state file
     with open("test.state.yml") as f:
-        state_data = YAML(typ="safe").load(f)
-        assert state_data["conversation_file"] == context_data["conversation_file"]
-        assert state_data["total_cost"] > 0
+        saved_state = YAML(typ="safe").load(f)
+        assert saved_state["conversation_file"] == state_data["conversation_file"]
+        assert saved_state["total_cost"] > 0
 
     # Verify contents of the conversation file
     with open("conversations/test_0.yml") as f:
@@ -336,14 +344,14 @@ async def test_continue_conversation(
 
 def test_reset_conversation(
     simulacrum: Simulacrum,
-    context_data: dict[str, Any],
+    state_data: dict[str, Any],
 ) -> None:
     simulacrum.reset_conversation()
 
     # Verify conversation file doesn't change
     with open("test.state.yml") as f:
-        state_data = YAML(typ="safe").load(f)
-        assert state_data["conversation_file"] == context_data["conversation_file"]
+        saved_state = YAML(typ="safe").load(f)
+        assert saved_state["conversation_file"] == state_data["conversation_file"]
 
     # Verify conversation file was reset
     with open("conversations/test_0.yml") as f:

@@ -59,7 +59,6 @@ class Context:
         if self._overrides:
             self._data = merge_dicts(self._data, self._overrides)
         self._state_data = self._load_state()
-        self._data.update(self._state_data)
         if not self._is_ephemeral:
             self._load_conversation()
         self._resolve_templates()
@@ -163,7 +162,7 @@ class Context:
 
     @property
     def conversation_file(self) -> str:
-        return self._data["conversation_file"]
+        return self._state_data["conversation_file"]
 
     @property
     def conversation_id(self) -> int:
@@ -257,21 +256,17 @@ class Context:
 
     def _load_conversation(self) -> None:
         os.makedirs(self.conversations_dir, exist_ok=True)
-        if "conversation_file" not in self._data:
+        if "conversation_file" not in self._state_data:
             mgr = self._conversation_files
-            filename = mgr.generate_filename(mgr.next_id())
-            path = f"file://./conversations/{filename}"
-            self._data["conversation_file"] = path
-        self._state_data.setdefault(
-            "conversation_file", self._data["conversation_file"]
-        )
+            self._set_conversation_path(mgr.generate_filename(mgr.next_id()))
         full_path = os.path.join(self.dir, self._conversation_relpath)
         self._conversation = Conversation(full_path)
 
+    def _set_conversation_path(self, filename: str) -> None:
+        self._state_data["conversation_file"] = f"file://./conversations/{filename}"
+
     def _set_conversation_file(self, filename: str) -> None:
-        path = f"file://./conversations/{filename}"
-        self._state_data["conversation_file"] = path
-        self._data["conversation_file"] = path
+        self._set_conversation_path(filename)
         self._load_conversation()
 
     def _apply_extends(self) -> None:
@@ -291,6 +286,7 @@ class Context:
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir, self._search_dirs)
         extra_vars = {
+            **self._state_data,
             "memories": self.conversation_memories,
             "vars": self.conversation_vars,
         }

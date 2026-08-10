@@ -13,7 +13,6 @@ from src.yaml_config import yaml
 def context_data() -> dict[str, Any]:
     return {
         "character_name": "test",
-        "conversation_file": "file://./conversations/test_0.yml",
         "total_cost": 0.0,
         "api_params": {"model": "test/model"},
         "system_prompt": "Hello",
@@ -43,6 +42,8 @@ def sim(fs, context_data, conversation_data):
     fs.add_real_file("src/lm_executors/chat_executor_template.j2")
     with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
+    with open("context.state.yml", "w") as f:
+        yaml.dump({"conversation_file": "file://./conversations/test_0.yml"}, f)
     os.makedirs("conversations", exist_ok=True)
     with open("conversations/test_0.yml", "w") as f:
         yaml.dump(conversation_data, f)

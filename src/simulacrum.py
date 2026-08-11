@@ -244,12 +244,12 @@ class Simulacrum:
                 executor.execute(self.context.post_process_params)
             )
         self.last_post_process_completion = completion
+        editor_notes, content = extract_tag(completion.content, "think_editor")
         content = transform_response(
-            completion.content,
+            content,
             self.context.response_patterns,
             self.context.required_response_tags,
         )
-        editor_notes, content = extract_tag(content, "think_editor")
         return content, editor_notes
 
     async def _generate_transient(self, prompt: str) -> Generation:

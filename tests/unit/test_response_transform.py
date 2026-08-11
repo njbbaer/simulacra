@@ -8,6 +8,18 @@ def test_raises_when_required_tag_missing():
         transform_response("no tags here", required_tags={"response"})
 
 
+def test_raises_when_unexpected_tag_present():
+    content = "<draft>leaked</draft>\n<response>ok</response>"
+    with pytest.raises(ValueError, match="Unexpected tags: draft"):
+        transform_response(content, required_tags={"response"})
+
+
+def test_accepts_content_with_exactly_the_required_tags():
+    content = "<thinking>hm</thinking>\n<response>ok</response>\nspoken"
+    result = transform_response(content, required_tags={"thinking", "response"})
+    assert result == content
+
+
 def test_display_returns_content_outside_tags():
     content = "<thinking>ignore</thinking>show this<response>also ignore</response>"
     assert strip_tags(content) == "show this"

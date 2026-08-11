@@ -181,6 +181,51 @@ async def test_post_process_extracts_editor_notes(
     assert message.metadata["editor_notes"] == "Cut the hedge in the last line."
 
 
+@pytest.fixture
+def strict_post_process_simulacrum(
+    post_process_simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["require_tags"] = ["thinking"]
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return post_process_simulacrum
+
+
+@pytest.fixture
+def mock_tagged_draft(mock_openrouter, mock_completion_response: dict[str, Any]):
+    draft = copy.deepcopy(mock_completion_response)
+    draft["choices"][0]["message"]["content"] = "<thinking>hm</thinking>\nSomething"
+    mock_openrouter.reset()
+    mock_openrouter.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=draft,
+    )
+    return mock_openrouter
+
+
+@pytest.mark.asyncio
+async def test_post_process_accepts_expected_format(
+    strict_post_process_simulacrum: Simulacrum,
+    mock_tagged_draft,
+    mock_completion_response: dict[str, Any],
+) -> None:
+    edited = copy.deepcopy(mock_completion_response)
+    edited["choices"][0]["message"]["content"] = (
+        "<think_editor>\nNotes\n</think_editor>\n<thinking>hm</thinking>\nEdited"
+    )
+    mock_tagged_draft.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=edited,
+    )
+
+    response = await strict_post_process_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Edited"
+    message = strict_post_process_simulacrum.context.conversation_messages[-1]
+    assert message.metadata["editor_notes"] == "Notes"
+
+
 @pytest.mark.asyncio
 async def test_post_process_logs_both_requests(
     post_process_simulacrum: Simulacrum,

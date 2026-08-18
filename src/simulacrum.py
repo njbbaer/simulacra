@@ -244,7 +244,7 @@ class Simulacrum:
                 executor.execute(self.context.post_process_params)
             )
         self.last_post_process_completion = completion
-        editor_notes, content = extract_tag(completion.content, "think_editor")
+        editor_notes, content = extract_tag(completion.content, "assessment")
         content = transform_response(
             content,
             self.context.response_patterns,

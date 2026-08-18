@@ -165,7 +165,7 @@ async def test_post_process_extracts_editor_notes(
 ) -> None:
     edited = copy.deepcopy(mock_completion_response)
     edited["choices"][0]["message"]["content"] = (
-        "<think_editor>\nCut the hedge in the last line.\n</think_editor>\n\nEdited"
+        "<assessment>\nCut the hedge in the last line.\n</assessment>\n\nEdited"
     )
     mock_openrouter.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",
@@ -212,7 +212,7 @@ async def test_post_process_accepts_expected_format(
 ) -> None:
     edited = copy.deepcopy(mock_completion_response)
     edited["choices"][0]["message"]["content"] = (
-        "<think_editor>\nNotes\n</think_editor>\n<thinking>hm</thinking>\nEdited"
+        "<assessment>\nNotes\n</assessment>\n<thinking>hm</thinking>\nEdited"
     )
     mock_tagged_draft.add_response(
         url="https://openrouter.ai/api/v1/chat/completions",

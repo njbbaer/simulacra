@@ -143,6 +143,7 @@ class TelegramBot:
 
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
+        await ctx.send_message("`🔄 Retrying last response`")
         response = await self.sim.retry(ctx.command_body)
         await ctx.send_response(response)
         await self._warn_cost(ctx)
@@ -151,7 +152,8 @@ class TelegramBot:
     async def _undo_retry(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
         restored = self.sim.undo_retry()
-        await self._send_status_with_message(ctx, "↩️ Retry undone", restored)
+        await ctx.send_message("`↩️ Retry undone`")
+        await self._send_message_content(ctx, restored)
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
@@ -163,10 +165,13 @@ class TelegramBot:
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
         last = self.sim.undo()
-        if body := ctx.command_body:
+        body = ctx.command_body
+        status = "✏️ Replacing last message" if body else "🗑️ Last message undone"
+        await ctx.send_message(f"`{status}`")
+        if body:
             await self._chat(ctx, body)
         else:
-            await self._send_status_with_message(ctx, "🗑️ Last message undone", last)
+            await self._send_message_content(ctx, last)
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:
@@ -356,11 +361,10 @@ class TelegramBot:
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 
-    async def _send_status_with_message(
-        self, ctx: TelegramContext, status: str, message: Message | None
+    async def _send_message_content(
+        self, ctx: TelegramContext, message: Message | None
     ) -> None:
-        """Report a status, then show the message now at the end of the context."""
-        await ctx.send_message(f"`{status}`")
+        """Show the message now at the end of the context, if it has content."""
         if message and (text := message.display_text):
             await ctx.send_response(text)
 

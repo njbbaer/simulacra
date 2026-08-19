@@ -98,17 +98,23 @@ class TestUndoRetry:
             sim.undo_retry()
 
 
-class TestApplyInstruction:
+class TestApplyPreset:
     def test_known_preset(self, sim):
-        result = sim.apply_instruction("formal")
+        result = sim.apply_preset("formal")
         assert result == "Formal Tone"
         assert sim._pending_instruction is not None
         assert sim._pending_instruction.content == "Be formal."
         assert sim._pending_instruction.preset_key == "formal"
 
-    def test_unknown_preset_uses_freeform(self, sim):
-        result = sim.apply_instruction("be very creative")
+    def test_unknown_preset_queues_nothing(self, sim):
+        result = sim.apply_preset("nope")
         assert result is None
+        assert sim._pending_instruction is None
+
+
+class TestApplyInstruction:
+    def test_queues_freeform_text(self, sim):
+        sim.apply_instruction("be very creative")
         assert sim._pending_instruction is not None
         assert sim._pending_instruction.content == "be very creative"
         assert sim._pending_instruction.preset_key is None
@@ -157,7 +163,7 @@ class TestSetInlineInstruction:
 
 class TestApplyPendingPreset:
     def test_wraps_text(self, sim):
-        sim.apply_instruction("formal")
+        sim.apply_preset("formal")
         text, key = sim._apply_pending_preset("Hello")
         assert "<instruct>\nBe formal.\n</instruct>" in text
         assert "Hello" in text

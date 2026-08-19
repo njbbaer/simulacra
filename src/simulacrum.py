@@ -149,15 +149,17 @@ class Simulacrum:
         with self.context.session():
             self.context.set_conversation_var(key, parse_value(value))
 
-    def apply_instruction(self, text: str) -> str | None:
+    def apply_preset(self, key: str) -> str | None:
+        """Queue a named preset, returning its display name, or None if unknown."""
         self.context.load()
-        presets = self.context.instruction_presets
-        if text in presets:
-            preset = presets[text]
-            self._pending_instruction = PendingInstruction(preset.content, text)
-            return preset.name or text
+        preset = self.context.instruction_presets.get(key)
+        if not preset:
+            return None
+        self._pending_instruction = PendingInstruction(preset.content, key)
+        return preset.name or key
+
+    def apply_instruction(self, text: str) -> None:
         self._pending_instruction = PendingInstruction(text)
-        return None
 
     def sync_book(self, query: str) -> tuple[str, float]:
         with self.context.session():

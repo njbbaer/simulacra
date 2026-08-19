@@ -124,6 +124,7 @@ class TestApplyPreset:
         await bot._apply_preset(command("/preset nope"), None)
 
         assert sent[0].startswith("`❌")
+        assert bot.sim._pending_instruction is None
 
     async def test_known_preset_is_queued(self, bot, sent):
         await bot._apply_preset(command("/preset formal"), None)

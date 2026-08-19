@@ -234,7 +234,7 @@ class TelegramBot:
         parts = body.split(maxsplit=1)
         key = parts[0]
         message = parts[1] if len(parts) > 1 else None
-        preset_name = self.sim.apply_instruction(key)
+        preset_name = self.sim.apply_preset(key)
         if not preset_name:
             await ctx.send_message(f"`❌ Unknown preset: {key}`")
             return

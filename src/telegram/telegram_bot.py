@@ -143,7 +143,6 @@ class TelegramBot:
 
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
-        await ctx.send_message("`🔄 Retrying last response`")
         response = await self.sim.retry(ctx.command_body)
         if not response:
             return
@@ -169,12 +168,10 @@ class TelegramBot:
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
         last = self.sim.undo()
-        body = ctx.command_body
-        status = "✏️ Replacing last message" if body else "🗑️ Last message undone"
-        await ctx.send_message(f"`{status}`")
-        if body:
+        if body := ctx.command_body:
             await self._chat(ctx, body)
         else:
+            await ctx.send_message("`🗑️ Last message undone`")
             await self._send_message_content(ctx, last)
 
     @message_handler

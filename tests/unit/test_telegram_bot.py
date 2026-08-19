@@ -79,7 +79,7 @@ class TestUndo:
         with patch.object(bot.sim, "_generate", AsyncMock(return_value=generation)):
             await bot._undo(command("/undo Actually, this instead"), None)
 
-        assert sent == ["`✏️ Replacing last message`", "New reply"]
+        assert sent == ["New reply"]
         msgs = bot.sim.context.conversation_messages
         assert [m.content for m in msgs[-2:]] == [
             "Actually, this instead",
@@ -97,11 +97,11 @@ class TestUndoRetry:
 
 
 class TestRetry:
-    async def test_sends_nothing_further_when_superseded(self, bot, sent):
+    async def test_sends_nothing_when_superseded(self, bot, sent):
         with patch.object(bot.sim, "retry", AsyncMock(return_value="")):
             await bot._retry(command("/retry"), None)
 
-        assert sent == ["`🔄 Retrying last response`"]
+        assert sent == []
 
 
 class TestRequiresBody:

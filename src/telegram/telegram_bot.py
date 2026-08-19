@@ -145,6 +145,8 @@ class TelegramBot:
     async def _retry(self, ctx: TelegramContext) -> None:
         await ctx.send_message("`🔄 Retrying last response`")
         response = await self.sim.retry(ctx.command_body)
+        if not response:
+            return
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 
@@ -158,6 +160,8 @@ class TelegramBot:
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
         response = await self.sim.continue_conversation(ctx.command_body)
+        if not response:
+            return
         await ctx.send_response(response)
         await self._warn_cost(ctx)
 

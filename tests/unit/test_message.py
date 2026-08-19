@@ -38,3 +38,19 @@ class TestToDict:
     def test_includes_all_fields(self):
         data = Message("user", "Hi", "img.png", {"k": "v"}).to_dict()
         assert set(data.keys()) == {"role", "content", "image", "metadata"}
+
+
+class TestDisplayText:
+    def test_plain_content(self):
+        assert Message("user", "Hi there").display_text == "Hi there"
+
+    def test_strips_tags(self):
+        msg = Message("assistant", "<thinking>plotting</thinking>\nHello there")
+        assert msg.display_text == "Hello there"
+
+    def test_tag_only_content(self):
+        msg = Message("user", "<book_content>a passage</book_content>")
+        assert msg.display_text == ""
+
+    def test_none_content(self):
+        assert Message("user", None, image="img.png").display_text == ""

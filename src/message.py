@@ -1,5 +1,7 @@
 from typing import Any
 
+from .response_transform import strip_tags
+
 
 class Message:
     def __init__(
@@ -13,6 +15,10 @@ class Message:
         self.content = content
         self.image = image
         self.metadata = metadata or {}
+
+    @property
+    def display_text(self) -> str:
+        return strip_tags(self.content or "")
 
     def to_dict(self) -> dict[str, Any]:
         return {

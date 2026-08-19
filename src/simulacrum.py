@@ -121,7 +121,7 @@ class Simulacrum:
             self._set_inline_instruction(instruction)
         return await self.chat(None, None, None)
 
-    def undo(self) -> None:
+    def undo(self) -> Message | None:
         self.retry_stack.clear()
         with self.context.session():
             msgs = self.context.conversation_messages
@@ -130,15 +130,15 @@ class Simulacrum:
             last_role = msgs.pop().role
             if last_role == "assistant":
                 self._pop_last_message("user")
+        return self.last_message
 
-    def undo_retry(self) -> list[Message]:
+    def undo_retry(self) -> Message | None:
         if not self.retry_stack:
             raise ValueError("No retry to undo")
         with self.context.session():
             self._pop_last_message("assistant")
-        messages_to_restore = self.retry_stack.pop()
-        self._restore_messages(messages_to_restore)
-        return messages_to_restore
+        self._restore_messages(self.retry_stack.pop())
+        return self.last_message
 
     def cancel_pending_request(self) -> None:
         if self._current_task:
@@ -179,6 +179,11 @@ class Simulacrum:
     def has_messages(self) -> bool:
         self.context.load()
         return bool(self.context.conversation_messages)
+
+    @property
+    def last_message(self) -> Message | None:
+        msgs = self.context.conversation_messages
+        return msgs[-1] if msgs else None
 
     @property
     def last_message_cost(self) -> float | None:

@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 from .message import Message
-from .response_transform import strip_tags
 from .yaml_config import yaml
 
 
@@ -54,7 +53,7 @@ class Conversation:
     def format_as_memory(self, character_name: str) -> str:
         lines = []
         for msg in self.messages:
-            if content := strip_tags(msg.content or ""):
+            if content := msg.display_text:
                 role = "---" if msg.role == "user" else character_name.upper() + ":"
                 lines.append(f"{role}\n\n{content}")
         return "\n\n".join(lines)

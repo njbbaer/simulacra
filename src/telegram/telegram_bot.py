@@ -10,6 +10,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
+from ..message import Message
 from ..simulacrum import Simulacrum
 from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
@@ -149,8 +150,8 @@ class TelegramBot:
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        self.sim.undo_retry()
-        await ctx.send_message("`↩️ Retry undone`")
+        restored = self.sim.undo_retry()
+        await self._send_status_with_message(ctx, "↩️ Retry undone", restored)
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
@@ -161,8 +162,8 @@ class TelegramBot:
     @message_handler
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        self.sim.undo()
-        await ctx.send_message("`🗑️ Last message undone`")
+        last = self.sim.undo()
+        await self._send_status_with_message(ctx, "🗑️ Last message undone", last)
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:
@@ -351,6 +352,14 @@ class TelegramBot:
             return
         await ctx.send_response(response)
         await self._warn_cost(ctx)
+
+    async def _send_status_with_message(
+        self, ctx: TelegramContext, status: str, message: Message | None
+    ) -> None:
+        """Report a status, then show the message now at the end of the context."""
+        await ctx.send_message(f"`{status}`")
+        if message and (text := message.display_text):
+            await ctx.send_response(text)
 
     async def _warn_cost(self, ctx: TelegramContext) -> None:
         warnings = self.cost_tracker.get_cost_warnings(

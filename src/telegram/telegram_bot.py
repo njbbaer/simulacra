@@ -163,7 +163,10 @@ class TelegramBot:
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
         last = self.sim.undo()
-        await self._send_status_with_message(ctx, "🗑️ Last message undone", last)
+        if body := ctx.command_body:
+            await self._chat(ctx, body)
+        else:
+            await self._send_status_with_message(ctx, "🗑️ Last message undone", last)
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:
@@ -251,7 +254,7 @@ class TelegramBot:
                 /name <name> - Name conversation
                 /retry - Retry the last response
                 /undoretry - Undo a retry
-                /undo - Undo the last exchange
+                /undo (...) - Undo the last exchange, optionally replacing it
                 /clear - Clear the conversation
                 /scene (...) - Generate a scene narration
                 /continue - Request another response

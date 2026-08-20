@@ -59,19 +59,13 @@ def command(text: str) -> SimpleNamespace:
 
 
 class TestUndo:
-    async def test_reports_status_then_shows_new_last_message(self, bot, sent):
+    async def test_reports_status_without_reprinting_the_message(self, bot, sent):
         await bot._undo(command("/undo"), None)
 
-        assert sent == ["`🗑️ Last message undone`", "Earlier reply"]
-
-    async def test_omits_message_when_conversation_is_emptied(self, bot, sent):
-        await bot._undo(command("/undo"), None)
-        await bot._undo(command("/undo"), None)
-
-        assert sent == [
-            "`🗑️ Last message undone`",
-            "Earlier reply",
-            "`🗑️ Last message undone`",
+        assert sent == ["`🗑️ Last message undone`"]
+        assert [m.content for m in bot.sim.context.conversation_messages] == [
+            "First",
+            "<thinking>hm</thinking>\nEarlier reply",
         ]
 
     async def test_body_replaces_the_undone_message(self, bot, sent):
@@ -88,12 +82,35 @@ class TestUndo:
 
 
 class TestUndoRetry:
-    async def test_reports_status_then_shows_restored_message(self, bot, sent):
+    async def test_reports_status_without_reprinting_the_message(self, bot, sent):
         bot.sim.retry_stack.append([Message("assistant", "Original reply")])
 
         await bot._undo_retry(command("/undoretry"), None)
 
-        assert sent == ["`↩️ Retry undone`", "Original reply"]
+        assert sent == ["`↩️ Retry undone`"]
+        assert bot.sim.context.conversation_messages[-1].content == "Original reply"
+
+
+class TestLast:
+    async def test_sends_the_last_message_text(self, bot, sent):
+        await bot._last(command("/last"), None)
+
+        assert sent == ["Latest reply"]
+
+    async def test_strips_tags_from_the_last_message(self, bot, sent):
+        bot.sim.undo()
+
+        await bot._last(command("/last"), None)
+
+        assert sent == ["Earlier reply"]
+
+    async def test_reports_when_there_is_no_message(self, bot, sent):
+        bot.sim.undo()
+        bot.sim.undo()
+
+        await bot._last(command("/last"), None)
+
+        assert sent == ["`❌ No message to show`"]
 
 
 class TestRetry:

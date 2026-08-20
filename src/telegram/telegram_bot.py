@@ -10,7 +10,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
-from ..message import Message
 from ..simulacrum import Simulacrum
 from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
@@ -79,6 +78,7 @@ class TelegramBot:
             (["undoretry", "ur"], self._undo_retry),
             (["continue", "co"], self._continue),
             (["undo", "u"], self._undo),
+            (["last", "l"], self._last),
             (["set"], self._set_var),
             (["preset", "p"], self._apply_preset),
             (["instruct", "i"], self._apply_freeform_instruction),
@@ -152,9 +152,8 @@ class TelegramBot:
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        restored = self.sim.undo_retry()
+        self.sim.undo_retry()
         await ctx.send_message("`↩️ Retry undone`")
-        await self._send_message_content(ctx, restored)
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
@@ -167,12 +166,19 @@ class TelegramBot:
     @message_handler
     async def _undo(self, ctx: TelegramContext) -> None:
         self.sim.cancel_pending_request()
-        last = self.sim.undo()
+        self.sim.undo()
         if body := ctx.command_body:
             await self._chat(ctx, body)
         else:
             await ctx.send_message("`🗑️ Last message undone`")
-            await self._send_message_content(ctx, last)
+
+    @message_handler
+    async def _last(self, ctx: TelegramContext) -> None:
+        message = self.sim.load_last_message()
+        if message and (text := message.display_text):
+            await ctx.send_response(text)
+        else:
+            await ctx.send_message("`❌ No message to show`")
 
     @message_handler
     async def _scene(self, ctx: TelegramContext) -> None:
@@ -261,6 +267,7 @@ class TelegramBot:
                 /retry - Retry the last response
                 /undoretry - Undo a retry
                 /undo (...) - Undo the last exchange, optionally replacing it
+                /last - Show the last message again
                 /clear - Clear the conversation
                 /scene (...) - Generate a scene narration
                 /continue - Request another response
@@ -361,13 +368,6 @@ class TelegramBot:
             return
         await ctx.send_response(response)
         await self._warn_cost(ctx)
-
-    async def _send_message_content(
-        self, ctx: TelegramContext, message: Message | None
-    ) -> None:
-        """Show the message now at the end of the context, if it has content."""
-        if message and (text := message.display_text):
-            await ctx.send_response(text)
 
     async def _warn_cost(self, ctx: TelegramContext) -> None:
         warnings = self.cost_tracker.get_cost_warnings(

@@ -48,14 +48,14 @@ class TestAppendDocument:
 
 class TestUndoRetry:
     def test_undo_removes_user_and_assistant_pair(self, sim):
-        assert sim.undo() is None
+        sim.undo()
         assert len(sim.context.conversation_messages) == 0
 
     def test_undo_removes_only_user_when_last_message_is_user(self, sim):
         sim.context.load()
         with sim.context.session():
             sim.context.conversation_messages.append(Message("user", "another"))
-        assert sim.undo().content == "Hello"
+        sim.undo()
         msgs = sim.context.conversation_messages
         assert len(msgs) == 2
         assert msgs[0].role == "user" and msgs[0].content == "Hi"
@@ -86,9 +86,8 @@ class TestUndoRetry:
     def test_undo_retry_restores_previous_message(self, sim):
         sim.retry_stack.append([Message("assistant", "original response")])
 
-        restored = sim.undo_retry()
+        sim.undo_retry()
 
-        assert restored.content == "original response"
         msgs = sim.context.conversation_messages
         assert msgs[-1].content == "original response"
         assert sim.retry_stack == []

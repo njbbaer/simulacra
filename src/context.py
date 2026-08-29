@@ -170,6 +170,10 @@ class Context:
         return self._is_ephemeral
 
     @property
+    def context_name(self) -> str:
+        return os.path.splitext(os.path.basename(self._filepath))[0]
+
+    @property
     def trials_dir(self) -> str:
         return f"{self.dir}/trials"
 
@@ -338,12 +342,8 @@ class Context:
         return dirs
 
     @property
-    def _context_name(self) -> str:
-        return os.path.splitext(os.path.basename(self._filepath))[0]
-
-    @property
     def _conversation_files(self) -> ConversationFiles:
-        return ConversationFiles(self.conversations_dir, self._context_name)
+        return ConversationFiles(self.conversations_dir, self.context_name)
 
     @property
     def _conversation_relpath(self) -> str:

@@ -65,5 +65,5 @@ class TrialLog:
 
     @property
     def _path(self) -> str:
-        filename = f"{self._context.conversation_id}.yml"
+        filename = f"{self._context.context_name}_{self._context.conversation_id}.yml"
         return os.path.join(self._context.trials_dir, filename)

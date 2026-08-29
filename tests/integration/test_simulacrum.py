@@ -463,7 +463,7 @@ def mock_candidate_responses(
 
 
 def read_trial_log() -> dict[str, Any]:
-    with open("trials/0.yml") as f:
+    with open("trials/test_0.yml") as f:
         return yaml.load(f)
 
 

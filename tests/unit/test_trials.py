@@ -82,6 +82,7 @@ class TestRun:
 
 class FakeLogContext:
     is_ephemeral = False
+    context_name = "alice"
     conversation_id = 4
     trials_dir = "/test/trials"
 
@@ -99,7 +100,7 @@ def record(trial_id: int, content: str) -> dict[str, Any]:
 
 
 def read_log() -> dict[str, Any]:
-    with open("/test/trials/4.yml") as file:
+    with open("/test/trials/alice_4.yml") as file:
         return yaml.load(file)
 
 

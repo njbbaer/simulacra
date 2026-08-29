@@ -366,3 +366,75 @@ class TestStateFile:
         ctx2 = Context("/test/alice.yml")
         ctx2.load()
         assert ctx2._state_data["total_cost"] == 5.0
+
+
+def configure(context: Context, **data) -> None:
+    """Add context data as though the file had declared it."""
+    context._unresolved_data.update(data)
+    context._rebuild()
+
+
+class TestWithOverrides:
+    def test_override_replaces_value(self, context):
+        clone = context.with_overrides({"api_params": {"model": "other/model"}})
+        assert clone.model == "other/model"
+        assert context.model == "test/model"
+
+    def test_override_merges_into_nested_block(self, context):
+        configure(context, post_process={"prompt": "Edit.", "api_params": {"top_p": 1}})
+        clone = context.with_overrides(
+            {"post_process": {"api_params": {"model": "editor/model"}}}
+        )
+        assert clone.post_process_prompt == "Edit."
+        assert clone.post_process_params["model"] == "editor/model"
+        assert clone.post_process_params["top_p"] == 1
+
+    def test_overrides_are_resolved_as_templates(self, context):
+        clone = context.with_overrides({"system_prompt": "I am {{ character_name }}."})
+        assert clone.resolved_data["system_prompt"] == "I am Alice."
+
+    def test_overrides_apply_before_dependent_templates(self, context):
+        clone = context.with_overrides({"character_name": "Bob"})
+        assert clone.resolved_data["system_prompt"] == "You are Bob."
+
+    def test_costs_accrue_to_the_original(self, context):
+        clone = context.with_overrides({"api_params": {"model": "other/model"}})
+        clone.increment_cost(0.25)
+        assert context.conversation_cost == 0.25
+        assert context._state_data["total_cost"] == 0.25
+
+    def test_conversation_is_shared(self, context):
+        clone = context.with_overrides({})
+        context.add_message("user", "Hi")
+        assert len(clone.conversation_messages) == 1
+
+    def test_preset_overrides_are_kept(self, context):
+        configure(
+            context,
+            instruction_presets={
+                "terse": {
+                    "content": "Be terse.",
+                    "overrides": {"api_params": {"top_p": 1}},
+                }
+            },
+        )
+        context.apply_preset_overrides("terse")
+        clone = context.with_overrides({"api_params": {"model": "other/model"}})
+        assert clone.api_params == {"model": "other/model", "top_p": 1}
+
+
+class TestPresetOverrides:
+    def test_overrides_are_dropped_on_reload(self, context):
+        configure(
+            context,
+            instruction_presets={
+                "terse": {
+                    "content": "Be terse.",
+                    "overrides": {"api_params": {"top_p": 1}},
+                }
+            },
+        )
+        context.apply_preset_overrides("terse")
+        assert context.api_params["top_p"] == 1
+        context.load()
+        assert "top_p" not in context.api_params

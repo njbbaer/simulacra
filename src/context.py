@@ -58,10 +58,20 @@ class Context:
         self._apply_extends()
         if self._overrides:
             self._data = merge_dicts(self._data, self._overrides)
+        self._unresolved_data = self._data
+        self._runtime_overrides: dict[str, Any] = {}
         self._state_data = self._load_state()
         if not self._is_ephemeral:
             self._load_conversation()
-        self._resolve_templates()
+        self._rebuild()
+
+    def with_overrides(self, overrides: dict[str, Any]) -> Context:
+        """Return a copy with extra overrides applied. The copy shares the
+        conversation and state, so its costs are added to this context."""
+        clone = copy.copy(self)
+        clone._runtime_overrides = merge_dicts(self._runtime_overrides, overrides)
+        clone._rebuild()
+        return clone
 
     def save(self) -> None:
         if self._is_ephemeral:
@@ -120,7 +130,10 @@ class Context:
         if key in presets:
             overrides = presets[key].overrides
             if overrides:
-                self._data = merge_dicts(self._data, overrides)
+                self._runtime_overrides = merge_dicts(
+                    self._runtime_overrides, overrides
+                )
+                self._rebuild()
 
     # Public properties
 
@@ -151,6 +164,14 @@ class Context:
     @property
     def images_dir(self) -> str:
         return f"{self.dir}/images"
+
+    @property
+    def is_ephemeral(self) -> bool:
+        return self._is_ephemeral
+
+    @property
+    def trials_dir(self) -> str:
+        return f"{self.dir}/trials"
 
     @property
     def character_name(self) -> str:
@@ -282,6 +303,11 @@ class Context:
         with open(path) as f:
             base_data = self._extend_data(yaml.load(f), os.path.dirname(path))
         return merge_dicts(base_data, data)
+
+    def _rebuild(self) -> None:
+        """Layer runtime overrides onto the base data and resolve templates."""
+        self._data = merge_dicts(self._unresolved_data, self._runtime_overrides)
+        self._resolve_templates()
 
     def _resolve_templates(self) -> None:
         resolver = TemplateResolver(self.dir, self._search_dirs)

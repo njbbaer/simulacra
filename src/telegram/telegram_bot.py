@@ -206,8 +206,11 @@ class TelegramBot:
                 f"`Cached tokens: {lc.cached_tokens}`",
                 f"`Completion tokens: {lc.completion_tokens}`",
             ]
-            if pp := self.sim.last_post_process_completion:
-                lines.append(f"`Post-processing: ${pp.cost:.4f}`")
+            if completions := self.sim.last_post_process_completions:
+                label = "Post-processing"
+                if len(completions) > 1:
+                    label += f" ({len(completions)} candidates)"
+                lines.append(f"`{label}: ${self.sim.post_process_cost:.4f}`")
             last_message_stats += "\n".join(lines)
         else:
             last_message_stats += "`Not available`"

@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from . import notifications
+from . import notifications, trials
 from .book_reader import BookReader
 from .context import Context
 from .document_cleaner import clean_document
@@ -18,6 +18,8 @@ from .utilities import parse_value
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
+
+POST_PROCESS_SCOPE = "post_process"
 
 
 @dataclass
@@ -32,6 +34,14 @@ class Generation:
     display: str
     draft: str | None = None
     editor_notes: str | None = None
+    trial_record: dict[str, Any] | None = None
+
+
+@dataclass
+class PostProcessResult:
+    content: str
+    notes: str | None
+    completion: ChatCompletion
 
 
 class Simulacrum:
@@ -43,7 +53,8 @@ class Simulacrum:
     ) -> None:
         self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
         self.last_completion: ChatCompletion | None = None
-        self.last_post_process_completion: ChatCompletion | None = None
+        self.last_post_process_completions: list[ChatCompletion] = []
+        self._trial_log = trials.TrialLog(self.context)
         self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
@@ -67,9 +78,12 @@ class Simulacrum:
             gen_metadata = {"draft": generation.draft} if generation.draft else None
             if gen_metadata and generation.editor_notes:
                 gen_metadata["editor_notes"] = generation.editor_notes
+            if gen_metadata and generation.trial_record:
+                gen_metadata["trial"] = generation.trial_record["id"]
             self.context.add_message(
                 "assistant", generation.content, metadata=gen_metadata
             )
+            self._trial_log.write(generation.trial_record)
         return generation.display if not session.superseded else ""
 
     async def new_conversation(self) -> None:
@@ -130,6 +144,7 @@ class Simulacrum:
             last_role = msgs.pop().role
             if last_role == "assistant":
                 self._pop_last_message("user")
+        self._trial_log.write()
 
     def undo_retry(self) -> None:
         if not self.retry_stack:
@@ -137,6 +152,7 @@ class Simulacrum:
         with self.context.session():
             self._pop_last_message("assistant")
         self._restore_messages(self.retry_stack.pop())
+        self._trial_log.write()
 
     def cancel_pending_request(self) -> None:
         if self._current_task:
@@ -194,8 +210,11 @@ class Simulacrum:
         """Total cost of the last turn, including any post-processing pass."""
         if not self.last_completion:
             return None
-        post_process = self.last_post_process_completion
-        return self.last_completion.cost + (post_process.cost if post_process else 0.0)
+        return self.last_completion.cost + self.post_process_cost
+
+    @property
+    def post_process_cost(self) -> float:
+        return sum(c.cost for c in self.last_post_process_completions)
 
     def get_conversation_cost(self) -> float:
         self.context.load()
@@ -220,7 +239,7 @@ class Simulacrum:
         executor = executor_cls(self.context, skip_injected_prompt=skip_injected_prompt)
         completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
-        self.last_post_process_completion = None
+        self.last_post_process_completions = []
         required_tags = (
             None if skip_required_tags else self.context.required_response_tags
         )
@@ -229,37 +248,71 @@ class Simulacrum:
         )
         draft = None
         editor_notes = None
+        trial_record = None
         if not skip_post_process and self.context.post_process_prompt:
             draft = content
-            content, editor_notes = await self._post_process(draft)
+            content, editor_notes, trial_record = await self._post_process(draft)
         display = strip_tags(content)
         if not display:
             raise ValueError("No displayable content")
-        return Generation(content, display, draft, editor_notes)
+        return Generation(content, display, draft, editor_notes, trial_record)
 
-    async def _post_process(self, draft: str) -> tuple[str, str | None]:
+    async def _post_process(
+        self, draft: str
+    ) -> tuple[str, str | None, dict[str, Any] | None]:
         """Re-generate the draft under the post-processing prompt."""
-        instruction = f"<instruct>\n{self.context.post_process_prompt}\n</instruct>"
-        with (
-            self._temporary_message("assistant", f"<draft>\n{draft}\n</draft>"),
-            self._temporary_message("user", instruction),
-        ):
-            executor = ChatExecutor(
-                self.context,
-                skip_injected_prompt=True,
-                request_key="post_process",
-            )
-            completion = await self._execute_with_cancellation(
-                executor.execute(self.context.post_process_params)
-            )
-        self.last_post_process_completion = completion
-        editor_notes, content = extract_tag(completion.content, "assessment")
+
+        async def execute(context: Context, alias: str | None) -> PostProcessResult:
+            return await self._edit_draft(context, draft, alias)
+
+        trial = await self._execute_with_cancellation(
+            trials.run(self.context, POST_PROCESS_SCOPE, execute)
+        )
+        self.last_post_process_completions = [
+            result.completion for result in trial.all_results
+        ]
+        record = self._build_trial_record(draft, trial)
+        return trial.result.content, trial.result.notes, record
+
+    async def _edit_draft(
+        self, context: Context, draft: str, alias: str | None
+    ) -> PostProcessResult:
+        instruction = f"<instruct>\n{context.post_process_prompt}\n</instruct>"
+        executor = ChatExecutor(
+            context,
+            skip_injected_prompt=True,
+            request_key="post_process" if alias is None else f"post_process_{alias}",
+            extra_messages=[
+                Message("assistant", f"<draft>\n{draft}\n</draft>"),
+                Message("user", instruction),
+            ],
+        )
+        completion = await executor.execute(context.post_process_params)
+        notes, content = extract_tag(completion.content, "assessment")
         content = transform_response(
             content,
-            self.context.response_patterns,
-            self.context.required_response_tags,
+            context.response_patterns,
+            context.required_response_tags,
         )
-        return content, editor_notes
+        return PostProcessResult(content, notes, completion)
+
+    def _build_trial_record(
+        self, draft: str, trial: trials.TrialRun[PostProcessResult]
+    ) -> dict[str, Any] | None:
+        if not trial.selected:
+            return None
+        return {
+            "id": self._trial_log.next_id(),
+            "draft": draft,
+            "selected": trial.selected,
+            "candidates": {
+                alias: {
+                    "content": result.content,
+                    **({"notes": result.notes} if result.notes else {}),
+                }
+                for alias, result in trial.outputs.items()
+            },
+        }
 
     async def _generate_transient(self, prompt: str) -> Generation:
         with self._temporary_message("user", prompt):
@@ -279,9 +332,7 @@ class Simulacrum:
         finally:
             messages.pop()
 
-    async def _execute_with_cancellation(
-        self, coro: Coroutine[Any, Any, ChatCompletion]
-    ) -> ChatCompletion:
+    async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> T:
         self._current_task = asyncio.create_task(coro)
         try:
             return await self._current_task

@@ -427,3 +427,122 @@ def test_reset_conversation(
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] == 0.0
         assert len(new_conversation_data["messages"]) == 0
+
+
+@pytest.fixture
+def trial_simulacrum(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["post_process"] = {
+        "prompt": "Revise the draft.",
+        "api_params": {"model": "test/editor"},
+        "candidates": [
+            {"api_params": {"model": "test/editor-one"}},
+            {"prompt": "Revise the draft harder."},
+        ],
+    }
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return simulacrum
+
+
+@pytest.fixture
+def mock_candidate_responses(
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+):
+    for text in ["First edit", "Second edit"]:
+        edited = copy.deepcopy(mock_completion_response)
+        edited["choices"][0]["message"]["content"] = text
+        mock_openrouter.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            json=edited,
+        )
+    return mock_openrouter
+
+
+def read_trial_log() -> dict[str, Any]:
+    with open("trials/0.yml") as f:
+        return yaml.load(f)
+
+
+@pytest.mark.asyncio
+async def test_trial_accepts_one_candidate(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+
+    response = await trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Second edit"
+    message = trial_simulacrum.context.conversation_messages[-1]
+    assert message.content == "Second edit"
+    assert message.metadata["trial"] == 1
+    assert "candidates" not in message.metadata
+
+
+@pytest.mark.asyncio
+async def test_trial_logs_every_candidate(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    log = read_trial_log()
+    assert log["messages"][0] == {"role": "assistant", "content": "Hello user"}
+    assert log["messages"][1] == {"role": "user", "content": "Hello assistant"}
+    trial = log["messages"][2]["trial"]
+    assert "content" not in log["messages"][2]
+    assert trial["selected"] == "A"
+    assert trial["draft"] == "Something"
+    assert trial["candidates"]["A"]["content"] == "First edit"
+    assert trial["candidates"]["B"]["content"] == "Second edit"
+
+
+@pytest.mark.asyncio
+async def test_trial_applies_candidate_overrides(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    requests = mock_candidate_responses.get_requests()
+    first, second = (json.loads(r.content) for r in requests[1:])
+    assert first["model"] == "test/editor-one"
+    assert second["model"] == "test/editor"
+    assert "harder" in second["messages"][-1]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_trial_costs_are_summed(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert trial_simulacrum.post_process_cost == pytest.approx(0.2)
+    assert trial_simulacrum.last_message_cost == pytest.approx(0.3)
+
+
+@pytest.mark.asyncio
+async def test_retried_turn_drops_out_of_the_trial_log(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    assert "trial" in read_trial_log()["messages"][2]
+
+    trial_simulacrum.undo()
+
+    assert read_trial_log()["messages"] == [
+        {"role": "assistant", "content": "Hello user"}
+    ]

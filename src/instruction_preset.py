@@ -16,17 +16,17 @@ class InstructionPreset:
 
     @staticmethod
     def find_match(
-        presets: dict[str, "InstructionPreset"],
+        presets: dict[str, InstructionPreset],
         text: str,
         triggered: list[str],
-    ) -> tuple[str, "InstructionPreset"] | None:
+    ) -> tuple[str, InstructionPreset] | None:
         for key, preset in presets.items():
             if key not in triggered and preset.matches(text):
                 return key, preset
         return None
 
     @staticmethod
-    def from_dict(data: dict[str, dict]) -> dict[str, "InstructionPreset"]:
+    def from_dict(data: dict[str, dict]) -> dict[str, InstructionPreset]:
         return {
             key: InstructionPreset(
                 content=preset["content"],

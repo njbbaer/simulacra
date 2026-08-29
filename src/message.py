@@ -29,7 +29,7 @@ class Message:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Message":
+    def from_dict(cls, data: dict[str, Any]) -> Message:
         return cls(
             role=str(data["role"]),
             content=str(data["content"]) if data.get("content") else None,

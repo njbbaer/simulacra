@@ -280,15 +280,15 @@ class Simulacrum:
             messages.pop()
 
     async def _execute_with_cancellation(
-        self, coro: Coroutine[Any, Any, "ChatCompletion"]
-    ) -> "ChatCompletion":
+        self, coro: Coroutine[Any, Any, ChatCompletion]
+    ) -> ChatCompletion:
         self._current_task = asyncio.create_task(coro)
         try:
             return await self._current_task
         finally:
             self._current_task = None
 
-    def _pop_last_message(self, role: str) -> "Message | None":
+    def _pop_last_message(self, role: str) -> Message | None:
         msgs = self.context.conversation_messages
         if msgs and msgs[-1].role == role:
             return msgs.pop()

@@ -24,7 +24,7 @@ class Conversation:
             self.reset()
 
     @classmethod
-    def empty(cls) -> "Conversation":
+    def empty(cls) -> Conversation:
         conv = cls.__new__(cls)
         conv.reset()
         return conv

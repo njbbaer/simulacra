@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .telegram.telegram_context import TelegramContext
 
-_ctx: contextvars.ContextVar["TelegramContext | None"] = contextvars.ContextVar(
+_ctx: contextvars.ContextVar[TelegramContext | None] = contextvars.ContextVar(
     "telegram_context", default=None
 )
 
 
-def set_context(ctx: "TelegramContext") -> None:
+def set_context(ctx: TelegramContext) -> None:
     _ctx.set(ctx)
 
 

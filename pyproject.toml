@@ -1,7 +1,7 @@
 [project]
 name = "simulacra"
 version = "2.75.0"
-requires-python = "~=3.13.0"
+requires-python = "~=3.14.0"
 dependencies = [
     "openai",
     "pytz",
@@ -40,7 +40,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
@@ -56,7 +56,6 @@ select = [
     "SIM",   # flake8-simplify
     "ASYNC", # flake8-async
     "RET",   # flake8-return
-    "TC",    # flake8-type-checking
     "ARG",   # flake8-unused-arguments
 ]
 

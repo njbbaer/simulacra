@@ -53,7 +53,7 @@ class Simulacrum:
     ) -> None:
         self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
         self.last_completion: ChatCompletion | None = None
-        self.last_post_process_completions: list[ChatCompletion] = []
+        self.post_process_cost: float = 0.0
         self._trial_log = trials.TrialLog(self.context)
         self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None
@@ -212,10 +212,6 @@ class Simulacrum:
             return None
         return self.last_completion.cost + self.post_process_cost
 
-    @property
-    def post_process_cost(self) -> float:
-        return sum(c.cost for c in self.last_post_process_completions)
-
     def get_conversation_cost(self) -> float:
         self.context.load()
         return self.context.conversation_cost
@@ -239,7 +235,7 @@ class Simulacrum:
         executor = executor_cls(self.context, skip_injected_prompt=skip_injected_prompt)
         completion = await self._execute_with_cancellation(executor.execute())
         self.last_completion = completion
-        self.last_post_process_completions = []
+        self.post_process_cost = 0.0
         required_tags = (
             None if skip_required_tags else self.context.required_response_tags
         )
@@ -268,9 +264,7 @@ class Simulacrum:
         trial = await self._execute_with_cancellation(
             trials.run(self.context, POST_PROCESS_SCOPE, execute)
         )
-        self.last_post_process_completions = [
-            result.completion for result in trial.all_results
-        ]
+        self.post_process_cost = sum(r.completion.cost for r in trial.all_results)
         record = self._build_trial_record(draft, trial)
         return trial.result.content, trial.result.notes, record
 

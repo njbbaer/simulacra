@@ -54,7 +54,7 @@ class ExperimentExecutor(ChatExecutor):
             print(f"\n---------- (#{i + 1}) ----------\n")
             print(strip_tags(content))
 
-        choice = int(input(f"\nSelect response (1-{len(results)}): ")) - 1
+        choice = int(input(f"\nSelect response (1-{len(results)}): ")) - 1  # noqa: ASYNC250
 
         async with aiofiles.open(self.LOG_PATH, "a") as f:
             await f.write(f"{variation_names[choice]}\n")

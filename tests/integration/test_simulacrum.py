@@ -333,7 +333,7 @@ async def test_new_conversation(simulacrum: Simulacrum) -> None:
 
     # Verify contents of the new conversation file
     new_conversation_path = "conversations/test_1.yml"
-    assert os.path.exists(new_conversation_path)
+    assert os.path.exists(new_conversation_path)  # noqa: ASYNC240
     with open(new_conversation_path) as f:
         content = f.read()
         new_conversation_data = YAML(typ="safe").load(content)

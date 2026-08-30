@@ -4,8 +4,11 @@ from typing import Any
 import pytest
 
 from src.message import Message
-from src.trials import TrialLog, run
+from src.trials import Stage, TrialLog, run
 from src.yaml_config import yaml
+
+POST_PROCESS = Stage("post_process", scope="post_process")
+RESPONSE = Stage("response")
 
 
 class FakeContext:
@@ -43,14 +46,28 @@ class TestRun:
     @pytest.mark.asyncio
     async def test_runs_once_without_candidates(self):
         context = FakeContext({})
-        trial = await run(context, "post_process", echo_model)
+        trial = await run(context, POST_PROCESS, echo_model)
         assert trial.selected is None
         assert trial.outputs == {}
         assert trial.result == (None, {})
 
     @pytest.mark.asyncio
+    async def test_an_untried_stage_still_reports_its_lone_candidate(self):
+        trial = await run(FakeContext({}), POST_PROCESS, echo_model)
+        assert trial.candidates == {"A": trial.result}
+
+    @pytest.mark.asyncio
+    async def test_root_scoped_candidates_override_the_whole_context(self):
+        context = FakeContext(
+            {"candidates": [{"api_params": {"model": "one"}}, {"system_prompt": "Hi"}]}
+        )
+        trial = await run(context, RESPONSE, echo_model)
+        assert trial.outputs["A"][1] == {"api_params": {"model": "one"}}
+        assert trial.outputs["B"][1] == {"system_prompt": "Hi"}
+
+    @pytest.mark.asyncio
     async def test_assigns_aliases_by_position(self, context):
-        trial = await run(context, "post_process", echo_model)
+        trial = await run(context, POST_PROCESS, echo_model)
         assert list(trial.outputs) == ["A", "B", "C"]
         assert trial.outputs["B"][1] == {
             "post_process": {"api_params": {"model": "two"}}
@@ -59,14 +76,14 @@ class TestRun:
     @pytest.mark.asyncio
     async def test_selects_a_candidate(self, context, monkeypatch):
         monkeypatch.setattr("src.trials.runner.random.choice", lambda _: "C")
-        trial = await run(context, "post_process", echo_model)
+        trial = await run(context, POST_PROCESS, echo_model)
         assert trial.selected == "C"
         assert trial.result is trial.outputs["C"]
 
     @pytest.mark.asyncio
     async def test_candidates_key_is_not_passed_through(self, context):
         context.resolved_data["post_process"]["candidates"][0]["candidates"] = ["x"]
-        trial = await run(context, "post_process", echo_model)
+        trial = await run(context, POST_PROCESS, echo_model)
         assert "candidates" not in trial.outputs["A"][1]["post_process"]
 
     @pytest.mark.asyncio
@@ -77,7 +94,15 @@ class TestRun:
             return alias
 
         with pytest.raises(ValueError, match="bad edit"):
-            await run(context, "post_process", execute)
+            await run(context, POST_PROCESS, execute)
+
+
+class TestStage:
+    def test_request_key_is_the_name_without_an_alias(self):
+        assert RESPONSE.request_key(None) == "response"
+
+    def test_request_key_is_suffixed_by_the_alias(self):
+        assert POST_PROCESS.request_key("B") == "post_process_B"
 
 
 class FakeLogContext:

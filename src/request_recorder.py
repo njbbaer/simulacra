@@ -2,19 +2,26 @@ import io
 import os
 from typing import Any
 
+from .utilities import PROJECT_ROOT
 from .yaml_config import yaml
 
 
 class RequestRecorder:
-    URL_MAX_LENGTH = 80
-    PRIMARY_KEY = "chat"
+    """Logs the exchanges of a single turn for inspection."""
 
-    def __init__(self, filepath: str) -> None:
+    FILEPATH = os.path.join(PROJECT_ROOT, "last_request.yml")
+    URL_MAX_LENGTH = 80
+
+    def __init__(self, filepath: str = FILEPATH) -> None:
         self.filepath = filepath
 
-    def record(self, request: Any, response: Any, key: str = PRIMARY_KEY) -> None:
-        """Log an exchange, the primary one starting a fresh log for the turn."""
-        log = {} if key == self.PRIMARY_KEY else self._read()
+    def reset(self) -> None:
+        """Drop the previous turn's log."""
+        if os.path.exists(self.filepath):
+            os.remove(self.filepath)
+
+    def record(self, request: Any, response: Any, key: str) -> None:
+        log = self._read()
         log[key] = {
             "request": self._normalize(request),
             "response": self._normalize(response),

@@ -200,15 +200,14 @@ class TelegramBot:
         last_message_stats = "*Last Message*\n"
         if self.sim.last_completion:
             lc = self.sim.last_completion
-            lines = [
-                f"`Cost: ${self.sim.last_message_cost:.4f}`",
-                f"`Prompt tokens: {lc.prompt_tokens}`",
-                f"`Cached tokens: {lc.cached_tokens}`",
-                f"`Completion tokens: {lc.completion_tokens}`",
-            ]
-            if self.sim.post_process_cost:
-                lines.append(f"`Post-processing: ${self.sim.post_process_cost:.4f}`")
-            last_message_stats += "\n".join(lines)
+            last_message_stats += "\n".join(
+                [
+                    f"`Cost: ${self.sim.last_message_cost:.4f}`",
+                    f"`Prompt tokens: {lc.prompt_tokens}`",
+                    f"`Cached tokens: {lc.cached_tokens}`",
+                    f"`Completion tokens: {lc.completion_tokens}`",
+                ]
+            )
         else:
             last_message_stats += "`Not available`"
 

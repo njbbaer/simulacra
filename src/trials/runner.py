@@ -11,6 +11,17 @@ if TYPE_CHECKING:
 ALIASES = string.ascii_uppercase
 
 
+@dataclass(frozen=True)
+class Stage:
+    """A named stage of a turn, with candidates under `scope` or at the root."""
+
+    name: str
+    scope: str | None = None
+
+    def request_key(self, alias: str | None) -> str:
+        return self.name if alias is None else f"{self.name}_{alias}"
+
+
 @dataclass
 class TrialRun[T]:
     """The result of a stage, plus every candidate output when there are any."""
@@ -20,27 +31,28 @@ class TrialRun[T]:
     outputs: dict[str, T] = field(default_factory=dict)
 
     @property
-    def all_results(self) -> list[T]:
-        return list(self.outputs.values()) or [self.result]
+    def candidates(self) -> dict[str, T]:
+        """Every output by alias, or just the result when the stage ran no trial."""
+        return self.outputs or {ALIASES[0]: self.result}
 
 
 async def run[T](
     context: Context,
-    scope: str | None,
+    stage: Stage,
     execute: Callable[[Context, str | None], Awaitable[T]],
 ) -> TrialRun[T]:
     """Run `execute` once per candidate and select one at random.
 
     Runs it once against the unmodified context if no candidates are configured.
     """
-    variants = _candidates(context, scope)
+    variants = _candidates(context, stage.scope)
     if not variants:
         return TrialRun(await execute(context, None))
 
     aliases = list(ALIASES[: len(variants)])
     results = await asyncio.gather(
         *(
-            execute(context.with_overrides(_scoped(scope, variant)), alias)
+            execute(context.with_overrides(_scoped(stage.scope, variant)), alias)
             for alias, variant in zip(aliases, variants, strict=True)
         )
     )

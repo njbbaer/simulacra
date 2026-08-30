@@ -12,7 +12,7 @@ from .book_reader import BookReader
 from .context import Context
 from .document_cleaner import clean_document
 from .instruction_preset import InstructionPreset
-from .lm_executors import ChatExecutor, ExperimentExecutor
+from .lm_executors import ChatExecutor
 from .message import Message
 from .request_recorder import RequestRecorder
 from .response_transform import extract_tag, strip_tags, transform_response
@@ -75,7 +75,6 @@ class Simulacrum:
         self.last_completion: ChatCompletion | None = None
         self._turn_cost: float = 0.0
         self._trial_log = trials.TrialLog(self.context)
-        self.experiment_mode: bool = False
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
         self._current_task: asyncio.Task | None = None
@@ -301,8 +300,7 @@ class Simulacrum:
         skip_injected_prompt: bool,
         skip_required_tags: bool,
     ) -> StageResult:
-        executor_cls = ExperimentExecutor if self.experiment_mode else ChatExecutor
-        executor = executor_cls(
+        executor = ChatExecutor(
             context,
             request_key=RESPONSE.request_key(alias),
             skip_injected_prompt=skip_injected_prompt,

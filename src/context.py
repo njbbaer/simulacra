@@ -234,10 +234,6 @@ class Context:
         return set(self._data.get("require_tags", []))
 
     @property
-    def experiment_variations(self) -> dict[str, Any]:
-        return self._data.get("experiment_variations", {})
-
-    @property
     def scene_prompt(self) -> str | None:
         return self._data.get("scene_prompt")
 

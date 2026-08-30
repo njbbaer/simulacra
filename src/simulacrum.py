@@ -114,6 +114,7 @@ class Simulacrum:
         self.retry_stack.clear()
         with self.context.session():
             self.context.reset_conversation()
+        self._trial_log.delete()
 
     async def continue_conversation(self, instruction: str | None = None) -> str:
         self.retry_stack.clear()

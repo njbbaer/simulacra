@@ -20,6 +20,15 @@ class TrialLog:
             return 0
         return max(self._read_records(), default=0) + 1
 
+    def delete(self) -> None:
+        """Drop the log, for when the conversation is emptied but kept."""
+        if self._context.is_ephemeral:
+            return
+        if not os.path.isdir(self._context.trials_dir):
+            return
+        if os.path.exists(self._path):
+            os.remove(self._path)
+
     def write(self, record: dict[str, Any] | None = None) -> None:
         if self._context.is_ephemeral:
             return

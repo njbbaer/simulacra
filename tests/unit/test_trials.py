@@ -185,3 +185,13 @@ class TestTrialLog:
         context.is_ephemeral = True
         TrialLog(context).write(record(1, "Edited"))
         assert not os.path.exists("/test/trials")
+
+    def test_delete_removes_the_log(self, fs, messages):  # noqa: ARG002
+        log = TrialLog(FakeLogContext(messages))
+        log.write(record(1, "Edited"))
+        log.delete()
+        assert not os.path.exists("/test/trials/alice_4.yml")
+
+    def test_delete_without_a_log_is_a_no_op(self, fs, messages):  # noqa: ARG002
+        TrialLog(FakeLogContext(messages)).delete()
+        assert not os.path.exists("/test/trials")

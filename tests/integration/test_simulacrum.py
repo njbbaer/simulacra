@@ -724,3 +724,16 @@ async def test_retried_turn_drops_out_of_the_trial_log(
     assert read_trial_log()["messages"] == [
         {"role": "assistant", "content": "Hello user"}
     ]
+
+
+@pytest.mark.asyncio
+async def test_reset_conversation_deletes_the_trial_log(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    assert os.path.exists("trials/test_0.yml")  # noqa: ASYNC240
+
+    trial_simulacrum.reset_conversation()
+
+    assert not os.path.exists("trials/test_0.yml")  # noqa: ASYNC240

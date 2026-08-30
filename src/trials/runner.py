@@ -45,15 +45,15 @@ async def run[T](
 
     Runs it once against the unmodified context if no candidates are configured.
     """
-    variants = _candidates(context, stage.scope)
-    if not variants:
+    candidates = _candidates(context, stage.scope)
+    if not candidates:
         return TrialRun(await execute(context, None))
 
-    aliases = list(ALIASES[: len(variants)])
+    aliases = list(ALIASES[: len(candidates)])
     results = await asyncio.gather(
         *(
-            execute(context.with_overrides(_scoped(stage.scope, variant)), alias)
-            for alias, variant in zip(aliases, variants, strict=True)
+            execute(context.with_overrides(_scoped(stage.scope, candidate)), alias)
+            for alias, candidate in zip(aliases, candidates, strict=True)
         )
     )
     outputs = dict(zip(aliases, results, strict=True))

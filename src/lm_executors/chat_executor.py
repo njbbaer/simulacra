@@ -10,23 +10,24 @@ from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
 from ..message import Message
 from ..request_recorder import RequestRecorder
-from ..utilities import PROJECT_ROOT, make_base64_loader
+from ..utilities import make_base64_loader
 
 
 class ChatExecutor:
     TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "chat_executor_template.j2")
-    LAST_REQUEST_PATH = os.path.join(PROJECT_ROOT, "last_request.yml")
 
     def __init__(
         self,
         context,
         *,
+        request_key: str,
         skip_injected_prompt: bool = False,
-        request_key: str = RequestRecorder.PRIMARY_KEY,
+        extra_messages: list[Message] | None = None,
     ) -> None:
         self.context = context
-        self._skip_injected_prompt = skip_injected_prompt
         self._request_key = request_key
+        self._skip_injected_prompt = skip_injected_prompt
+        self._extra_messages = extra_messages or []
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         merged_params = {**self.context.api_params}
@@ -40,14 +41,14 @@ class ChatExecutor:
         except httpx.ReadTimeout as err:
             raise RuntimeError("Request timed out") from err
 
-        RequestRecorder(self.LAST_REQUEST_PATH).record(body, data, self._request_key)
+        RequestRecorder().record(body, data, self._request_key)
         completion = ChatCompletion(data)
         self.context.increment_cost(completion.cost)
         return completion
 
     def _build_messages(self) -> list[dict[str, Any]]:
         template_vars = {**copy.deepcopy(self.context.resolved_data)}
-        messages = self.context.conversation_messages
+        messages = [*self.context.conversation_messages, *self._extra_messages]
         template_vars["messages"] = self._inject_inline_instructions(messages)
         template_vars["injected_prompt"] = (
             None

@@ -8,6 +8,7 @@ import pytest
 from ruamel.yaml import YAML
 
 from src.lm_executors import ChatExecutor
+from src.request_recorder import RequestRecorder
 from src.simulacrum import Simulacrum
 from src.yaml_config import yaml
 
@@ -233,9 +234,9 @@ async def test_post_process_logs_both_requests(
 ) -> None:
     await post_process_simulacrum.chat("Hello assistant", None, None)
 
-    with open(ChatExecutor.LAST_REQUEST_PATH) as f:
+    with open(RequestRecorder.FILEPATH) as f:
         log = YAML(typ="safe").load(f)
-    assert list(log) == ["chat", "post_process"]
+    assert list(log) == ["response", "post_process"]
     edited = log["post_process"]["response"]["choices"][0]["message"]["content"]
     assert edited == "Edited"
 
@@ -427,3 +428,312 @@ def test_reset_conversation(
         new_conversation_data = YAML(typ="safe").load(f)
         assert new_conversation_data["cost"] == 0.0
         assert len(new_conversation_data["messages"]) == 0
+
+
+@pytest.fixture
+def trial_simulacrum(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["post_process"] = {
+        "prompt": "Revise the draft.",
+        "api_params": {"model": "test/editor"},
+        "candidates": [
+            {"api_params": {"model": "test/editor-one"}},
+            {"prompt": "Revise the draft harder."},
+        ],
+    }
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return simulacrum
+
+
+@pytest.fixture
+def mock_candidate_responses(
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+):
+    for text in ["First edit", "Second edit"]:
+        edited = copy.deepcopy(mock_completion_response)
+        edited["choices"][0]["message"]["content"] = text
+        mock_openrouter.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            json=edited,
+        )
+    return mock_openrouter
+
+
+def read_trial_log() -> dict[str, Any]:
+    with open("trials/test_0.yml") as f:
+        return yaml.load(f)
+
+
+@pytest.mark.asyncio
+async def test_trial_accepts_one_candidate(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+
+    response = await trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Second edit"
+    message = trial_simulacrum.context.conversation_messages[-1]
+    assert message.content == "Second edit"
+    assert message.metadata["trial"] == 1
+    assert "candidates" not in message.metadata
+
+
+@pytest.mark.asyncio
+async def test_trial_logs_every_candidate(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    log = read_trial_log()
+    assert log["messages"][0] == {"role": "assistant", "content": "Hello user"}
+    assert log["messages"][1] == {"role": "user", "content": "Hello assistant"}
+    trial = log["messages"][2]["trial"]
+    assert "content" not in log["messages"][2]
+    assert trial["response"] == {"candidates": {"A": {"content": "Something"}}}
+    assert trial["post_process"]["selected"] == "A"
+    assert trial["post_process"]["candidates"]["A"]["content"] == "First edit"
+    assert trial["post_process"]["candidates"]["B"]["content"] == "Second edit"
+
+
+@pytest.mark.asyncio
+async def test_trial_applies_candidate_overrides(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    requests = mock_candidate_responses.get_requests()
+    first, second = (json.loads(r.content) for r in requests[1:])
+    assert first["model"] == "test/editor-one"
+    assert second["model"] == "test/editor"
+    assert "harder" in second["messages"][-1]["content"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_trial_costs_are_summed(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert trial_simulacrum.last_message_cost == pytest.approx(0.3)
+
+
+@pytest.fixture
+def response_trial_simulacrum(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["candidates"] = [
+        {"api_params": {"model": "test/one"}},
+        {"api_params": {"model": "test/two"}},
+    ]
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return simulacrum
+
+
+@pytest.fixture
+def mock_response_candidates(
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+):
+    alternative = copy.deepcopy(mock_completion_response)
+    alternative["choices"][0]["message"]["content"] = "Something else"
+    mock_openrouter.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=alternative,
+    )
+    return mock_openrouter
+
+
+@pytest.mark.asyncio
+async def test_response_trial_accepts_one_candidate(
+    response_trial_simulacrum: Simulacrum,
+    mock_response_candidates,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+
+    response = await response_trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "Something else"
+    message = response_trial_simulacrum.context.conversation_messages[-1]
+    assert message.content == "Something else"
+    assert message.metadata == {"trial": 1}
+
+
+@pytest.mark.asyncio
+async def test_response_trial_applies_candidate_overrides(
+    response_trial_simulacrum: Simulacrum,
+    mock_response_candidates,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await response_trial_simulacrum.chat("Hello assistant", None, None)
+
+    first, second = (
+        json.loads(r.content) for r in mock_response_candidates.get_requests()
+    )
+    assert first["model"] == "test/one"
+    assert second["model"] == "test/two"
+
+
+@pytest.mark.asyncio
+async def test_response_trial_logs_each_candidate_request(
+    response_trial_simulacrum: Simulacrum,
+    mock_response_candidates,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await response_trial_simulacrum.chat("Hello assistant", None, None)
+
+    with open(RequestRecorder.FILEPATH) as f:
+        log = YAML(typ="safe").load(f)
+    assert sorted(log) == ["response_A", "response_B"]
+
+
+@pytest.mark.asyncio
+async def test_response_trial_costs_are_summed(
+    response_trial_simulacrum: Simulacrum,
+    mock_response_candidates,  # noqa: ARG001
+) -> None:
+    await response_trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert response_trial_simulacrum.last_message_cost == pytest.approx(0.2)
+
+
+@pytest.fixture
+def chained_trial_simulacrum(
+    response_trial_simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+) -> Simulacrum:
+    context_data["post_process"] = {
+        "prompt": "Revise the draft.",
+        "api_params": {"model": "test/editor"},
+        "candidates": [{"prompt": "Revise."}, {"prompt": "Revise harder."}],
+    }
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return response_trial_simulacrum
+
+
+@pytest.fixture
+def mock_chained_responses(
+    mock_response_candidates,
+    mock_completion_response: dict[str, Any],
+):
+    for text in ["First edit", "Second edit"]:
+        edited = copy.deepcopy(mock_completion_response)
+        edited["choices"][0]["message"]["content"] = text
+        mock_response_candidates.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            json=edited,
+        )
+    return mock_response_candidates
+
+
+@pytest.mark.asyncio
+async def test_chained_trials_post_process_only_the_selected_response(
+    chained_trial_simulacrum: Simulacrum,
+    mock_chained_responses,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    response = await chained_trial_simulacrum.chat("Hello assistant", None, None)
+
+    assert response == "First edit"
+    requests = mock_chained_responses.get_requests()
+    assert len(requests) == 4
+    drafted = json.loads(requests[2].content)["messages"][-2]["content"][0]["text"]
+    assert drafted == "<draft>\nSomething\n</draft>"
+
+
+@pytest.mark.asyncio
+async def test_chained_trials_are_logged_stage_by_stage(
+    chained_trial_simulacrum: Simulacrum,
+    mock_chained_responses,  # noqa: ARG001
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+
+    await chained_trial_simulacrum.chat("Hello assistant", None, None)
+
+    trial = read_trial_log()["messages"][2]["trial"]
+    assert trial["response"]["selected"] == "A"
+    assert list(trial["response"]["candidates"]) == ["A", "B"]
+    assert trial["post_process"]["selected"] == "A"
+    assert list(trial["post_process"]["candidates"]) == ["A", "B"]
+
+
+@pytest.mark.asyncio
+async def test_post_processing_inherits_the_selected_candidate_context(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+    mock_response_candidates,
+    mock_completion_response: dict[str, Any],
+    monkeypatch,
+) -> None:
+    context_data["candidates"] = [
+        {"post_process": {"api_params": {"model": "test/editor-one"}}},
+        {"post_process": {"api_params": {"model": "test/editor-two"}}},
+    ]
+    context_data["post_process"] = {"prompt": "Revise the draft."}
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    mock_response_candidates.add_response(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        json=mock_completion_response,
+    )
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+
+    await simulacrum.chat("Hello assistant", None, None)
+
+    requests = mock_response_candidates.get_requests()
+    assert len(requests) == 3
+    assert json.loads(requests[2].content)["model"] == "test/editor-two"
+
+
+@pytest.mark.asyncio
+async def test_retried_turn_drops_out_of_the_trial_log(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    assert "trial" in read_trial_log()["messages"][2]
+
+    trial_simulacrum.undo()
+
+    assert read_trial_log()["messages"] == [
+        {"role": "assistant", "content": "Hello user"}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_reset_conversation_deletes_the_trial_log(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,  # noqa: ARG001
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    assert os.path.exists("trials/test_0.yml")  # noqa: ASYNC240
+
+    trial_simulacrum.reset_conversation()
+
+    assert not os.path.exists("trials/test_0.yml")  # noqa: ASYNC240

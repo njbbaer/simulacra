@@ -9,5 +9,4 @@ coverage.xml
 .venv/
 .mypy_cache/
 .claude/
-experiment_log.txt
 tmp/

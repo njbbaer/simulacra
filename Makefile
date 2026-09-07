@@ -12,7 +12,7 @@ lint:
 	uv run mypy src tests
 
 test-quiet:
-	@./scripts/run_quiet.sh "tests" uv run pytest -q --no-header --no-cov
+	@./scripts/run_quiet.sh "tests" uv run pytest -q --no-header
 
 lint-quiet:
 	@./scripts/run_quiet.sh "lint" $(MAKE) --no-print-directory lint

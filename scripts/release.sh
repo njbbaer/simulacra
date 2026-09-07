@@ -41,7 +41,7 @@ esac
 new_version="$major.$minor.$patch"
 
 echo "Running tests..."
-uv run pytest --cov-report=xml:coverage.xml
+uv run pytest --cov=src --cov-report=xml:coverage.xml
 uv run genbadge coverage -i coverage.xml -o assets/coverage.svg
 rm coverage.xml
 

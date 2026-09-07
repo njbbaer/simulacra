@@ -62,4 +62,3 @@ select = [
 # https://github.com/pytest-dev/pytest-asyncio/issues/924
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--cov=src"

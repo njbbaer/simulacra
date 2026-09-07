@@ -6,13 +6,11 @@ _MATCH_SCORE_THRESHOLD = 80
 class BookReader:
     def __init__(self, path: str) -> None:
         self.path = path
-        self._load()
+        with open(path, encoding="utf-8") as f:
+            self.text = f.read()
 
     def next_chunk(self, query: str, start_idx: int = 0) -> tuple[str, int]:
-        if query and query.strip():
-            end_idx = self._find_position(query)
-        else:
-            end_idx = len(self.text)
+        end_idx = self._find_position(query) if query.strip() else len(self.text)
 
         if start_idx >= end_idx:
             raise ValueError("That passage is at or before your current position")
@@ -31,7 +29,3 @@ class BookReader:
 
         newline = self.text.find("\n", match.dest_end)
         return newline if newline != -1 else len(self.text)
-
-    def _load(self) -> None:
-        with open(self.path, encoding="utf-8") as f:
-            self.text = f.read()

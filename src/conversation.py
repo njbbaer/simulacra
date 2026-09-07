@@ -7,12 +7,14 @@ from .yaml_config import yaml
 
 
 class Conversation:
-    def __init__(self, filepath: str) -> None:
-        self._filepath = Path(filepath)
+    """A conversation backed by a file, or held in memory only if no path is given."""
+
+    def __init__(self, filepath: str | None = None) -> None:
+        self._filepath = Path(filepath) if filepath else None
         self.load()
 
     def load(self) -> None:
-        if self._filepath.exists():
+        if self._filepath and self._filepath.exists():
             with open(self._filepath) as file:
                 data = yaml.load(file)
             self.created_at = data.get("created_at")
@@ -23,13 +25,9 @@ class Conversation:
         else:
             self.reset()
 
-    @classmethod
-    def empty(cls) -> Conversation:
-        conv = cls.__new__(cls)
-        conv.reset()
-        return conv
-
     def save(self) -> None:
+        if self._filepath is None:
+            raise ValueError("Cannot save an in-memory conversation")
         data_to_save = {
             "created_at": self.created_at,
             "cost": self.cost,

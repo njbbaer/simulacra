@@ -1,4 +1,3 @@
-import copy
 import os
 from typing import Any
 
@@ -8,6 +7,7 @@ import yaml
 
 from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
+from ..context import Context
 from ..message import Message
 from ..request_recorder import RequestRecorder
 from ..utilities import make_base64_loader
@@ -18,7 +18,7 @@ class ChatExecutor:
 
     def __init__(
         self,
-        context,
+        context: Context,
         *,
         request_key: str,
         skip_injected_prompt: bool = False,
@@ -30,12 +30,11 @@ class ChatExecutor:
         self._extra_messages = extra_messages or []
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
-        merged_params = {**self.context.api_params}
-        if params:
-            merged_params.update(params)
-
-        messages = self._build_messages()
-        body = {"messages": messages, **merged_params}
+        body = {
+            "messages": self._build_messages(),
+            **self.context.api_params,
+            **(params or {}),
+        }
         try:
             data = await fetch_completion(body)
         except httpx.ReadTimeout as err:
@@ -47,7 +46,7 @@ class ChatExecutor:
         return completion
 
     def _build_messages(self) -> list[dict[str, Any]]:
-        template_vars = {**copy.deepcopy(self.context.resolved_data)}
+        template_vars = dict(self.context.resolved_data)
         messages = [*self.context.conversation_messages, *self._extra_messages]
         template_vars["messages"] = self._inject_inline_instructions(messages)
         template_vars["injected_prompt"] = (
@@ -89,7 +88,7 @@ class ChatExecutor:
 
         result = []
         for i, msg in enumerate(messages):
-            instruction = (msg.metadata or {}).get("inline_instruction")
+            instruction = msg.metadata.get("inline_instruction")
             if instruction and i > last_assistant_idx:
                 content = f"{msg.content or ''} [{instruction}]".strip()
                 result.append(Message(msg.role, content, msg.image, msg.metadata))

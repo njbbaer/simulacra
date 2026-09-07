@@ -4,8 +4,6 @@ import textwrap
 import tomllib
 
 import aiofiles
-
-# fmt: off
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from telegram.request import HTTPXRequest
 
@@ -15,8 +13,6 @@ from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
 from .message_handler import message_handler, requires_body
 from .telegram_context import TelegramContext
-
-# fmt: on
 
 logger = logging.getLogger("telegram_bot")
 logging.basicConfig(level=logging.ERROR)
@@ -141,11 +137,7 @@ class TelegramBot:
 
     @message_handler
     async def _retry(self, ctx: TelegramContext) -> None:
-        response = await self.sim.retry(ctx.command_body)
-        if not response:
-            return
-        await ctx.send_response(response)
-        await self._warn_cost(ctx)
+        await self._deliver(ctx, await self.sim.retry(ctx.command_body))
 
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
@@ -155,11 +147,7 @@ class TelegramBot:
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
-        response = await self.sim.continue_conversation(ctx.command_body)
-        if not response:
-            return
-        await ctx.send_response(response)
-        await self._warn_cost(ctx)
+        await self._deliver(ctx, await self.sim.continue_conversation(ctx.command_body))
 
     @message_handler
     async def _undo(self, ctx: TelegramContext) -> None:
@@ -184,10 +172,7 @@ class TelegramBot:
             await ctx.send_message("`❌ No scene instructions configured`")
             return
         self.sim.retry_stack.clear()
-        response = await self.sim.scene(ctx.command_body)
-        if response:
-            await ctx.send_response(response)
-            await self._warn_cost(ctx)
+        await self._deliver(ctx, await self.sim.scene(ctx.command_body))
 
     @message_handler
     async def _stats(self, ctx: TelegramContext) -> None:
@@ -352,7 +337,10 @@ class TelegramBot:
         image: str | None = None,
         documents: list[str] | None = None,
     ) -> None:
-        response = await self.sim.chat(user_message, image, documents)
+        await self._deliver(ctx, await self.sim.chat(user_message, image, documents))
+
+    async def _deliver(self, ctx: TelegramContext, response: str) -> None:
+        """Send a generated response, unless it was superseded and came back empty."""
         if not response:
             return
         await ctx.send_response(response)

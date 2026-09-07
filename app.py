@@ -15,8 +15,6 @@ CONFIG_FILEPATH = os.getenv("CONFIG_FILEPATH")
 
 
 def main() -> None:
-    dotenv.load_dotenv()
-
     if IS_DEVELOPMENT:
         _start_reloader()
 

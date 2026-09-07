@@ -1,4 +1,3 @@
-import io
 import os
 from typing import Any
 
@@ -26,10 +25,8 @@ class RequestRecorder:
             "request": self._normalize(request),
             "response": self._normalize(response),
         }
-        buffer = io.StringIO()
-        yaml.dump(log, buffer)
         with open(self.filepath, "w") as file:
-            file.write(buffer.getvalue())
+            yaml.dump(log, file)
 
     def _read(self) -> dict:
         if not os.path.exists(self.filepath):

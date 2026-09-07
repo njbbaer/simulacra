@@ -137,7 +137,7 @@ class Simulacrum:
     async def retry(self, instruction: str | None = None) -> str:
         self.context.load()
         msgs = self.context.conversation_messages
-        if msgs and msgs[-1].metadata and msgs[-1].metadata.get("scene"):
+        if msgs and msgs[-1].metadata.get("scene"):
             scene_input = msgs[-1].metadata.get("scene_input")
             removed = self._undo_last_messages_by_role("user")
             self.retry_stack.append(removed)

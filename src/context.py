@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from .conversation import Conversation
-from .conversation_files import ConversationFiles
+from .conversation_files import ConversationFile, ConversationFiles
 from .instruction_preset import InstructionPreset
 from .message import Message
 from .response_transform import Pattern
@@ -35,7 +35,7 @@ class Context:
         self._session_version = 0
         self._is_ephemeral = ephemeral
         if ephemeral:
-            self._conversation = Conversation.empty()
+            self._conversation = Conversation()
         self.load()
 
     @contextmanager
@@ -126,14 +126,12 @@ class Context:
         self._conversation.set_var(key, value)
 
     def apply_preset_overrides(self, key: str) -> None:
-        presets = self.instruction_presets
-        if key in presets:
-            overrides = presets[key].overrides
-            if overrides:
-                self._runtime_overrides = merge_dicts(
-                    self._runtime_overrides, overrides
-                )
-                self._rebuild()
+        preset = self.instruction_presets.get(key)
+        if preset and preset.overrides:
+            self._runtime_overrides = merge_dicts(
+                self._runtime_overrides, preset.overrides
+            )
+            self._rebuild()
 
     # Public properties
 
@@ -217,9 +215,8 @@ class Context:
     @property
     def last_book_position(self) -> int | None:
         for message in reversed(self.conversation_messages):
-            metadata = message.metadata or {}
-            if "end_idx" in metadata:
-                return metadata["end_idx"]
+            if "end_idx" in message.metadata:
+                return message.metadata["end_idx"]
         return None
 
     @property
@@ -258,7 +255,7 @@ class Context:
         return [
             msg.metadata["triggered_preset"]
             for msg in self._conversation.messages
-            if msg.metadata and "triggered_preset" in msg.metadata
+            if "triggered_preset" in msg.metadata
         ]
 
     @property
@@ -346,6 +343,6 @@ class Context:
         return self.conversation_file.replace("file://./", "")
 
     @property
-    def _current_conversation_file(self):
+    def _current_conversation_file(self) -> ConversationFile | None:
         filename = os.path.basename(self._conversation_relpath)
         return self._conversation_files.parse_filename(filename)

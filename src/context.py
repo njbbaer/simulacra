@@ -234,6 +234,11 @@ class Context:
     def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params", {})
 
+    def candidates(self, scope: str | None = None) -> list[dict[str, Any]]:
+        """Return the `candidates` list from the `scope` section, or from the root."""
+        block = (self._data.get(scope) or {}) if scope else self._data
+        return block.get("candidates") or []
+
     @property
     def resolved_data(self) -> dict[str, Any]:
         return self._data

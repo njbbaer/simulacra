@@ -22,6 +22,11 @@ class FakeContext:
     def with_overrides(self, overrides: dict[str, Any]) -> FakeContext:
         return FakeContext(self.resolved_data, overrides)
 
+    def candidates(self, scope: str | None = None) -> list[dict[str, Any]]:
+        data = self.resolved_data
+        block = (data.get(scope) or {}) if scope else data
+        return block.get("candidates") or []
+
 
 @pytest.fixture
 def context() -> FakeContext:

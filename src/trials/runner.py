@@ -45,7 +45,7 @@ async def run[T](
 
     Runs it once against the unmodified context if no candidates are configured.
     """
-    candidates = _candidates(context, stage.scope)
+    candidates = context.candidates(stage.scope)
     if not candidates:
         return TrialRun(await execute(context, None))
 
@@ -59,12 +59,6 @@ async def run[T](
     outputs = dict(zip(aliases, results, strict=True))
     selected = random.choice(aliases)
     return TrialRun(outputs[selected], selected, outputs)
-
-
-def _candidates(context: Context, scope: str | None) -> list[dict]:
-    data = context.resolved_data
-    block = (data.get(scope) or {}) if scope else data
-    return block.get("candidates") or []
 
 
 def _scoped(scope: str | None, overrides: dict) -> dict:

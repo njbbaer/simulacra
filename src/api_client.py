@@ -1,14 +1,15 @@
 import os
 from typing import Any
 
-import backoff
 import httpx
+
+from .utilities import retry_on
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_TIMEOUT = httpx.Timeout(10, read=60)
 
 
-@backoff.on_exception(backoff.expo, httpx.HTTPError, max_tries=5)
+@retry_on(httpx.HTTPError, 3)
 async def fetch_completion(
     body: dict[str, Any],
     request_timeout: float | httpx.Timeout = DEFAULT_TIMEOUT,

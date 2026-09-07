@@ -5,16 +5,31 @@ import re
 import unicodedata
 from io import BytesIO
 
-import backoff
 import pdfplumber
 import trafilatura
 from curl_cffi.requests import AsyncSession
 from curl_cffi.requests.errors import RequestsError
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-@backoff.on_exception(backoff.expo, RequestsError, max_tries=3)
+def retry_on(exception: type[BaseException], attempts: int):
+    """Call up to `attempts` times, retrying on `exception` with exponential backoff."""
+    return retry(
+        retry=retry_if_exception_type(exception),
+        stop=stop_after_attempt(attempts),
+        wait=wait_exponential(),
+        reraise=True,
+    )
+
+
+@retry_on(RequestsError, 3)
 async def extract_url_content(text: str | None) -> tuple[str | None, str | None]:
     if not text:
         return text, None

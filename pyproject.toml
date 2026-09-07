@@ -12,12 +12,12 @@ dependencies = [
     "jinja2",
     "httpx",
     "pdfplumber",
-    "backoff",
     "rapidfuzz",
     "dotenv",
     "aiofiles",
     "trafilatura",
     "curl_cffi",
+    "tenacity",
 ]
 
 [dependency-groups]

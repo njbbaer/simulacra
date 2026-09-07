@@ -3,11 +3,10 @@ import re
 import uuid
 
 import aiofiles
-import backoff
 from openai import AsyncOpenAI
 from telegram.error import BadRequest, TimedOut
 
-from ..utilities import parse_pdf
+from ..utilities import parse_pdf, retry_on
 
 
 class TelegramContext:
@@ -54,7 +53,7 @@ class TelegramContext:
             text = text[:-1]
         await self.send_message(text)
 
-    @backoff.on_exception(backoff.expo, TimedOut, max_tries=5)
+    @retry_on(TimedOut, 5)
     async def send_message(self, text: str) -> None:
         for chunk in self._split_message(text):
             try:

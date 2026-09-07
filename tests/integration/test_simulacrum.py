@@ -139,7 +139,7 @@ async def test_post_process_replaces_response(
     response = await post_process_simulacrum.chat("Hello assistant", None, None)
 
     assert response == "Edited"
-    message = post_process_simulacrum.context.conversation_messages[-1]
+    message = post_process_simulacrum.context.conversation.messages[-1]
     assert message.content == "Edited"
     assert message.metadata["draft"] == "Something"
 
@@ -176,7 +176,7 @@ async def test_post_process_extracts_editor_notes(
     response = await post_process_simulacrum.chat("Hello assistant", None, None)
 
     assert response == "Edited"
-    message = post_process_simulacrum.context.conversation_messages[-1]
+    message = post_process_simulacrum.context.conversation.messages[-1]
     assert message.content == "Edited"
     assert message.metadata["draft"] == "Something"
     assert message.metadata["editor_notes"] == "Cut the hedge in the last line."
@@ -223,7 +223,7 @@ async def test_post_process_accepts_expected_format(
     response = await strict_post_process_simulacrum.chat("Hello assistant", None, None)
 
     assert response == "Edited"
-    message = strict_post_process_simulacrum.context.conversation_messages[-1]
+    message = strict_post_process_simulacrum.context.conversation.messages[-1]
     assert message.metadata["editor_notes"] == "Notes"
 
 
@@ -318,8 +318,8 @@ def test_compact_conversation(simulacrum: Simulacrum) -> None:
     simulacrum.compact_conversation()
 
     # Conversation compacted into a single memory
-    assert len(simulacrum.context.conversation_messages) == 0
-    memories = simulacrum.context.conversation_memories
+    assert len(simulacrum.context.conversation.messages) == 0
+    memories = simulacrum.context.conversation.memories
     assert len(memories) == 1
 
 
@@ -351,7 +351,7 @@ async def test_retry(
     response = await simulacrum.retry()
 
     assert response == "Something"
-    msgs = simulacrum.context.conversation_messages
+    msgs = simulacrum.context.conversation.messages
     assert len(msgs) == 1
     assert msgs[0].role == "assistant"
     assert msgs[0].content == "Something"
@@ -365,8 +365,8 @@ async def test_retry_detects_scene_message(
 ) -> None:
     # Replace the existing assistant message with a scene message
     simulacrum.context.load()
-    simulacrum.context.conversation_messages.clear()
-    simulacrum.context.add_message(
+    simulacrum.context.conversation.messages.clear()
+    simulacrum.context.conversation.add_message(
         "user", "A dark room.", metadata={"scene": True, "scene_input": "darkness"}
     )
     simulacrum.context.save()
@@ -375,7 +375,7 @@ async def test_retry_detects_scene_message(
 
     assert response == "Something"
     # Verify the scene message was replaced (not an assistant message added)
-    msgs = simulacrum.context.conversation_messages
+    msgs = simulacrum.context.conversation.messages
     assert len(msgs) == 1
     assert msgs[0].role == "user"
     metadata = msgs[0].metadata
@@ -406,7 +406,7 @@ async def test_continue_conversation(
     assert "<instruct>Continue</instruct>" in messages[-1]["content"][0]["text"]
 
     # Verify the temp message is not persisted
-    msgs = simulacrum.context.conversation_messages
+    msgs = simulacrum.context.conversation.messages
     assert len(msgs) == 2
     assert msgs[0].role == "assistant"
     assert msgs[1].role == "assistant"
@@ -479,7 +479,7 @@ async def test_trial_accepts_one_candidate(
     response = await trial_simulacrum.chat("Hello assistant", None, None)
 
     assert response == "Second edit"
-    message = trial_simulacrum.context.conversation_messages[-1]
+    message = trial_simulacrum.context.conversation.messages[-1]
     assert message.content == "Second edit"
     assert message.metadata["trial"] == 1
     assert "candidates" not in message.metadata
@@ -572,7 +572,7 @@ async def test_response_trial_accepts_one_candidate(
     response = await response_trial_simulacrum.chat("Hello assistant", None, None)
 
     assert response == "Something else"
-    message = response_trial_simulacrum.context.conversation_messages[-1]
+    message = response_trial_simulacrum.context.conversation.messages[-1]
     assert message.content == "Something else"
     assert message.metadata == {"trial": 1}
 

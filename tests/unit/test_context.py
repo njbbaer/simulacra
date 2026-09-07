@@ -75,7 +75,7 @@ class TestNewConversation:
     def test_creates_new_conversation_file(self, context):
         context.new_conversation()
         assert context.conversation_file == "file://./conversations/alice_1.yml"
-        assert len(context.conversation_messages) == 0
+        assert len(context.conversation.messages) == 0
 
     def test_names_from_context_file_not_character_name(self, fs):
         fs.create_dir("/test/conversations")
@@ -95,20 +95,20 @@ class TestNewConversation:
 
 class TestCompactConversation:
     def test_preserves_messages_as_memory(self, context):
-        context.add_message("user", "Hello")
-        context.add_message("assistant", "Hi there")
+        context.conversation.add_message("user", "Hello")
+        context.conversation.add_message("assistant", "Hi there")
         context.compact_conversation()
 
         assert context.conversation_file == "file://./conversations/alice_1.yml"
-        assert len(context.conversation_messages) == 0
-        assert len(context.conversation_memories) == 1
-        assert "---" in context.conversation_memories[0]
-        assert "ALICE:" in context.conversation_memories[0]
+        assert len(context.conversation.messages) == 0
+        assert len(context.conversation.memories) == 1
+        assert "---" in context.conversation.memories[0]
+        assert "ALICE:" in context.conversation.memories[0]
 
     def test_preserves_conversation_name(self, context):
         context.save()  # Create the conversation file on disk
         context.name_conversation("adventure")
-        context.add_message("user", "Hello")
+        context.conversation.add_message("user", "Hello")
         context.compact_conversation()
 
         assert context.conversation_name == "adventure"
@@ -157,10 +157,10 @@ class TestNameConversation:
 
 class TestCostTracking:
     def test_increments_both_context_and_conversation(self, context):
-        initial_conv_cost = context.conversation_cost
+        initial_conv_cost = context.conversation.cost
         context.increment_cost(0.5)
         assert context._state_data["total_cost"] == 0.5
-        assert context.conversation_cost == initial_conv_cost + 0.5
+        assert context.conversation.cost == initial_conv_cost + 0.5
 
 
 class TestExtends:
@@ -400,13 +400,13 @@ class TestWithOverrides:
     def test_costs_accrue_to_the_original(self, context):
         clone = context.with_overrides({"api_params": {"model": "other/model"}})
         clone.increment_cost(0.25)
-        assert context.conversation_cost == 0.25
+        assert context.conversation.cost == 0.25
         assert context._state_data["total_cost"] == 0.25
 
     def test_conversation_is_shared(self, context):
         clone = context.with_overrides({})
-        context.add_message("user", "Hi")
-        assert len(clone.conversation_messages) == 1
+        context.conversation.add_message("user", "Hi")
+        assert len(clone.conversation.messages) == 1
 
     def test_preset_overrides_are_kept(self, context):
         configure(

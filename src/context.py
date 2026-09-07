@@ -7,7 +7,6 @@ from typing import Any
 from .conversation import Conversation
 from .conversation_files import ConversationFile, ConversationFiles
 from .instruction_preset import InstructionPreset
-from .message import Message
 from .response_transform import Pattern
 from .template_resolver import TemplateResolver
 from .utilities import merge_dicts
@@ -80,18 +79,6 @@ class Context:
             yaml.dump(dict(self._state_data), f)
         self._conversation.save()
 
-    def add_message(
-        self,
-        role: str,
-        message: str | None,
-        image: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        self._conversation.add_message(role, message, image, metadata)
-
-    def reset_conversation(self) -> None:
-        self._conversation.reset()
-
     def new_conversation(self, name: str | None = None) -> None:
         mgr = self._conversation_files
         filename = mgr.generate_filename(mgr.next_id(), name)
@@ -122,9 +109,6 @@ class Context:
         self._state_data["total_cost"] = current + cost
         self._conversation.increment_cost(cost)
 
-    def set_conversation_var(self, key: str, value: Any) -> None:
-        self._conversation.set_var(key, value)
-
     def apply_preset_overrides(self, key: str) -> None:
         preset = self.instruction_presets.get(key)
         if preset and preset.overrides:
@@ -136,20 +120,8 @@ class Context:
     # Public properties
 
     @property
-    def conversation_messages(self) -> list[Message]:
-        return self._conversation.messages
-
-    @property
-    def conversation_cost(self) -> float:
-        return self._conversation.cost
-
-    @property
-    def conversation_memories(self) -> list[str]:
-        return self._conversation.memories
-
-    @property
-    def conversation_vars(self) -> dict[str, Any]:
-        return self._conversation.vars
+    def conversation(self) -> Conversation:
+        return self._conversation
 
     @property
     def dir(self) -> str:
@@ -214,7 +186,7 @@ class Context:
 
     @property
     def last_book_position(self) -> int | None:
-        for message in reversed(self.conversation_messages):
+        for message in reversed(self._conversation.messages):
             if "end_idx" in message.metadata:
                 return message.metadata["end_idx"]
         return None
@@ -310,8 +282,8 @@ class Context:
         resolver = TemplateResolver(self.dir, self._search_dirs)
         extra_vars = {
             **self._state_data,
-            "memories": self.conversation_memories,
-            "vars": self.conversation_vars,
+            "memories": self._conversation.memories,
+            "vars": self._conversation.vars,
         }
         self._data = resolver.resolve(self._data, extra_vars)
 

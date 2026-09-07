@@ -47,7 +47,7 @@ class ChatExecutor:
 
     def _build_messages(self) -> list[dict[str, Any]]:
         template_vars = dict(self.context.resolved_data)
-        messages = [*self.context.conversation_messages, *self._extra_messages]
+        messages = [*self.context.conversation.messages, *self._extra_messages]
         template_vars["messages"] = self._inject_inline_instructions(messages)
         template_vars["injected_prompt"] = (
             None

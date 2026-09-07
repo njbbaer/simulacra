@@ -91,10 +91,12 @@ class Simulacrum:
                 user_input = await self._process_documents(user_input, documents)
             if user_input or image:
                 self.retry_stack.clear()
-                self.context.add_message("user", user_input, image, metadata)
+                self.context.conversation.add_message(
+                    "user", user_input, image, metadata
+                )
             self.context.save()
             generation = await self._generate()
-            self.context.add_message(
+            self.context.conversation.add_message(
                 "assistant", generation.content, metadata=generation.metadata
             )
             self._trial_log.write(generation.trial_record)
@@ -113,7 +115,7 @@ class Simulacrum:
     def reset_conversation(self) -> None:
         self.retry_stack.clear()
         with self.context.session():
-            self.context.reset_conversation()
+            self.context.conversation.reset()
         self._trial_log.delete()
 
     async def continue_conversation(self, instruction: str | None = None) -> str:
@@ -131,12 +133,14 @@ class Simulacrum:
             self.context.save()
             generation = await self._generate_transient(prompt)
             metadata = {"scene": True, "scene_input": user_input}
-            self.context.add_message("user", generation.content, metadata=metadata)
+            self.context.conversation.add_message(
+                "user", generation.content, metadata=metadata
+            )
         return generation.display if not session.superseded else ""
 
     async def retry(self, instruction: str | None = None) -> str:
         self.context.load()
-        msgs = self.context.conversation_messages
+        msgs = self.context.conversation.messages
         if msgs and msgs[-1].metadata.get("scene"):
             scene_input = msgs[-1].metadata.get("scene_input")
             removed = self._undo_last_messages_by_role("user")
@@ -153,7 +157,7 @@ class Simulacrum:
     def undo(self) -> None:
         self.retry_stack.clear()
         with self.context.session():
-            msgs = self.context.conversation_messages
+            msgs = self.context.conversation.messages
             if not msgs:
                 raise ValueError("No messages to undo")
             last_role = msgs.pop().role
@@ -176,7 +180,7 @@ class Simulacrum:
 
     def set_conversation_var(self, key: str, value: str) -> None:
         with self.context.session():
-            self.context.set_conversation_var(key, parse_value(value))
+            self.context.conversation.set_var(key, parse_value(value))
 
     def apply_preset(self, key: str) -> str | None:
         """Queue a named preset, returning its display name, or None if unknown."""
@@ -201,7 +205,7 @@ class Simulacrum:
             if postscript := self.context.book_postscript:
                 message_content += f"\n\n{postscript}"
             self.retry_stack.clear()
-            self.context.add_message(
+            self.context.conversation.add_message(
                 "user", message_content, metadata={"end_idx": end_idx}
             )
             progress = end_idx / book.length if book.length else 0.0
@@ -209,7 +213,7 @@ class Simulacrum:
 
     def has_messages(self) -> bool:
         self.context.load()
-        return bool(self.context.conversation_messages)
+        return bool(self.context.conversation.messages)
 
     def load_last_message(self) -> Message | None:
         self.context.load()
@@ -217,7 +221,7 @@ class Simulacrum:
 
     @property
     def last_message(self) -> Message | None:
-        msgs = self.context.conversation_messages
+        msgs = self.context.conversation.messages
         return msgs[-1] if msgs else None
 
     @property
@@ -229,7 +233,7 @@ class Simulacrum:
 
     def get_conversation_cost(self) -> float:
         self.context.load()
-        return self.context.conversation_cost
+        return self.context.conversation.cost
 
     def switch_conversation(self, identifier: str) -> tuple[int, str | None]:
         self.retry_stack.clear()
@@ -365,7 +369,7 @@ class Simulacrum:
     @contextmanager
     def _temporary_message(self, role: str, content: str) -> Iterator[None]:
         """Add a message for the duration of a request without persisting it."""
-        messages = self.context.conversation_messages
+        messages = self.context.conversation.messages
         messages.append(Message(role, content))
         try:
             yield
@@ -380,7 +384,7 @@ class Simulacrum:
             self._current_task = None
 
     def _pop_last_message(self, role: str) -> Message | None:
-        msgs = self.context.conversation_messages
+        msgs = self.context.conversation.messages
         if msgs and msgs[-1].role == role:
             return msgs.pop()
         return None
@@ -388,7 +392,7 @@ class Simulacrum:
     def _undo_last_messages_by_role(self, role: str) -> list[Message]:
         with self.context.session():
             removed = []
-            msgs = self.context.conversation_messages
+            msgs = self.context.conversation.messages
             while msgs:
                 removed.append(msgs.pop())
                 if removed[-1].role == role:
@@ -398,7 +402,7 @@ class Simulacrum:
     def _restore_messages(self, messages: list[Message]) -> None:
         with self.context.session():
             for message in reversed(messages):
-                self.context.conversation_messages.append(message)
+                self.context.conversation.messages.append(message)
 
     @staticmethod
     def _extract_inline_instruction(text: str) -> tuple[str, str | None]:
@@ -421,11 +425,11 @@ class Simulacrum:
 
     def _set_inline_instruction(self, instruction: str) -> None:
         with self.context.session():
-            msgs = self.context.conversation_messages
+            msgs = self.context.conversation.messages
             if msgs and msgs[-1].role == "user":
                 msgs[-1].metadata["inline_instruction"] = instruction
             else:
-                self.context.add_message(
+                self.context.conversation.add_message(
                     "user", None, metadata={"inline_instruction": instruction}
                 )
 

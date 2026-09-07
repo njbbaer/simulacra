@@ -63,7 +63,7 @@ class TestUndo:
         await bot._undo(command("/undo"), None)
 
         assert sent == ["`🗑️ Last message undone`"]
-        assert [m.content for m in bot.sim.context.conversation_messages] == [
+        assert [m.content for m in bot.sim.context.conversation.messages] == [
             "First",
             "<thinking>hm</thinking>\nEarlier reply",
         ]
@@ -74,7 +74,7 @@ class TestUndo:
             await bot._undo(command("/undo Actually, this instead"), None)
 
         assert sent == ["New reply"]
-        msgs = bot.sim.context.conversation_messages
+        msgs = bot.sim.context.conversation.messages
         assert [m.content for m in msgs[-2:]] == [
             "Actually, this instead",
             "New reply",
@@ -88,7 +88,7 @@ class TestUndoRetry:
         await bot._undo_retry(command("/undoretry"), None)
 
         assert sent == ["`↩️ Retry undone`"]
-        assert bot.sim.context.conversation_messages[-1].content == "Original reply"
+        assert bot.sim.context.conversation.messages[-1].content == "Original reply"
 
 
 class TestLast:
@@ -155,7 +155,7 @@ class TestApplyPreset:
             await bot._apply_preset(command("/preset formal Hello there"), None)
 
         assert sent == ["Certainly"]
-        msgs = bot.sim.context.conversation_messages
+        msgs = bot.sim.context.conversation.messages
         assert "Hello there" in msgs[-2].content
         assert "Be formal." in msgs[-2].content
 
@@ -164,12 +164,12 @@ class TestConversationGuards:
     async def test_new_conversation_clears_messages(self, bot, sent):
         await bot._new_conversation(command("/new"), None)
 
-        assert bot.sim.context.conversation_messages == []
+        assert bot.sim.context.conversation.messages == []
         assert sent[0].startswith("`✅")
 
     async def test_new_conversation_rejected_when_empty(self, bot, sent):
         with bot.sim.context.session():
-            bot.sim.context.conversation_messages.clear()
+            bot.sim.context.conversation.messages.clear()
 
         await bot._new_conversation(command("/new"), None)
 
@@ -177,7 +177,7 @@ class TestConversationGuards:
 
     async def test_compact_rejected_when_empty(self, bot, sent):
         with bot.sim.context.session():
-            bot.sim.context.conversation_messages.clear()
+            bot.sim.context.conversation.messages.clear()
 
         await bot._compact_conversation(command("/compact"), None)
 

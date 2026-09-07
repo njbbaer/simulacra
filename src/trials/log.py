@@ -49,7 +49,7 @@ class TrialLog:
 
     def _build_messages(self, records: dict[int, Any]) -> list[dict[str, Any]]:
         messages = []
-        for message in self._context.conversation_messages:
+        for message in self._context.conversation.messages:
             trial_id = message.metadata.get("trial")
             entry: dict[str, Any] = {"role": message.role}
             if trial_id in records:

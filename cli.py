@@ -65,7 +65,7 @@ def main() -> None:
     sim = Simulacrum(args.context_file, ephemeral=True, overrides=overrides)
     response = asyncio.run(sim.chat(prompt, None, None))
     if args.keep_tags:
-        response = sim.context.conversation_messages[-1].content or ""
+        response = sim.context.conversation.messages[-1].content or ""
     print(response)
 
 

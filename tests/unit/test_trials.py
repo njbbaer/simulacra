@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -112,7 +113,7 @@ class FakeLogContext:
     trials_dir = "/test/trials"
 
     def __init__(self, messages: list[Message]):
-        self.conversation_messages = messages
+        self.conversation = SimpleNamespace(messages=messages)
 
 
 def record(trial_id: int, content: str) -> dict[str, Any]:
@@ -158,7 +159,7 @@ class TestTrialLog:
         context = FakeLogContext(messages)
         log = TrialLog(context)
         log.write(record(1, "Edited"))
-        context.conversation_messages = [Message("user", "Hi")]
+        context.conversation.messages = [Message("user", "Hi")]
         log.write()
         assert read_log()["messages"] == [{"role": "user", "content": "Hi"}]
 
@@ -166,7 +167,7 @@ class TestTrialLog:
         context = FakeLogContext(messages)
         log = TrialLog(context)
         log.write(record(1, "First"))
-        context.conversation_messages = [
+        context.conversation.messages = [
             *messages,
             Message("user", "More"),
             Message("assistant", "Second", metadata={"trial": 2}),

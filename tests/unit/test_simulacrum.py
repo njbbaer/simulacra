@@ -49,14 +49,14 @@ class TestAppendDocument:
 class TestUndoRetry:
     def test_undo_removes_user_and_assistant_pair(self, sim):
         sim.undo()
-        assert len(sim.context.conversation_messages) == 0
+        assert len(sim.context.conversation.messages) == 0
 
     def test_undo_removes_only_user_when_last_message_is_user(self, sim):
         sim.context.load()
         with sim.context.session():
-            sim.context.conversation_messages.append(Message("user", "another"))
+            sim.context.conversation.messages.append(Message("user", "another"))
         sim.undo()
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert len(msgs) == 2
         assert msgs[0].role == "user" and msgs[0].content == "Hi"
         assert msgs[1].role == "assistant" and msgs[1].content == "Hello"
@@ -64,9 +64,9 @@ class TestUndoRetry:
     def test_undo_removes_only_last_assistant_when_consecutive(self, sim):
         sim.context.load()
         with sim.context.session():
-            sim.context.conversation_messages.append(Message("assistant", "continued"))
+            sim.context.conversation.messages.append(Message("assistant", "continued"))
         sim.undo()
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert len(msgs) == 2
         assert msgs[0].role == "user" and msgs[0].content == "Hi"
         assert msgs[1].role == "assistant" and msgs[1].content == "Hello"
@@ -79,7 +79,7 @@ class TestUndoRetry:
     def test_undo_raises_when_no_messages(self, sim):
         sim.context.load()
         with sim.context.session():
-            sim.context.conversation_messages.clear()
+            sim.context.conversation.messages.clear()
         with pytest.raises(ValueError, match="No messages to undo"):
             sim.undo()
 
@@ -88,7 +88,7 @@ class TestUndoRetry:
 
         sim.undo_retry()
 
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert msgs[-1].content == "original response"
         assert sim.retry_stack == []
 
@@ -122,23 +122,23 @@ class TestApplyInstruction:
 class TestSetInlineInstruction:
     def test_on_existing_user_message(self, sim):
         sim.context.load()
-        sim.context.conversation_messages.pop()  # remove assistant
+        sim.context.conversation.messages.pop()  # remove assistant
         sim.context.save()
 
         sim._set_inline_instruction("do something")
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert msgs[-1].role == "user"
         assert msgs[-1].content == "Hi"
         assert msgs[-1].metadata["inline_instruction"] == "do something"
 
     def test_creates_synthetic_when_no_user_message(self, sim):
         sim.context.load()
-        sim.context.conversation_messages.clear()
-        sim.context.add_message("assistant", "Hi")
+        sim.context.conversation.messages.clear()
+        sim.context.conversation.add_message("assistant", "Hi")
         sim.context.save()
 
         sim._set_inline_instruction("do something")
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         synthetic = [m for m in msgs if m.metadata.get("inline_instruction")]
         assert len(synthetic) == 1
         assert synthetic[0].role == "user"
@@ -146,16 +146,16 @@ class TestSetInlineInstruction:
 
     def test_creates_synthetic_when_last_message_is_assistant(self, sim):
         sim._set_inline_instruction("do something")
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert msgs[-1].role == "user"
         assert msgs[-1].content is None
         assert msgs[-1].metadata["inline_instruction"] == "do something"
 
     def test_replaces_instruction_on_existing_synthetic(self, sim):
         sim._set_inline_instruction("first")
-        msg_count = len(sim.context.conversation_messages)
+        msg_count = len(sim.context.conversation.messages)
         sim._set_inline_instruction("second")
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert len(msgs) == msg_count
         assert msgs[-1].metadata["inline_instruction"] == "second"
 
@@ -184,7 +184,7 @@ class TestApplyPendingPreset:
     def test_does_not_retrigger(self, sim):
         """A preset already triggered should not trigger again."""
         sim.context.load()
-        sim.context.add_message(
+        sim.context.conversation.add_message(
             "user",
             "be formal",
             metadata={"triggered_preset": "formal"},
@@ -222,7 +222,7 @@ class TestEphemeral:
             mock_gen.return_value = Generation("response", "response")
             await sim.chat("hello", None, None)
 
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         assert len(msgs) == 2
         assert msgs[0].role == "user" and msgs[0].content == "hello"
         assert msgs[1].role == "assistant" and msgs[1].content == "response"
@@ -251,7 +251,7 @@ class TestChat:
             mock_gen.return_value = Generation("response content", "response content")
             await sim.chat("hello", None, ["doc1", "doc2"])
 
-        msgs = sim.context.conversation_messages
+        msgs = sim.context.conversation.messages
         user_msg = next(
             m
             for m in msgs
@@ -264,7 +264,7 @@ class TestChat:
 class TestSyncBook:
     def test_appends_book_content_with_bookmark(self, book_sim):
         chunk, progress = book_sim.sync_book("hero sets out")
-        msg = book_sim.context.conversation_messages[-1]
+        msg = book_sim.context.conversation.messages[-1]
         assert msg.role == "user"
         assert "<book_content>" in msg.content
         assert "The hero sets out." in msg.content
@@ -279,12 +279,12 @@ class TestSyncBook:
         with open("context.yml", "w") as f:
             yaml.dump(data, f)
         book_sim.sync_book("hero sets out")
-        msg = book_sim.context.conversation_messages[-1]
+        msg = book_sim.context.conversation.messages[-1]
         assert msg.content.endswith("</book_content>\n\nStay in character.")
 
     def test_omits_postscript_when_unset(self, book_sim):
         book_sim.sync_book("hero sets out")
-        msg = book_sim.context.conversation_messages[-1]
+        msg = book_sim.context.conversation.messages[-1]
         assert msg.content.endswith("</book_content>")
 
     def test_raises_without_book_path(self, sim):

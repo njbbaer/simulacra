@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: uv sync --frozen
 
-    - name: Run pre-commit hooks
+    - name: Run linters
       run: make lint
 
   release:

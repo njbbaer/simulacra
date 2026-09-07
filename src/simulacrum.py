@@ -389,9 +389,10 @@ class Simulacrum:
         with self.context.session():
             removed = []
             msgs = self.context.conversation_messages
-            while msgs and msgs[-1].role != role:
+            while msgs:
                 removed.append(msgs.pop())
-            removed.append(msgs.pop())
+                if removed[-1].role == role:
+                    break
             return removed
 
     def _restore_messages(self, messages: list[Message]) -> None:

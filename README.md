@@ -127,6 +127,10 @@ If `book_path` points to a plain-text book, you can read it on your own and keep
 
 Send `/syncbook <a short quote from where you stopped>`. The quote is fuzzy-matched in the book, and everything from your last position up to that point is added to the conversation as the bot's reading. The bookmark is tracked automatically, so each `/syncbook` continues from where the previous one left off. Send `/syncbook` with no quote to sync the entire remainder of the book.
 
+## Claude subscription (experimental)
+
+Prefix a model with `agent-sdk/` (e.g. `agent-sdk/claude-opus-5-5`) to serve its requests through the Claude Agent SDK on your Claude subscription instead of OpenRouter. This works anywhere a model is set, including `post_process` and trial candidates. Authenticate with `claude login` locally, or set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) in the environment for Docker. Only `max_tokens` and `reasoning.effort` are translated; `provider` is ignored and any other parameter is an error. Reported costs are estimates of the equivalent API price.
+
 ## Docker
 
 This project publishes a Docker image to [GHCR](https://github.com/njbbaer/simulacra/pkgs/container/simulacra) `ghcr.io/njbbaer/simulacra`.

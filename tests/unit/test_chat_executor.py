@@ -28,6 +28,25 @@ class TestSessionId:
         assert fetch.call_args.args[0]["session_id"] == "alice_42"
 
 
+class TestBackend:
+    @pytest.mark.asyncio
+    async def test_agent_sdk_model_skips_openrouter(self):
+        context = MagicMock(api_params={"model": "agent-sdk/claude-opus-5-5"})
+        executor = ChatExecutor(context, request_key="k")
+        with (
+            patch.object(executor, "_build_messages", return_value=[]),
+            patch("src.lm_executors.chat_executor.RequestRecorder"),
+            patch(
+                "src.lm_executors.chat_executor.fetch_agent_sdk_completion",
+                new=AsyncMock(return_value=COMPLETION),
+            ) as fetch_sdk,
+            patch("src.lm_executors.chat_executor.fetch_completion") as fetch,
+        ):
+            await executor.execute(on_retry=lambda: None)
+        fetch_sdk.assert_awaited_once()
+        fetch.assert_not_called()
+
+
 class TestInjectInlineInstructions:
     def test_no_assistant_injects_instruction(self):
         messages = [

@@ -6,6 +6,7 @@ import httpx
 import jinja2
 import yaml
 
+from ..agent_sdk_client import fetch_agent_sdk_completion, is_agent_sdk_model
 from ..api_client import fetch_completion
 from ..chat_completion import ChatCompletion
 from ..context import Context
@@ -42,9 +43,12 @@ class ChatExecutor:
             "session_id": self.context.session_id,
             **(self.context.api_params if params is None else params),
         }
-        fetch = fetch_completion
-        if on_retry:
-            fetch = fetch.retry_with(before_sleep=lambda _: on_retry())  # type: ignore[attr-defined]
+        if is_agent_sdk_model(body["model"]):
+            fetch = fetch_agent_sdk_completion
+        else:
+            fetch = fetch_completion
+            if on_retry:
+                fetch = fetch.retry_with(before_sleep=lambda _: on_retry())  # type: ignore[attr-defined]
         try:
             data = await fetch(body)
         except httpx.ReadTimeout as err:

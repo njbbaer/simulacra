@@ -1,7 +1,10 @@
-.PHONY: app test lint test-quiet lint-quiet release
+.PHONY: app logs test lint test-quiet lint-quiet release
 
 app:
 	uv run app.py
+
+logs:
+	@journalctl --user --no-hostname -f _SYSTEMD_USER_UNIT=simulacra-dev.service
 
 test:
 	uv run pytest

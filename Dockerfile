@@ -8,4 +8,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . /app
 
+# Run as the host user
+RUN chown 1000:1000 /app
+USER 1000:1000
+
 CMD ["sh", "-c", "exec .venv/bin/python app.py $CONFIG_FILEPATH"]

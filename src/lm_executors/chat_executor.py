@@ -23,11 +23,13 @@ class ChatExecutor:
         request_key: str,
         skip_injected_prompt: bool = False,
         extra_messages: list[Message] | None = None,
+        include_images: bool = True,
     ) -> None:
         self.context = context
         self._request_key = request_key
         self._skip_injected_prompt = skip_injected_prompt
         self._extra_messages = extra_messages or []
+        self._include_images = include_images
 
     async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
         body = {
@@ -48,7 +50,10 @@ class ChatExecutor:
     def _build_messages(self) -> list[dict[str, Any]]:
         template_vars = dict(self.context.resolved_data)
         messages = [*self.context.conversation.messages, *self._extra_messages]
-        template_vars["messages"] = self._inject_inline_instructions(messages)
+        messages = self._inject_inline_instructions(messages)
+        if not self._include_images:
+            messages = self._strip_images(messages)
+        template_vars["messages"] = messages
         template_vars["injected_prompt"] = (
             None
             if self._skip_injected_prompt
@@ -77,6 +82,16 @@ class ChatExecutor:
         if continue_prompt and messages and messages[-1].role == "assistant":
             parts.append(f"<instruct>{continue_prompt}</instruct>")
         return "\n\n".join(parts) if parts else None
+
+    @staticmethod
+    def _strip_images(messages: list) -> list:
+        """Replace image attachments with a text placeholder."""
+        return [
+            Message(msg.role, msg.content or "[image]", None, msg.metadata)
+            if msg.image
+            else msg
+            for msg in messages
+        ]
 
     @staticmethod
     def _inject_inline_instructions(messages: list) -> list:

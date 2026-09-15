@@ -331,6 +331,7 @@ class Simulacrum:
                 Message("assistant", f"<draft>\n{draft}\n</draft>"),
                 Message("user", instruction),
             ],
+            include_images=context.post_process_supports_images,
         )
         completion = await executor.execute(context.post_process_params)
         notes, content = extract_tag(completion.content, "assessment")

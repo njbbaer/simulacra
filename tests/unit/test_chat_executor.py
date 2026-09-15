@@ -75,3 +75,26 @@ class TestInjectInlineInstructions:
         result = ChatExecutor._inject_inline_instructions(messages)
         assert len(result) == 1
         assert result[0].content == "Response"
+
+
+class TestStripImages:
+    def test_removes_image_from_message(self):
+        messages = [Message("user", "Look", image="img.png")]
+        result = ChatExecutor._strip_images(messages)
+        assert result[0].image is None
+        assert result[0].content == "Look"
+
+    def test_image_only_message_gets_placeholder(self):
+        messages = [
+            Message("user", None, image="img.png"),
+            Message("assistant", "Response"),
+        ]
+        result = ChatExecutor._strip_images(messages)
+        assert len(result) == 2
+        assert result[0].content == "[image]"
+        assert result[0].image is None
+
+    def test_does_not_mutate_originals(self):
+        messages = [Message("user", "Look", image="img.png")]
+        ChatExecutor._strip_images(messages)
+        assert messages[0].image == "img.png"

@@ -438,3 +438,15 @@ class TestPresetOverrides:
         assert context.api_params["top_p"] == 1
         context.load()
         assert "top_p" not in context.api_params
+
+
+class TestPostProcessSupportsImages:
+    def test_defaults_to_true(self, context):
+        assert context.post_process_supports_images is True
+
+    def test_can_be_disabled(self, context_fs):  # noqa: ARG002
+        ctx = Context(
+            "/test/alice.yml",
+            overrides={"post_process": {"supports_images": False}},
+        )
+        assert ctx.post_process_supports_images is False

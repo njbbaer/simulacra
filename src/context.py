@@ -215,6 +215,10 @@ class Context:
         return merge_dicts(self.api_params, self._post_process.get("api_params", {}))
 
     @property
+    def post_process_supports_images(self) -> bool:
+        return bool(self._post_process.get("supports_images", True))
+
+    @property
     def document_cleanup_prompt(self) -> str | None:
         return self._data.get("document_cleanup_prompt")
 

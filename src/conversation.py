@@ -19,6 +19,7 @@ class Conversation:
                 data = yaml.load(file)
             self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
+            self.models = data.get("models", {})
             self.vars = data.get("vars", {})
             self.memories = data.get("memories", [])
             self.messages = [Message.from_dict(msg) for msg in data.get("messages", [])]
@@ -31,6 +32,7 @@ class Conversation:
         data_to_save = {
             "created_at": self.created_at,
             "cost": self.cost,
+            **({"models": self.models} if self.models else {}),
             **({"vars": self.vars} if self.vars else {}),
             **({"memories": self.memories} if self.memories else {}),
             "messages": [msg.to_dict() for msg in self.messages],
@@ -41,6 +43,7 @@ class Conversation:
     def reset(self) -> None:
         self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.cost = 0.0
+        self.models = {}
         self.vars = {}
         self.memories = []
         self.messages = []
@@ -64,6 +67,19 @@ class Conversation:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         self.messages.append(Message(role, message, image, metadata))
+
+    def record_models(self, models: dict[str, str]) -> dict[str, str]:
+        """Update the header, returning the keys that changed since last recorded."""
+        current = dict(self.models)
+        for msg in self.messages:
+            current.update(msg.metadata.get("models", {}))
+        changed = {}
+        for key, value in models.items():
+            if key not in self.models:
+                self.models[key] = value
+            elif current.get(key) != value:
+                changed[key] = value
+        return changed
 
     def increment_cost(self, cost_increment: float) -> None:
         self.cost += cost_increment

@@ -42,14 +42,44 @@ class TestConversationRoundTrip:
         assert loaded.memories == ["I like cats"]
 
 
+class TestRecordModels:
+    def test_first_call_fills_header(self, conv):
+        assert conv.record_models({"response": "a", "post_process": "b"}) == {}
+        assert conv.models == {"response": "a", "post_process": "b"}
+
+    def test_change_returns_marker_and_keeps_header(self, conv):
+        conv.record_models({"response": "a"})
+        assert conv.record_models({"response": "a"}) == {}
+        assert conv.record_models({"response": "b"}) == {"response": "b"}
+        assert conv.models == {"response": "a"}
+
+    def test_compares_against_last_marker(self, conv):
+        conv.record_models({"response": "a"})
+        conv.add_message("assistant", "x", metadata={"models": {"response": "b"}})
+        assert conv.record_models({"response": "b"}) == {}
+        assert conv.record_models({"response": "a"}) == {"response": "a"}
+
+    def test_missing_header_key_is_filled_later(self, conv):
+        conv.record_models({"response": "a"})
+        assert conv.record_models({"response": "a", "post_process": "b"}) == {}
+        assert conv.models == {"response": "a", "post_process": "b"}
+
+    def test_header_round_trips(self, conv):
+        conv.record_models({"response": "a", "post_process": "b"})
+        conv.save()
+        assert _reload().models == {"response": "a", "post_process": "b"}
+
+
 class TestConversationReset:
     def test_reset_clears_state(self, conv):
         conv.add_message("user", "Hello")
         conv.cost = 1.0
         conv.vars = {"x": 1}
         conv.memories = ["mem"]
+        conv.models = {"response": "a"}
         conv.reset()
         assert conv.messages == []
+        assert conv.models == {}
         assert conv.cost == 0.0
         assert conv.vars == {}
         assert conv.memories == []

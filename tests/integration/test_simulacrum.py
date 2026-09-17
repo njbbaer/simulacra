@@ -132,6 +132,22 @@ def mock_edited_response(
 
 
 @pytest.mark.asyncio
+async def test_models_recorded_in_conversation_header(
+    post_process_simulacrum: Simulacrum,
+    mock_edited_response,  # noqa: ARG001
+) -> None:
+    await post_process_simulacrum.chat("Hello assistant", None, None)
+
+    with open("conversations/test_0.yml") as f:
+        data = YAML(typ="safe").load(f)
+    assert data["models"] == {
+        "response": "anthropic/claude",
+        "post_process": "test/editor",
+    }
+    assert "models" not in data["messages"][-1].get("metadata", {})
+
+
+@pytest.mark.asyncio
 async def test_post_process_replaces_response(
     post_process_simulacrum: Simulacrum,
     mock_edited_response,
@@ -483,6 +499,33 @@ async def test_trial_accepts_one_candidate(
     assert message.content == "Second edit"
     assert message.metadata["trial"] == 1
     assert "candidates" not in message.metadata
+
+
+@pytest.mark.asyncio
+async def test_trial_marks_selected_model_only_when_it_changes(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,
+    mock_completion_response: dict[str, Any],
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[0])
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    conversation = trial_simulacrum.context.conversation
+    assert conversation.models == {
+        "response": "anthropic/claude",
+        "post_process": "test/editor-one",
+    }
+    assert "models" not in conversation.messages[-1].metadata
+
+    for _ in range(3):
+        mock_candidate_responses.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            json=mock_completion_response,
+        )
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+    await trial_simulacrum.chat("Again", None, None)
+    message = trial_simulacrum.context.conversation.messages[-1]
+    assert message.metadata["models"] == {"post_process": "test/editor"}
 
 
 @pytest.mark.asyncio

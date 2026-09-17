@@ -3,7 +3,7 @@ import re
 import textwrap
 from collections.abc import Awaitable, Callable, Coroutine, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -54,6 +54,7 @@ class Generation:
     draft: str | None = None
     editor_notes: str | None = None
     trial_record: dict[str, Any] | None = None
+    models: dict[str, str] = field(default_factory=dict)
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -96,9 +97,7 @@ class Simulacrum:
                 )
             self.context.save()
             generation = await self._generate()
-            self.context.conversation.add_message(
-                "assistant", generation.content, metadata=generation.metadata
-            )
+            self._add_generated_message("assistant", generation)
             self._trial_log.write(generation.trial_record)
         return generation.display if not session.superseded else ""
 
@@ -133,9 +132,7 @@ class Simulacrum:
             self.context.save()
             generation = await self._generate_transient(prompt)
             metadata = {"scene": True, "scene_input": user_input}
-            self.context.conversation.add_message(
-                "user", generation.content, metadata=metadata
-            )
+            self._add_generated_message("user", generation, metadata)
         return generation.display if not session.superseded else ""
 
     async def retry(self, instruction: str | None = None) -> str:
@@ -244,6 +241,22 @@ class Simulacrum:
         with self.context.session():
             return self.context.name_conversation(name)
 
+    def _add_generated_message(
+        self, role: str, generation: Generation, metadata: dict[str, Any] | None = None
+    ) -> None:
+        """Append the message, marking any model that differs from the last recorded."""
+        conversation = self.context.conversation
+        markers = conversation.record_models(generation.models)
+        conversation.add_message(
+            role,
+            generation.content,
+            metadata={
+                **(metadata or {}),
+                **({"models": markers} if markers else {}),
+                **generation.metadata,
+            },
+        )
+
     async def _generate(
         self,
         skip_required_tags: bool = False,
@@ -266,6 +279,7 @@ class Simulacrum:
         stages = {RESPONSE: response}
 
         result = response.result
+        models = {RESPONSE.name: result.context.model}
         draft = None
         if not skip_post_process and result.context.post_process_prompt:
             draft = result.content
@@ -276,12 +290,18 @@ class Simulacrum:
             )
             stages[POST_PROCESS] = edited
             result = edited.result
+            models[POST_PROCESS.name] = result.context.post_process_params["model"]
 
         display = strip_tags(result.content)
         if not display:
             raise ValueError("No displayable content")
         return Generation(
-            result.content, display, draft, result.notes, self._trial_record(stages)
+            result.content,
+            display,
+            draft,
+            result.notes,
+            self._trial_record(stages),
+            models,
         )
 
     async def _run_stage(

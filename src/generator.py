@@ -78,6 +78,10 @@ class Generator:
         self.turn_cost: float = 0.0
         self._task: asyncio.Task | None = None
 
+    @property
+    def busy(self) -> bool:
+        return self._task is not None
+
     def cancel(self) -> None:
         if self._task:
             self._task.cancel()

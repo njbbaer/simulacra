@@ -43,6 +43,7 @@ class Simulacrum:
         image: str | None,
         documents: list[str] | None,
     ) -> str:
+        self._ensure_idle()
         with self.context.session() as session:
             user_input, metadata = self._parse_user_input(user_input)
             if documents:
@@ -75,12 +76,14 @@ class Simulacrum:
         self._trial_log.delete()
 
     async def continue_conversation(self, instruction: str | None = None) -> str:
+        self._ensure_idle()
         self.retry_stack.clear()
         if instruction:
             self._set_inline_instruction(instruction)
         return await self.chat(None, None, None)
 
     async def scene(self, user_input: str | None = None) -> str:
+        self._ensure_idle()
         with self.context.session() as session:
             instructions = self.context.scene_prompt
             prompt = f"<instruct>\n{instructions}\n</instruct>"
@@ -93,6 +96,7 @@ class Simulacrum:
         return generation.display if not session.superseded else ""
 
     async def retry(self, instruction: str | None = None) -> str:
+        self._ensure_idle()
         self.context.load()
         msgs = self.context.conversation.messages
         if msgs and msgs[-1].metadata.get("scene"):
@@ -199,6 +203,10 @@ class Simulacrum:
     def name_conversation(self, name: str) -> str:
         with self.context.session():
             return self.context.name_conversation(name)
+
+    def _ensure_idle(self) -> None:
+        if self._generator.busy:
+            raise ValueError("Still responding")
 
     def _add_generated_message(
         self, role: str, generation: Generation, metadata: dict[str, Any] | None = None

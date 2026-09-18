@@ -246,6 +246,16 @@ class TestEphemeral:
 
 class TestChat:
     @pytest.mark.asyncio
+    async def test_rejects_message_while_generating(self, sim):
+        with patch.object(sim._generator, "_task", object()):
+            with pytest.raises(ValueError, match="Still responding"):
+                await sim.chat("second", None, None)
+            with pytest.raises(ValueError, match="Still responding"):
+                await sim.retry()
+
+        assert sim.context.conversation.messages[-1].content != "second"
+
+    @pytest.mark.asyncio
     async def test_documents_are_attached(self, sim):
         with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
             mock_gen.return_value = Generation("response content", "response content")

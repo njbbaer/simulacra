@@ -211,6 +211,13 @@ class Context:
         return self._post_process.get("prompt")
 
     @property
+    def post_process_drafts(self) -> int:
+        """Drafts the editor will see, or one when no editor is configured."""
+        if not self.post_process_prompt:
+            return 1
+        return max(1, int(self._post_process.get("drafts", 1)))
+
+    @property
     def post_process_params(self) -> dict[str, Any]:
         return merge_dicts(self.api_params, self._post_process.get("api_params", {}))
 

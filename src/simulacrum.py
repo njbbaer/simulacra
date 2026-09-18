@@ -1,68 +1,27 @@
-import asyncio
 import re
 import textwrap
-from collections.abc import Awaitable, Callable, Coroutine, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass, field
-from functools import partial
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from . import notifications, trials
 from .book_reader import BookReader
 from .context import Context
 from .document_cleaner import clean_document
+from .generator import Generation, Generator
 from .instruction_preset import InstructionPreset
-from .lm_executors import ChatExecutor
 from .message import Message
-from .request_recorder import RequestRecorder
-from .response_transform import extract_tag, strip_tags, transform_response
 from .utilities import parse_value
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
-
-RESPONSE = trials.Stage("response")
-POST_PROCESS = trials.Stage("post_process", scope="post_process")
 
 
 @dataclass
 class PendingInstruction:
     content: str
     preset_key: str | None = None
-
-
-@dataclass
-class StageResult:
-    """One candidate's output, with the context and completion behind it."""
-
-    content: str
-    context: Context
-    completion: ChatCompletion
-    notes: str | None = None
-
-    def as_candidate(self) -> dict[str, Any]:
-        return {
-            "content": self.content,
-            **({"notes": self.notes} if self.notes else {}),
-        }
-
-
-@dataclass
-class Generation:
-    content: str
-    display: str
-    draft: str | None = None
-    editor_notes: str | None = None
-    trial_record: dict[str, Any] | None = None
-    models: dict[str, str] = field(default_factory=dict)
-
-    @property
-    def metadata(self) -> dict[str, Any]:
-        return {
-            **({"draft": self.draft} if self.draft else {}),
-            **({"editor_notes": self.editor_notes} if self.editor_notes else {}),
-            **({"trial": self.trial_record["id"]} if self.trial_record else {}),
-        }
 
 
 class Simulacrum:
@@ -73,12 +32,10 @@ class Simulacrum:
         overrides: dict | None = None,
     ) -> None:
         self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
-        self.last_completion: ChatCompletion | None = None
-        self._turn_cost: float = 0.0
         self._trial_log = trials.TrialLog(self.context)
+        self._generator = Generator(self._trial_log)
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
-        self._current_task: asyncio.Task | None = None
 
     async def chat(
         self,
@@ -171,9 +128,7 @@ class Simulacrum:
         self._trial_log.write()
 
     def cancel_pending_request(self) -> None:
-        if self._current_task:
-            self._current_task.cancel()
-            self._current_task = None
+        self._generator.cancel()
 
     def set_conversation_var(self, key: str, value: str) -> None:
         with self.context.session():
@@ -222,11 +177,15 @@ class Simulacrum:
         return msgs[-1] if msgs else None
 
     @property
+    def last_completion(self) -> ChatCompletion | None:
+        return self._generator.last_completion
+
+    @property
     def last_message_cost(self) -> float | None:
-        """Cost of the last turn across every candidate of every stage."""
+        """Cost of the last turn across every request of every stage."""
         if not self.last_completion:
             return None
-        return self._turn_cost
+        return self._generator.turn_cost
 
     def get_conversation_cost(self) -> float:
         self.context.load()
@@ -257,127 +216,8 @@ class Simulacrum:
             },
         )
 
-    async def _generate(
-        self,
-        skip_required_tags: bool = False,
-        skip_injected_prompt: bool = False,
-        skip_post_process: bool = False,
-    ) -> Generation:
-        RequestRecorder().reset()
-        self._turn_cost = 0.0
-
-        response = await self._run_stage(
-            RESPONSE,
-            self.context,
-            partial(
-                self._respond,
-                skip_injected_prompt=skip_injected_prompt,
-                skip_required_tags=skip_required_tags,
-            ),
-        )
-        self.last_completion = response.result.completion
-        stages = {RESPONSE: response}
-
-        result = response.result
-        models = {RESPONSE.name: result.context.model}
-        draft = None
-        if not skip_post_process and result.context.post_process_prompt:
-            draft = result.content
-            edited = await self._run_stage(
-                POST_PROCESS,
-                result.context,
-                partial(self._edit_draft, draft=draft),
-            )
-            stages[POST_PROCESS] = edited
-            result = edited.result
-            models[POST_PROCESS.name] = result.context.post_process_params["model"]
-
-        display = strip_tags(result.content)
-        if not display:
-            raise ValueError("No displayable content")
-        return Generation(
-            result.content,
-            display,
-            draft,
-            result.notes,
-            self._trial_record(stages),
-            models,
-        )
-
-    async def _run_stage(
-        self,
-        stage: trials.Stage,
-        context: Context,
-        execute: Callable[[Context, str | None], Awaitable[StageResult]],
-    ) -> trials.TrialRun[StageResult]:
-        """Run one stage, charging every candidate it produced to the turn."""
-        trial = await self._execute_with_cancellation(
-            trials.run(context, stage, execute)
-        )
-        self._turn_cost += sum(r.completion.cost for r in trial.candidates.values())
-        return trial
-
-    async def _respond(
-        self,
-        context: Context,
-        alias: str | None,
-        *,
-        skip_injected_prompt: bool,
-        skip_required_tags: bool,
-    ) -> StageResult:
-        executor = ChatExecutor(
-            context,
-            request_key=RESPONSE.request_key(alias),
-            skip_injected_prompt=skip_injected_prompt,
-        )
-        completion = await executor.execute()
-        content = transform_response(
-            completion.content,
-            context.response_patterns,
-            None if skip_required_tags else context.required_response_tags,
-        )
-        return StageResult(content, context, completion)
-
-    async def _edit_draft(
-        self, context: Context, alias: str | None, *, draft: str
-    ) -> StageResult:
-        """Re-generate the draft under the post-processing prompt."""
-        instruction = f"<instruct>\n{context.post_process_prompt}\n</instruct>"
-        executor = ChatExecutor(
-            context,
-            request_key=POST_PROCESS.request_key(alias),
-            skip_injected_prompt=True,
-            extra_messages=[
-                Message("assistant", f"<draft>\n{draft}\n</draft>"),
-                Message("user", instruction),
-            ],
-            include_images=context.post_process_supports_images,
-        )
-        completion = await executor.execute(context.post_process_params)
-        notes, content = extract_tag(completion.content, "assessment")
-        content = transform_response(
-            content,
-            context.response_patterns,
-            context.required_response_tags,
-        )
-        return StageResult(content, context, completion, notes)
-
-    def _trial_record(
-        self, stages: dict[trials.Stage, trials.TrialRun[StageResult]]
-    ) -> dict[str, Any] | None:
-        """Record every stage's candidates, or None if no stage ran a trial."""
-        if not any(trial.selected for trial in stages.values()):
-            return None
-        record: dict[str, Any] = {"id": self._trial_log.next_id()}
-        for stage, trial in stages.items():
-            record[stage.name] = {
-                **({"selected": trial.selected} if trial.selected else {}),
-                "candidates": {
-                    alias: result.as_candidate()
-                    for alias, result in trial.candidates.items()
-                },
-            }
-        return record
+    async def _generate(self, **options: bool) -> Generation:
+        return await self._generator.generate(self.context, **options)
 
     async def _generate_transient(self, prompt: str) -> Generation:
         with self._temporary_message("user", prompt):
@@ -396,13 +236,6 @@ class Simulacrum:
             yield
         finally:
             messages.pop()
-
-    async def _execute_with_cancellation[T](self, coro: Coroutine[Any, Any, T]) -> T:
-        self._current_task = asyncio.create_task(coro)
-        try:
-            return await self._current_task
-        finally:
-            self._current_task = None
 
     def _pop_last_message(self, role: str) -> Message | None:
         msgs = self.context.conversation.messages

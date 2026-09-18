@@ -18,8 +18,8 @@ class Stage:
     name: str
     scope: str | None = None
 
-    def request_key(self, alias: str | None) -> str:
-        return self.name if alias is None else f"{self.name}_{alias}"
+    def request_key(self, alias: str | None, label: str | None = None) -> str:
+        return "_".join(part for part in (self.name, alias, label) if part)
 
 
 @dataclass

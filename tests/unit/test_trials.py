@@ -110,6 +110,10 @@ class TestStage:
     def test_request_key_is_suffixed_by_the_alias(self):
         assert POST_PROCESS.request_key("B") == "post_process_B"
 
+    def test_request_key_is_suffixed_by_the_draft_label(self):
+        assert RESPONSE.request_key(None, "2") == "response_2"
+        assert RESPONSE.request_key("A", "2") == "response_A_2"
+
 
 class FakeLogContext:
     is_ephemeral = False
@@ -124,7 +128,6 @@ class FakeLogContext:
 def record(trial_id: int, content: str) -> dict[str, Any]:
     return {
         "id": trial_id,
-        "draft": "draft text",
         "selected": "A",
         "candidates": {"A": {"content": content}},
     }

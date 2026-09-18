@@ -440,6 +440,25 @@ class TestPresetOverrides:
         assert "top_p" not in context.api_params
 
 
+class TestPostProcessDrafts:
+    def test_defaults_to_one(self, context):
+        assert context.post_process_drafts == 1
+
+    def test_reads_the_configured_count(self, context_fs):  # noqa: ARG002
+        overrides = {"post_process": {"prompt": "Edit.", "drafts": 3}}
+        ctx = Context("/test/alice.yml", overrides=overrides)
+        assert ctx.post_process_drafts == 3
+
+    def test_is_one_without_an_editor_prompt(self, context_fs):  # noqa: ARG002
+        ctx = Context("/test/alice.yml", overrides={"post_process": {"drafts": 3}})
+        assert ctx.post_process_drafts == 1
+
+    def test_is_at_least_one(self, context_fs):  # noqa: ARG002
+        overrides = {"post_process": {"prompt": "Edit.", "drafts": 0}}
+        ctx = Context("/test/alice.yml", overrides=overrides)
+        assert ctx.post_process_drafts == 1
+
+
 class TestPostProcessSupportsImages:
     def test_defaults_to_true(self, context):
         assert context.post_process_supports_images is True

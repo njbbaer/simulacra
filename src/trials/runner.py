@@ -30,11 +30,6 @@ class TrialRun[T]:
     selected: str | None = None
     outputs: dict[str, T] = field(default_factory=dict)
 
-    @property
-    def candidates(self) -> dict[str, T]:
-        """Every output by alias, or just the result when the stage ran no trial."""
-        return self.outputs or {ALIASES[0]: self.result}
-
 
 async def run[T](
     context: Context,

@@ -192,7 +192,7 @@ async def test_trial_logs_every_candidate(
     assert log["messages"][1] == {"role": "user", "content": "Hello assistant"}
     trial = log["messages"][2]["trial"]
     assert "content" not in log["messages"][2]
-    assert trial["response"] == {"candidates": {"A": {"content": "Something"}}}
+    assert trial["response"] == {"content": "Something"}
     assert trial["post_process"]["selected"] == "A"
     assert trial["post_process"]["candidates"]["A"]["content"] == "First edit"
     assert trial["post_process"]["candidates"]["B"]["content"] == "Second edit"

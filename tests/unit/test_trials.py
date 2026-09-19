@@ -58,11 +58,6 @@ class TestRun:
         assert trial.result == (None, {})
 
     @pytest.mark.asyncio
-    async def test_an_untried_stage_still_reports_its_lone_candidate(self):
-        trial = await run(FakeContext({}), POST_PROCESS, echo_model)
-        assert trial.candidates == {"A": trial.result}
-
-    @pytest.mark.asyncio
     async def test_root_scoped_candidates_override_the_whole_context(self):
         context = FakeContext(
             {"candidates": [{"api_params": {"model": "one"}}, {"system_prompt": "Hi"}]}

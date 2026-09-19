@@ -308,11 +308,14 @@ class Generator:
             return None
         record: dict[str, Any] = {"id": self._trial_log.next_id()}
         for stage, trial in stages.items():
-            record[stage.name] = {
-                **({"selected": trial.selected} if trial.selected else {}),
-                "candidates": {
-                    alias: result.as_candidate()
-                    for alias, result in trial.candidates.items()
-                },
-            }
+            if trial.selected:
+                record[stage.name] = {
+                    "selected": trial.selected,
+                    "candidates": {
+                        alias: result.as_candidate()
+                        for alias, result in trial.outputs.items()
+                    },
+                }
+            else:
+                record[stage.name] = trial.result.as_candidate()
         return record

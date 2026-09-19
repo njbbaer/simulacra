@@ -72,6 +72,7 @@ def simulacrum(simulacrum_context) -> Simulacrum:  # noqa: ARG001
 def mock_completion_response() -> dict[str, Any]:
     return {
         "id": "gen-test",
+        "provider": "TestProvider",
         "choices": [
             {
                 "message": {

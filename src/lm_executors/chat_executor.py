@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -26,23 +27,30 @@ class ChatExecutor:
         include_images: bool = True,
     ) -> None:
         self.context = context
-        self._request_key = request_key
+        self.request_key = request_key
         self._skip_injected_prompt = skip_injected_prompt
         self._extra_messages = extra_messages or []
         self._include_images = include_images
 
-    async def execute(self, params: dict[str, Any] | None = None) -> ChatCompletion:
+    async def execute(
+        self,
+        params: dict[str, Any] | None = None,
+        on_retry: Callable[[], None] | None = None,
+    ) -> ChatCompletion:
         body = {
             "messages": self._build_messages(),
             **self.context.api_params,
             **(params or {}),
         }
+        fetch = fetch_completion
+        if on_retry:
+            fetch = fetch.retry_with(before_sleep=lambda _: on_retry())  # type: ignore[attr-defined]
         try:
-            data = await fetch_completion(body)
+            data = await fetch(body)
         except httpx.ReadTimeout as err:
             raise RuntimeError("Request timed out") from err
 
-        RequestRecorder().record(body, data, self._request_key)
+        RequestRecorder().record(body, data, self.request_key)
         completion = ChatCompletion(data)
         self.context.increment_cost(completion.cost)
         return completion

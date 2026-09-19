@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from functools import partial
@@ -10,6 +11,7 @@ from .lm_executors import ChatExecutor
 from .message import Message
 from .request_recorder import RequestRecorder
 from .response_transform import extract_tag, strip_tags, transform_response
+from .telemetry import Telemetry, TimedRecord
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
@@ -72,8 +74,10 @@ class Generation:
 class Generator:
     """Runs the stages of one turn, tracking its cost and pending request."""
 
-    def __init__(self, trial_log: trials.TrialLog) -> None:
+    def __init__(self, trial_log: trials.TrialLog, telemetry: Telemetry) -> None:
         self._trial_log = trial_log
+        self._telemetry = telemetry
+        self._turn = telemetry
         self.last_completion: ChatCompletion | None = None
         self.turn_cost: float = 0.0
         self._task: asyncio.Task | None = None
@@ -91,12 +95,41 @@ class Generator:
         self,
         context: Context,
         *,
+        action: str,
         skip_required_tags: bool = False,
         skip_injected_prompt: bool = False,
         skip_post_process: bool = False,
     ) -> Generation:
         RequestRecorder().reset()
         self.turn_cost = 0.0
+        self._turn = self._telemetry.scoped(
+            turn=secrets.token_hex(6),
+            character=context.context_name,
+            conversation=None if context.is_ephemeral else context.conversation_id,
+            action=action,
+        )
+        record = self._turn.start(kind="turn")
+        try:
+            generation = await self._generate(
+                context,
+                skip_required_tags=skip_required_tags,
+                skip_injected_prompt=skip_injected_prompt,
+                skip_post_process=skip_post_process,
+            )
+        except BaseException as err:
+            record.fail(err)
+            raise
+        record.ok(cost=self.turn_cost, chars=len(generation.display))
+        return generation
+
+    async def _generate(
+        self,
+        context: Context,
+        *,
+        skip_required_tags: bool,
+        skip_injected_prompt: bool,
+        skip_post_process: bool,
+    ) -> Generation:
         editing = not skip_post_process
 
         response = await self._run_stage(
@@ -151,12 +184,39 @@ class Generator:
             self._task = None
 
     async def _complete(
-        self, executor: ChatExecutor, params: dict[str, Any] | None = None
+        self,
+        executor: ChatExecutor,
+        record: TimedRecord,
+        params: dict[str, Any] | None = None,
     ) -> ChatCompletion:
-        """Execute the request, charging it to the turn."""
-        completion = await executor.execute(params)
+        """Execute the request, charging it to the turn and finishing its record."""
+        try:
+            completion = await executor.execute(params, on_retry=record.retried)
+        except BaseException as err:
+            record.fail(err)
+            raise
         self.turn_cost += completion.cost
+        record.ok(
+            generation_id=completion.id,
+            provider=completion.provider,
+            prompt_tokens=completion.prompt_tokens,
+            completion_tokens=completion.completion_tokens,
+            cached_tokens=completion.cached_tokens,
+            cost=completion.cost,
+            chars=len(completion.content),
+        )
         return completion
+
+    def _start_request(
+        self, stage: trials.Stage, model: str, alias: str | None, label: str | None
+    ) -> TimedRecord:
+        return self._turn.start(
+            kind="request",
+            stage=stage.name,
+            model=model,
+            candidate=alias,
+            draft=int(label) if label else None,
+        )
 
     async def _draft(
         self,
@@ -198,7 +258,8 @@ class Generator:
             request_key=RESPONSE.request_key(alias, label),
             skip_injected_prompt=skip_injected_prompt,
         )
-        completion = await self._complete(executor)
+        record = self._start_request(RESPONSE, context.model, alias, label)
+        completion = await self._complete(executor, record)
         content = transform_response(
             completion.content,
             context.response_patterns,
@@ -228,7 +289,9 @@ class Generator:
             ],
             include_images=context.post_process_supports_images,
         )
-        completion = await self._complete(executor, context.post_process_params)
+        params = context.post_process_params
+        record = self._start_request(POST_PROCESS, params["model"], alias, None)
+        completion = await self._complete(executor, record, params)
         notes, content = extract_tag(completion.content, "assessment")
         content = transform_response(
             content,

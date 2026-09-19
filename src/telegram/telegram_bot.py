@@ -9,6 +9,7 @@ from telegram.request import HTTPXRequest
 
 from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
+from ..telemetry import Telemetry
 from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
 from .message_handler import message_handler, requires_body
@@ -22,7 +23,11 @@ PYPROJECT_PATH = os.path.join(PROJECT_ROOT, "pyproject.toml")
 
 class TelegramBot:
     def __init__(
-        self, context_filepath: str, telegram_token: str, authorized_user: str
+        self,
+        context_filepath: str,
+        telegram_token: str,
+        authorized_user: str,
+        telemetry: Telemetry | None = None,
     ) -> None:
         self._token = telegram_token
         bot_api = os.environ.get("TELEGRAM_BOT_API")
@@ -40,7 +45,7 @@ class TelegramBot:
         if bot_api:
             builder = builder.base_url(f"{bot_api}/bot").local_mode(True)
         self.app = builder.build()
-        self.sim = Simulacrum(context_filepath)
+        self.sim = Simulacrum(context_filepath, telemetry=telemetry)
         self.cost_tracker = CostTracker()
 
         self._register_handlers(authorized_user)

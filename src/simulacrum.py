@@ -12,6 +12,7 @@ from .document_cleaner import clean_document
 from .generator import Generation, Generator
 from .instruction_preset import InstructionPreset
 from .message import Message
+from .telemetry import Telemetry
 from .utilities import parse_value
 
 if TYPE_CHECKING:
@@ -30,10 +31,11 @@ class Simulacrum:
         context_file: str,
         ephemeral: bool = False,
         overrides: dict | None = None,
+        telemetry: Telemetry | None = None,
     ) -> None:
         self.context = Context(context_file, overrides=overrides, ephemeral=ephemeral)
         self._trial_log = trials.TrialLog(self.context)
-        self._generator = Generator(self._trial_log)
+        self._generator = Generator(self._trial_log, telemetry or Telemetry())
         self._pending_instruction: PendingInstruction | None = None
         self.retry_stack: list[list[Message]] = []
 
@@ -42,6 +44,7 @@ class Simulacrum:
         user_input: str | None,
         image: str | None,
         documents: list[str] | None,
+        action: str = "chat",
     ) -> str:
         self._ensure_idle()
         with self.context.session() as session:
@@ -54,7 +57,7 @@ class Simulacrum:
                     "user", user_input, image, metadata
                 )
             self.context.save()
-            generation = await self._generate()
+            generation = await self._generate(action)
             self._add_generated_message("assistant", generation)
             self._trial_log.write(generation.trial_record)
         return generation.display if not session.superseded else ""
@@ -80,7 +83,7 @@ class Simulacrum:
         self.retry_stack.clear()
         if instruction:
             self._set_inline_instruction(instruction)
-        return await self.chat(None, None, None)
+        return await self.chat(None, None, None, action="continue")
 
     async def scene(self, user_input: str | None = None) -> str:
         self._ensure_idle()
@@ -110,7 +113,7 @@ class Simulacrum:
                 self.retry_stack.append([popped])
         if instruction:
             self._set_inline_instruction(instruction)
-        return await self.chat(None, None, None)
+        return await self.chat(None, None, None, action="retry")
 
     def undo(self) -> None:
         self.retry_stack.clear()
@@ -224,12 +227,13 @@ class Simulacrum:
             },
         )
 
-    async def _generate(self, **options: bool) -> Generation:
-        return await self._generator.generate(self.context, **options)
+    async def _generate(self, action: str, **options: bool) -> Generation:
+        return await self._generator.generate(self.context, action=action, **options)
 
     async def _generate_transient(self, prompt: str) -> Generation:
         with self._temporary_message("user", prompt):
             return await self._generate(
+                "scene",
                 skip_required_tags=True,
                 skip_injected_prompt=True,
                 skip_post_process=True,

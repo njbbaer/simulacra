@@ -11,6 +11,14 @@ class ChatCompletion:
         return (self._choice["message"]["content"] or "").strip()
 
     @property
+    def id(self) -> str | None:
+        return self.response.get("id")
+
+    @property
+    def provider(self) -> str | None:
+        return self.response.get("provider")
+
+    @property
     def prompt_tokens(self) -> int:
         return self._usage["prompt_tokens"]
 

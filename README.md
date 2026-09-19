@@ -87,6 +87,8 @@ The config TOML file initializes one or more Telegram bots and defines the path 
 See `example/config.toml` for a template config file:
 
 ```toml
+base_dir = "."
+
 [[simulacra]]
 context_filepath = "example/context.yml"
 telegram_token = "telegram-bot-token"

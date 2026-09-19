@@ -7,6 +7,7 @@ import dotenv
 import toml
 
 from src import TelegramBot
+from src.telemetry import Telemetry
 
 dotenv.load_dotenv()
 
@@ -24,19 +25,32 @@ def main() -> None:
     with open(config_file) as f:
         configs = toml.load(f)
     bot_configs = configs.get("simulacra", [])
+    telemetry = _telemetry(config_file, configs.get("base_dir"))
 
     if IS_DEVELOPMENT:
-        _run_bot(bot_configs[0])
+        _run_bot(bot_configs[0], telemetry)
     else:
         for bot_config in bot_configs:
-            multiprocessing.Process(target=_run_bot, args=(bot_config,)).start()
+            multiprocessing.Process(
+                target=_run_bot, args=(bot_config, telemetry)
+            ).start()
 
 
-def _run_bot(bot_config: dict[str, Any]) -> None:
+def _telemetry(config_file: str, base_dir: str | None) -> Telemetry:
+    """Telemetry under `base_dir`, resolved against the config file's directory."""
+    if base_dir:
+        config_dir = os.path.dirname(os.path.abspath(config_file))
+        base_dir = os.path.normpath(os.path.join(config_dir, base_dir))
+    deployment = os.path.splitext(os.path.basename(config_file))[0]
+    return Telemetry.for_deployment(base_dir, deployment)
+
+
+def _run_bot(bot_config: dict[str, Any], telemetry: Telemetry) -> None:
     TelegramBot(
         bot_config["context_filepath"],
         bot_config["telegram_token"],
         bot_config["authorized_user"],
+        telemetry,
     ).run()
 
 

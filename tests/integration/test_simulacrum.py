@@ -44,7 +44,8 @@ async def test_simulacrum_chat(
     )[0]
     actual_body = json.loads(request.content)
 
-    assert request.headers["X-Title"] == "Simulacra"
+    assert request.headers["HTTP-Referer"] == "https://github.com/njbbaer/simulacra"
+    assert request.headers["X-OpenRouter-Title"] == "Simulacra"
 
     # Verify API request contains all context api_params
     assert all(

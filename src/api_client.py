@@ -7,7 +7,10 @@ from .utilities import retry_on
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_TIMEOUT = httpx.Timeout(10, read=60)
-APP_HEADERS = {"X-Title": "Simulacra"}
+APP_HEADERS = {
+    "HTTP-Referer": "https://github.com/njbbaer/simulacra",
+    "X-OpenRouter-Title": "Simulacra",
+}
 
 
 @retry_on(httpx.HTTPError, 3)

@@ -31,6 +31,11 @@ class ChatCompletion:
         return self._usage["prompt_tokens_details"]["cached_tokens"]
 
     @property
+    def reasoning_tokens(self) -> int:
+        details = self._usage.get("completion_tokens_details") or {}
+        return details.get("reasoning_tokens") or 0
+
+    @property
     def cost(self) -> float:
         return (
             self._usage["cost"]

@@ -16,7 +16,7 @@ from .telemetry import Telemetry
 from .utilities import parse_value
 
 if TYPE_CHECKING:
-    from .chat_completion import ChatCompletion
+    from .turn_stats import TurnStats
 
 
 @dataclass
@@ -184,15 +184,15 @@ class Simulacrum:
         return msgs[-1] if msgs else None
 
     @property
-    def last_completion(self) -> ChatCompletion | None:
-        return self._generator.last_completion
+    def last_turn(self) -> TurnStats | None:
+        return self._generator.last_turn
 
     @property
     def last_message_cost(self) -> float | None:
         """Cost of the last turn across every request of every stage."""
-        if not self.last_completion:
+        if not self.last_turn or not self.last_turn.requests:
             return None
-        return self._generator.turn_cost
+        return self.last_turn.cost
 
     def get_conversation_cost(self) -> float:
         self.context.load()

@@ -12,6 +12,7 @@ from .message import Message
 from .request_recorder import RequestRecorder
 from .response_transform import extract_tag, strip_tags, transform_response
 from .telemetry import Telemetry, TimedRecord
+from .turn_stats import TurnStats
 
 if TYPE_CHECKING:
     from .chat_completion import ChatCompletion
@@ -78,8 +79,7 @@ class Generator:
         self._trial_log = trial_log
         self._telemetry = telemetry
         self._turn = telemetry
-        self.last_completion: ChatCompletion | None = None
-        self.turn_cost: float = 0.0
+        self.last_turn: TurnStats | None = None
         self._task: asyncio.Task | None = None
 
     @property
@@ -101,7 +101,7 @@ class Generator:
         skip_post_process: bool = False,
     ) -> Generation:
         RequestRecorder().reset()
-        self.turn_cost = 0.0
+        self.last_turn = turn = TurnStats(action)
         self._turn = self._telemetry.scoped(
             turn=secrets.token_hex(6),
             character=context.context_name,
@@ -117,9 +117,10 @@ class Generator:
                 skip_post_process=skip_post_process,
             )
         except BaseException as err:
-            record.fail(err)
+            turn.duration_ms = record.fail(err)["duration_ms"]
             raise
-        record.ok(cost=self.turn_cost, chars=len(generation.display))
+        row = record.ok(cost=turn.cost, chars=len(generation.display))
+        turn.duration_ms = row["duration_ms"]
         return generation
 
     async def _generate(
@@ -145,7 +146,6 @@ class Generator:
         stages: dict[trials.Stage, trials.TrialRun[Any]] = {RESPONSE: response}
 
         result = response.result.results[0]
-        self.last_completion = result.completion
         models = {RESPONSE.name: result.context.model}
         drafts: list[str] = []
         if editing and result.context.post_process_prompt:
@@ -195,16 +195,18 @@ class Generator:
         except BaseException as err:
             record.fail(err)
             raise
-        self.turn_cost += completion.cost
-        record.ok(
+        row = record.ok(
             generation_id=completion.id,
             provider=completion.provider,
             prompt_tokens=completion.prompt_tokens,
             completion_tokens=completion.completion_tokens,
             cached_tokens=completion.cached_tokens,
+            reasoning_tokens=completion.reasoning_tokens,
             cost=completion.cost,
             chars=len(completion.content),
         )
+        assert self.last_turn is not None
+        self.last_turn.requests.append(row)
         return completion
 
     def _start_request(

@@ -28,13 +28,14 @@ class Telemetry:
         """Begin timing a record that is written when it finishes."""
         return TimedRecord(self, fields)
 
-    def record(self, **fields: Any) -> None:
-        if not self.path:
-            return
+    def record(self, **fields: Any) -> dict[str, Any]:
+        """Append the row to the log, if there is one, and return it."""
         row = {"ts": datetime.now(UTC).isoformat(), **self._base, **fields}
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        with open(self.path, "a") as file:
-            file.write(json.dumps(row) + "\n")
+        if self.path:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            with open(self.path, "a") as file:
+                file.write(json.dumps(row) + "\n")
+        return row
 
 
 class TimedRecord:
@@ -49,17 +50,17 @@ class TimedRecord:
     def retried(self) -> None:
         self._attempts += 1
 
-    def ok(self, **fields: Any) -> None:
-        self._finish("ok", **fields)
+    def ok(self, **fields: Any) -> dict[str, Any]:
+        return self._finish("ok", **fields)
 
-    def fail(self, err: BaseException) -> None:
+    def fail(self, err: BaseException) -> dict[str, Any]:
         status = "cancelled" if isinstance(err, asyncio.CancelledError) else "error"
         message = f"{type(err).__name__}: {err}" if str(err) else type(err).__name__
-        self._finish(status, error=message)
+        return self._finish(status, error=message)
 
-    def _finish(self, status: str, **fields: Any) -> None:
+    def _finish(self, status: str, **fields: Any) -> dict[str, Any]:
         duration_ms = round((time.monotonic() - self._started) * 1000)
-        self._telemetry.record(
+        return self._telemetry.record(
             **self._fields,
             status=status,
             duration_ms=duration_ms,

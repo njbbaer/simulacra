@@ -10,6 +10,7 @@ from telegram.request import HTTPXRequest
 from ..cost_tracker import CostTracker
 from ..simulacrum import Simulacrum
 from ..telemetry import Telemetry
+from ..turn_stats import format_stats
 from ..utilities import PROJECT_ROOT, extract_url_content
 from .filters import StaleMessageFilter
 from .message_handler import message_handler, requires_body
@@ -181,25 +182,15 @@ class TelegramBot:
 
     @message_handler
     async def _stats(self, ctx: TelegramContext) -> None:
-        conversation_cost = (
-            f"*Conversation*\n`Cost: ${self.sim.get_conversation_cost():.2f}`"
-        )
-
-        last_message_stats = "*Last Message*\n"
-        if self.sim.last_completion:
-            lc = self.sim.last_completion
-            last_message_stats += "\n".join(
-                [
-                    f"`Cost: ${self.sim.last_message_cost:.4f}`",
-                    f"`Prompt tokens: {lc.prompt_tokens}`",
-                    f"`Cached tokens: {lc.cached_tokens}`",
-                    f"`Completion tokens: {lc.completion_tokens}`",
-                ]
+        self.sim.context.load()
+        await ctx.send_message(
+            format_stats(
+                self.sim.last_turn,
+                self.sim.context.conversation_id,
+                len(self.sim.context.conversation.messages),
+                self.sim.context.conversation.cost,
             )
-        else:
-            last_message_stats += "`Not available`"
-
-        await ctx.send_message(f"{conversation_cost}\n\n{last_message_stats}")
+        )
 
     @message_handler
     async def _clear(self, ctx: TelegramContext) -> None:

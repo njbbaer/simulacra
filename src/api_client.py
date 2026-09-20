@@ -7,6 +7,7 @@ from .utilities import retry_on
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_TIMEOUT = httpx.Timeout(10, read=60)
+APP_HEADERS = {"X-Title": "Simulacra"}
 
 
 @retry_on(httpx.HTTPError, 3)
@@ -18,7 +19,7 @@ async def fetch_completion(
     async with httpx.AsyncClient(timeout=request_timeout) as client:
         response = await client.post(
             API_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": f"Bearer {api_key}", **APP_HEADERS},
             json=body,
         )
         data = response.json()

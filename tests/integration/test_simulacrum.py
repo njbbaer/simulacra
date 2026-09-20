@@ -44,6 +44,8 @@ async def test_simulacrum_chat(
     )[0]
     actual_body = json.loads(request.content)
 
+    assert request.headers["X-Title"] == "Simulacra"
+
     # Verify API request contains all context api_params
     assert all(
         key in actual_body and actual_body[key] == value

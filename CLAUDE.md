@@ -11,4 +11,4 @@
 
 ## Content Directory
 
-`~/simulacra-sync` is the content directory for this framework: characters, prompt templates, and conversation logs. See its `CLAUDE.md` for the layout.
+`~/simulacra-sync` is the content directory for this framework. It contains characters, prompt templates, conversation logs, and application telemetry. See its `CLAUDE.md` for details.

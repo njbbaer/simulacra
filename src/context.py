@@ -174,6 +174,11 @@ class Context:
         return conv.name if conv else None
 
     @property
+    def session_id(self) -> str:
+        """Return the conversation filename stem."""
+        return os.path.splitext(os.path.basename(self._conversation_relpath))[0]
+
+    @property
     def book_path(self) -> str | None:
         path = self._data.get("book_path")
         if path:

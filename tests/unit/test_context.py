@@ -64,6 +64,14 @@ class TestConversationId:
         with pytest.raises(ValueError, match="Invalid conversation file format"):
             _ = context.conversation_id
 
+
+class TestSessionId:
+    def test_uses_conversation_file_stem(self, context):
+        context._state_data["conversation_file"] = (
+            "file://./conversations/alice_42_chat.yml"
+        )
+        assert context.session_id == "alice_42_chat"
+
     def test_generates_sequential_id(self, context_fs, context):
         context_fs.create_file("/test/conversations/alice_1.yml")
         context_fs.create_file("/test/conversations/alice_5.yml")

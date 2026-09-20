@@ -1,5 +1,31 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from src.lm_executors.chat_executor import ChatExecutor
 from src.message import Message
+
+COMPLETION = {
+    "choices": [{"message": {"content": "hi"}, "finish_reason": "stop"}],
+    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "cost": 0.001},
+}
+
+
+class TestSessionId:
+    @pytest.mark.asyncio
+    async def test_includes_session_id(self):
+        context = MagicMock(api_params={"model": "m"}, session_id="alice_42")
+        executor = ChatExecutor(context, request_key="k")
+        with (
+            patch.object(executor, "_build_messages", return_value=[]),
+            patch("src.lm_executors.chat_executor.RequestRecorder"),
+            patch(
+                "src.lm_executors.chat_executor.fetch_completion",
+                new=AsyncMock(return_value=COMPLETION),
+            ) as fetch,
+        ):
+            await executor.execute()
+        assert fetch.call_args.args[0]["session_id"] == "alice_42"
 
 
 class TestInjectInlineInstructions:

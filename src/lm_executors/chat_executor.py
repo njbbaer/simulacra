@@ -39,6 +39,7 @@ class ChatExecutor:
     ) -> ChatCompletion:
         body = {
             "messages": self._build_messages(),
+            "session_id": self.context.session_id,
             **self.context.api_params,
             **(params or {}),
         }

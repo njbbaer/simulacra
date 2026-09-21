@@ -85,7 +85,7 @@ class Generator:
         self._turn = telemetry
         self.last_turn: TurnStats | None = None
         self._task: asyncio.Task | None = None
-        self._cache_written: dict[str, float] = {}
+        self._cache_written: dict[tuple[str, int], float] = {}
 
     @property
     def busy(self) -> bool:
@@ -255,9 +255,13 @@ class Generator:
         return Drafts(list(results))
 
     def _cache_warm(self, context: Context) -> bool:
-        """Return whether the conversation had a response request within the TTL."""
-        written = self._cache_written.get(context.session_id)
+        """Return whether the prompt had a response request within the TTL."""
+        written = self._cache_written.get(self._cache_key(context))
         return written is not None and time.monotonic() - written < CACHE_TTL_SECONDS
+
+    @staticmethod
+    def _cache_key(context: Context) -> tuple[str, int]:
+        return (context.session_id, hash(context.resolved_data.get("system_prompt")))
 
     async def _respond(
         self,
@@ -275,7 +279,7 @@ class Generator:
         )
         record = self._start_request(RESPONSE, context.model, alias, label)
         completion = await self._complete(executor, record)
-        self._cache_written[context.session_id] = time.monotonic()
+        self._cache_written[self._cache_key(context)] = time.monotonic()
         content = transform_response(
             completion.content,
             context.response_patterns,

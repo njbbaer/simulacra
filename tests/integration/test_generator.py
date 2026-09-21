@@ -455,11 +455,12 @@ async def test_drafts_are_requested_separately(
 @pytest.mark.asyncio
 async def test_later_drafts_wait_for_the_cache_unless_it_is_warm(
     drafts_simulacrum: Simulacrum,
+    context_data: dict[str, Any],
     httpx_mock,
     mock_completion_response: dict[str, Any],
     monkeypatch,
 ) -> None:
-    for _ in range(9):
+    for _ in range(12):
         httpx_mock.add_response(
             url="https://openrouter.ai/api/v1/chat/completions",
             json=mock_completion_response,
@@ -472,11 +473,15 @@ async def test_later_drafts_wait_for_the_cache_unless_it_is_warm(
         await drafts_simulacrum.chat("Hello assistant", None, None)
         clock["now"] = 60
         await drafts_simulacrum.chat("Hello again", None, None)
-        clock["now"] = 60 + 16 * 60
+        context_data["system_prompt"] = "Say something else!"
+        with open("test.yml", "w") as f:
+            yaml.dump(context_data, f)
         await drafts_simulacrum.chat("Hello once more", None, None)
+        clock["now"] = 60 + 16 * 60
+        await drafts_simulacrum.chat("Hello at last", None, None)
 
     delays = [call.args[0] for call in sleep.call_args_list]
-    assert delays == [0.0, 2.0, 0.0, 0.0, 0.0, 2.0]
+    assert delays == [0.0, 2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 2.0]
 
 
 @pytest.mark.asyncio

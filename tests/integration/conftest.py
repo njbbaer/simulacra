@@ -16,6 +16,11 @@ def custom_fs(fs):
     return fs
 
 
+@pytest.fixture(autouse=True)
+def no_cache_write_wait(monkeypatch):
+    monkeypatch.setattr("src.generator.CACHE_WRITE_SECONDS", 0.0)
+
+
 @pytest.fixture
 def context_data() -> dict[str, Any]:
     return {

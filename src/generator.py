@@ -1,5 +1,6 @@
 import asyncio
 import secrets
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from functools import partial
@@ -19,6 +20,9 @@ if TYPE_CHECKING:
 
 RESPONSE = trials.Stage("response")
 POST_PROCESS = trials.Stage("post_process", scope="post_process")
+
+CACHE_TTL_SECONDS = 15 * 60
+CACHE_WRITE_SECONDS = 2.0
 
 
 @dataclass
@@ -81,6 +85,7 @@ class Generator:
         self._turn = telemetry
         self.last_turn: TurnStats | None = None
         self._task: asyncio.Task | None = None
+        self._cache_written: dict[str, float] = {}
 
     @property
     def busy(self) -> bool:
@@ -232,19 +237,27 @@ class Generator:
         """Generate every draft the editor will see, or one if it will not run."""
         count = context.post_process_drafts if editing else 1
         labels = [None] if count == 1 else [str(i) for i in range(1, count + 1)]
-        results = await asyncio.gather(
-            *(
-                self._respond(
-                    context,
-                    alias,
-                    label,
-                    skip_injected_prompt=skip_injected_prompt,
-                    skip_required_tags=skip_required_tags,
-                )
-                for label in labels
+        delay = 0.0 if self._cache_warm(context) else CACHE_WRITE_SECONDS
+
+        async def respond(label: str | None, delay: float = 0.0) -> StageResult:
+            await asyncio.sleep(delay)
+            return await self._respond(
+                context,
+                alias,
+                label,
+                skip_injected_prompt=skip_injected_prompt,
+                skip_required_tags=skip_required_tags,
             )
+
+        results = await asyncio.gather(
+            respond(labels[0]), *(respond(label, delay) for label in labels[1:])
         )
         return Drafts(list(results))
+
+    def _cache_warm(self, context: Context) -> bool:
+        """Return whether the conversation had a response request within the TTL."""
+        written = self._cache_written.get(context.session_id)
+        return written is not None and time.monotonic() - written < CACHE_TTL_SECONDS
 
     async def _respond(
         self,
@@ -262,6 +275,7 @@ class Generator:
         )
         record = self._start_request(RESPONSE, context.model, alias, label)
         completion = await self._complete(executor, record)
+        self._cache_written[context.session_id] = time.monotonic()
         content = transform_response(
             completion.content,
             context.response_patterns,

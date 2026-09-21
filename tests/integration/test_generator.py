@@ -2,6 +2,7 @@
 import copy
 import json
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from ruamel.yaml import YAML
@@ -449,6 +450,33 @@ async def test_drafts_are_requested_separately(
     with open(RequestRecorder.FILEPATH) as f:
         log = YAML(typ="safe").load(f)
     assert sorted(log) == ["post_process", "response_1", "response_2"]
+
+
+@pytest.mark.asyncio
+async def test_later_drafts_wait_for_the_cache_unless_it_is_warm(
+    drafts_simulacrum: Simulacrum,
+    httpx_mock,
+    mock_completion_response: dict[str, Any],
+    monkeypatch,
+) -> None:
+    for _ in range(9):
+        httpx_mock.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            json=mock_completion_response,
+        )
+    clock = {"now": 0.0}
+    monkeypatch.setattr("src.generator.time.monotonic", lambda: clock["now"])
+    monkeypatch.setattr("src.generator.CACHE_WRITE_SECONDS", 2.0)
+
+    with patch("src.generator.asyncio.sleep", new_callable=AsyncMock) as sleep:
+        await drafts_simulacrum.chat("Hello assistant", None, None)
+        clock["now"] = 60
+        await drafts_simulacrum.chat("Hello again", None, None)
+        clock["now"] = 60 + 16 * 60
+        await drafts_simulacrum.chat("Hello once more", None, None)
+
+    delays = [call.args[0] for call in sleep.call_args_list]
+    assert delays == [0.0, 2.0, 0.0, 0.0, 0.0, 2.0]
 
 
 @pytest.mark.asyncio

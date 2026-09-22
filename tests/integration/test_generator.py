@@ -29,6 +29,7 @@ async def test_post_process_replaces_response(
     assert len(requests) == 2
     body = json.loads(requests[1].content)
     assert body["model"] == "test/editor"
+    assert "temperature" not in body
     assert body["messages"][-2]["role"] == "assistant"
     assert body["messages"][-2]["content"][0]["text"] == "<draft>\nSomething\n</draft>"
     # A trailing user message keeps the draft from being treated as a prefill

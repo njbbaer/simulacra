@@ -40,8 +40,7 @@ class ChatExecutor:
         body = {
             "messages": self._build_messages(),
             "session_id": self.context.session_id,
-            **self.context.api_params,
-            **(params or {}),
+            **(self.context.api_params if params is None else params),
         }
         fetch = fetch_completion
         if on_retry:

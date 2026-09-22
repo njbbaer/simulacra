@@ -224,7 +224,7 @@ class Context:
 
     @property
     def post_process_params(self) -> dict[str, Any]:
-        return merge_dicts(self.api_params, self._post_process.get("api_params", {}))
+        return self._post_process.get("api_params", {})
 
     @property
     def post_process_supports_images(self) -> bool:

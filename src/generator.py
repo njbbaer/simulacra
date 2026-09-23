@@ -162,7 +162,7 @@ class Generator:
             )
             stages[POST_PROCESS] = edited
             result = edited.result
-            models[POST_PROCESS.name] = result.context.post_process_params["model"]
+            models[POST_PROCESS.name] = result.context.post_process_model
 
         display = strip_tags(result.content)
         if not display:
@@ -309,9 +309,10 @@ class Generator:
             ],
             include_images=context.post_process_supports_images,
         )
-        params = context.post_process_params
-        record = self._start_request(POST_PROCESS, params["model"], alias, None)
-        completion = await self._complete(executor, record, params)
+        record = self._start_request(
+            POST_PROCESS, context.post_process_model, alias, None
+        )
+        completion = await self._complete(executor, record, context.post_process_params)
         notes, content = extract_tag(completion.content, "assessment")
         content = transform_response(
             content,

@@ -153,7 +153,7 @@ class Context:
 
     @property
     def model(self) -> str:
-        return self.api_params["model"]
+        return _require_model(self.api_params, "api_params")
 
     @property
     def conversation_file(self) -> str:
@@ -224,7 +224,11 @@ class Context:
 
     @property
     def post_process_params(self) -> dict[str, Any]:
-        return self._post_process.get("api_params", {})
+        return self._post_process.get("api_params") or {}
+
+    @property
+    def post_process_model(self) -> str:
+        return _require_model(self.post_process_params, "post_process.api_params")
 
     @property
     def post_process_supports_images(self) -> bool:
@@ -248,7 +252,7 @@ class Context:
 
     @property
     def api_params(self) -> dict[str, Any]:
-        return self._data.get("api_params", {})
+        return self._data.get("api_params") or {}
 
     def candidates(self, scope: str | None = None) -> list[dict[str, Any]]:
         """Return the `candidates` list from the `scope` section, or from the root."""
@@ -339,3 +343,9 @@ class Context:
     def _current_conversation_file(self) -> ConversationFile | None:
         filename = os.path.basename(self._conversation_relpath)
         return self._conversation_files.parse_filename(filename)
+
+
+def _require_model(params: dict[str, Any], key: str) -> str:
+    if not params.get("model"):
+        raise ValueError(f"{key}.model is not set")
+    return params["model"]

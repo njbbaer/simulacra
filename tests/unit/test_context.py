@@ -330,6 +330,11 @@ class TestModel:
         ctx = Context("/test/alice.yml", overrides={"api_params": {"model": "other"}})
         assert ctx.model == "other"
 
+    def test_empty_post_process_params_name_the_missing_model(self, context):
+        configure(context, post_process={"prompt": "Edit.", "api_params": None})
+        with pytest.raises(ValueError, match=r"^post_process\.api_params\.model "):
+            _ = context.post_process_model
+
 
 class TestStateFile:
     def test_empty_state_when_no_state_file(self, context):

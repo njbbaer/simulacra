@@ -18,7 +18,7 @@ dependencies = [
     "trafilatura",
     "curl_cffi",
     "tenacity",
-    "claude-agent-sdk>=0.2.157",
+    "claude-agent-sdk>=0.2.158",
 ]
 
 [dependency-groups]

@@ -42,6 +42,7 @@ async def fetch_agent_sdk_completion(body: dict[str, Any]) -> dict[str, Any]:
         max_turns=1,
         setting_sources=[],
         cwd=WORK_DIR,
+        verbatim_prompts=True,
         session_store=store,
         resume=session_id,
         **translate_params(body),

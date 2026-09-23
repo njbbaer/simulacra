@@ -143,7 +143,7 @@ def test_plan_usage_from_the_latest_request_is_shown_last():
     lines = format_stats(turn, 1, 2, 0.0, 0.0, now=1000).splitlines()
 
     assert lines[-3:] == [
-        "*Plan*",
+        "*Claude Plan*",
         "5-hour · 5% · resets in 3h 12m",
         "Weekly · 38% · resets in 2d 4h",
     ]

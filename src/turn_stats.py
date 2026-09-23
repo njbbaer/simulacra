@@ -93,7 +93,7 @@ def _stage_section(turn: TurnStats, stage: str) -> str:
 
 def _plan_section(plan_usage: dict[str, dict[str, Any]], now: float) -> str:
     """The heading, then each window's utilization and time until it resets."""
-    lines = ["*Plan*"]
+    lines = ["*Claude Plan*"]
     for name, window in plan_usage.items():
         label = WINDOW_LABELS.get(name, name)
         resets_at = window["resets_at"]

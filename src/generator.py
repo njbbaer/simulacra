@@ -213,6 +213,7 @@ class Generator:
             reasoning_tokens=completion.reasoning_tokens,
             cost=completion.cost,
             plan_cost=completion.plan_cost,
+            plan_usage=completion.plan_usage,
             chars=len(completion.content),
         )
         assert self.last_turn is not None

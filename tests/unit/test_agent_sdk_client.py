@@ -9,6 +9,7 @@ from src.agent_sdk_client import (
     to_blocks,
     to_completion,
     to_entries,
+    to_plan_usage,
     translate_params,
 )
 
@@ -97,7 +98,7 @@ def test_to_entries_chains_parents_and_marks_assistant_messages():
 
 
 def test_to_completion_shapes_usage_like_openrouter():
-    completion = to_completion(_result())
+    completion = to_completion(_result(), {})
     assert completion["choices"][0]["message"]["content"] == "Hi"
     assert completion["choices"][0]["finish_reason"] == "stop"
     assert completion["usage"]["prompt_tokens"] == 35
@@ -108,7 +109,7 @@ def test_to_completion_shapes_usage_like_openrouter():
 
 
 def test_to_completion_reports_length_on_max_tokens():
-    completion = to_completion(_result(stop_reason="max_tokens"))
+    completion = to_completion(_result(stop_reason="max_tokens"), {})
     assert completion["choices"][0]["finish_reason"] == "length"
 
 
@@ -153,7 +154,7 @@ async def test_fetch_resumes_history():
             _text("user", "Again"),
         ],
     }
-    run = AsyncMock(return_value=_result(result="Reply"))
+    run = AsyncMock(return_value=(_result(result="Reply"), {}))
     with patch("src.agent_sdk_client.run_query", run):
         completion = await fetch_agent_sdk_completion(body)
     options, prompt = run.call_args.args
@@ -172,9 +173,25 @@ async def test_fetch_without_history_does_not_resume():
         "model": "agent-sdk/claude-opus-5-5",
         "messages": [_text("system", "Be Margaret."), _text("user", "Hi")],
     }
-    run = AsyncMock(return_value=_result())
+    run = AsyncMock(return_value=(_result(), {}))
     with patch("src.agent_sdk_client.run_query", run):
         await fetch_agent_sdk_completion(body)
     options, _ = run.call_args.args
     assert options.resume is None
     assert options.session_store is None
+
+
+def test_to_plan_usage_reads_window_utilization_from_raw_event():
+    raw = {
+        "status": "allowed",
+        "unifiedWindows": {
+            "five_hour": {"utilization": 0.04, "resetsAt": 1790149800},
+            "seven_day": {"utilization": 0.38, "resetsAt": 1790179200},
+            "seven_day_opus": {"resetsAt": 1790179200},
+        },
+    }
+    assert to_plan_usage(raw) == {
+        "five_hour": {"utilization": 0.04, "resets_at": 1790149800},
+        "seven_day": {"utilization": 0.38, "resets_at": 1790179200},
+    }
+    assert to_plan_usage({"status": "allowed"}) == {}

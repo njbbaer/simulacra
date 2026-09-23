@@ -47,6 +47,11 @@ class ChatCompletion:
         """Return the API-price value of usage covered by a subscription plan."""
         return self._usage.get("plan_cost", 0.0)
 
+    @property
+    def plan_usage(self) -> dict[str, dict[str, Any]] | None:
+        """Return the utilization and reset time of each subscription limit window."""
+        return self._usage.get("plan_usage")
+
     def _validate(self) -> None:
         if self._error_message:
             raise RuntimeError(self._error_message)

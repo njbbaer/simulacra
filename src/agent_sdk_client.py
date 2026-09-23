@@ -16,6 +16,7 @@ from typing import Any, cast
 from claude_agent_sdk import (
     ClaudeAgentOptions,
     InMemorySessionStore,
+    RateLimitEvent,
     ResultMessage,
     SessionKey,
     SessionStoreEntry,
@@ -29,7 +30,6 @@ WORK_DIR = os.path.join(tempfile.gettempdir(), "simulacra-agent-sdk")
 TIMEOUT_SECONDS = 180
 CLI_ENV = {
     "CLAUDE_CODE_SESSION_NAME": "simulacra",
-    # Disables telemetry, error reporting, and auto-updates
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
 }
 
@@ -55,8 +55,8 @@ async def fetch_agent_sdk_completion(body: dict[str, Any]) -> dict[str, Any]:
         **translate_params(body),
     )
     async with asyncio.timeout(TIMEOUT_SECONDS):
-        result = await run_query(options, prompt)
-    return to_completion(result)
+        result, plan_usage = await run_query(options, prompt)
+    return to_completion(result, plan_usage)
 
 
 async def replay(turns: list[dict[str, Any]]) -> tuple[InMemorySessionStore, str]:
@@ -152,23 +152,42 @@ def to_entries(turns: list[dict[str, Any]], session_id: str) -> list[SessionStor
 
 async def run_query(
     options: ClaudeAgentOptions, prompt: list[dict[str, Any]]
-) -> ResultMessage:
+) -> tuple[ResultMessage, dict[str, dict[str, Any]]]:
+    """Return the result and the plan usage of each rate limit window."""
     result = None
+    plan_usage: dict[str, dict[str, Any]] = {}
     async for message in query(prompt=_user_stream(prompt), options=options):
         if isinstance(message, ResultMessage):
             result = message
+        elif isinstance(message, RateLimitEvent):
+            plan_usage = to_plan_usage(message.rate_limit_info.raw)
     if result is None:
         raise RuntimeError("Agent SDK returned no result")
     if result.is_error or result.subtype != "success":
         raise RuntimeError(result.result or f"Agent SDK error: {result.subtype}")
-    return result
+    return result, plan_usage
+
+
+def to_plan_usage(raw: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return each window's utilization and reset time from the event's raw data."""
+    windows = raw.get("unifiedWindows") or {}
+    return {
+        name: {
+            "utilization": window["utilization"],
+            "resets_at": window.get("resetsAt"),
+        }
+        for name, window in windows.items()
+        if window.get("utilization") is not None
+    }
 
 
 async def _user_stream(prompt: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
     yield {"type": "user", "message": {"role": "user", "content": prompt}}
 
 
-def to_completion(result: ResultMessage) -> dict[str, Any]:
+def to_completion(
+    result: ResultMessage, plan_usage: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
     """Shape the result like an OpenRouter chat-completions response."""
     usage = result.usage or {}
     cached = usage.get("cache_read_input_tokens", 0)
@@ -194,6 +213,7 @@ def to_completion(result: ResultMessage) -> dict[str, Any]:
             "cost": 0.0,
             "cost_details": {"upstream_inference_cost": 0.0},
             "plan_cost": result.total_cost_usd or 0.0,
+            "plan_usage": plan_usage or None,
         },
     }
 

@@ -122,3 +122,36 @@ def test_plan_cost_is_shown_beside_money_and_replaces_a_zero_cost():
     assert lines[3].endswith("220 tokens · plan $0.412")
     assert lines[6].endswith("220 tokens · $0.021")
     assert lines[-1] == "*Conversation* · #1 · 2 messages · $1.50 · plan $8.25"
+
+
+def plan_usage(five_hour: float, resets_in: float) -> dict:
+    return {
+        "five_hour": {"utilization": five_hour, "resets_at": 1000 + resets_in},
+        "seven_day": {"utilization": 0.38, "resets_at": 1000 + 187_200},
+    }
+
+
+def test_plan_usage_from_the_latest_request_is_shown_last():
+    turn = TurnStats(
+        "chat",
+        requests=[
+            request(draft=1, plan_usage=plan_usage(0.04, 11_520)),
+            request(draft=2, plan_usage=plan_usage(0.05, 11_520)),
+        ],
+    )
+
+    lines = format_stats(turn, 1, 2, 0.0, 0.0, now=1000).splitlines()
+
+    assert lines[-3:] == [
+        "*Plan*",
+        "5-hour · 5% · resets in 3h 12m",
+        "Weekly · 38% · resets in 2d 4h",
+    ]
+
+
+def test_plan_window_that_has_since_reset_drops_its_stale_utilization():
+    turn = TurnStats("chat", requests=[request(plan_usage=plan_usage(0.9, -60))])
+
+    lines = format_stats(turn, 1, 2, 0.0, 0.0, now=1000).splitlines()
+
+    assert lines[-2] == "5-hour · reset since last request"

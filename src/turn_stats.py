@@ -1,6 +1,9 @@
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
+
+WINDOW_LABELS = {"five_hour": "5-hour", "seven_day": "Weekly"}
 
 
 @dataclass
@@ -19,6 +22,14 @@ class TurnStats:
     def plan_cost(self) -> float:
         return sum(request["plan_cost"] for request in self.requests)
 
+    @property
+    def plan_usage(self) -> dict[str, dict[str, Any]] | None:
+        """Return the plan utilization reported by the latest request with one."""
+        for request in reversed(self.requests):
+            if request.get("plan_usage"):
+                return request["plan_usage"]
+        return None
+
 
 def format_stats(
     turn: TurnStats | None,
@@ -26,6 +37,7 @@ def format_stats(
     messages: int,
     cost: float,
     plan_cost: float,
+    now: float | None = None,
 ) -> str:
     """Return the /stats message in Telegram Markdown."""
     sections = []
@@ -44,6 +56,8 @@ def format_stats(
         f"*Conversation* · #{conversation_id} · {messages} messages · "
         + _cost(cost, plan_cost, 2)
     )
+    if turn and turn.plan_usage:
+        sections.append(_plan_section(turn.plan_usage, now or time.time()))
     return "\n\n".join(sections)
 
 
@@ -71,6 +85,27 @@ def _stage_section(turn: TurnStats, stage: str) -> str:
                     f"{attempts} attempts" if attempts > 1 else None,
                     None if provider else request["provider"],
                     _cost(request["cost"], request["plan_cost"], 3),
+                ]
+            )
+        )
+    return "\n".join(lines)
+
+
+def _plan_section(plan_usage: dict[str, dict[str, Any]], now: float) -> str:
+    """The heading, then each window's utilization and time until it resets."""
+    lines = ["*Plan*"]
+    for name, window in plan_usage.items():
+        label = WINDOW_LABELS.get(name, name)
+        resets_at = window["resets_at"]
+        if resets_at is not None and resets_at <= now:
+            lines.append(_join([label, "reset since last request"]))
+            continue
+        lines.append(
+            _join(
+                [
+                    label,
+                    f"{window['utilization']:.0%}",
+                    f"resets in {_duration(resets_at - now)}" if resets_at else None,
                 ]
             )
         )
@@ -109,6 +144,16 @@ def _completion(request: dict[str, Any]) -> str:
     if request["reasoning_tokens"]:
         text += f", {_tokens(request['reasoning_tokens'])} reasoning"
     return text
+
+
+def _duration(seconds: float) -> str:
+    days, minutes = divmod(int(seconds // 60), 24 * 60)
+    hours, minutes = divmod(minutes, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
 
 
 def _seconds(duration_ms: int) -> str:

@@ -5,6 +5,7 @@ model prefix. Prior turns are replayed by resuming a synthetic session, and any
 trailing system message is folded into the final user turn.
 """
 
+import asyncio
 import datetime
 import os
 import tempfile
@@ -23,9 +24,9 @@ from claude_agent_sdk import (
 )
 
 MODEL_PREFIX = "agent-sdk/"
-# OpenRouter provider routing and tracing have no SDK equivalent
 IGNORED_KEYS = {"messages", "provider", "session_id"}
 WORK_DIR = os.path.join(tempfile.gettempdir(), "simulacra-agent-sdk")
+TIMEOUT_SECONDS = 180
 CLI_ENV = {
     "CLAUDE_CODE_SESSION_NAME": "simulacra",
     # Disables telemetry, error reporting, and auto-updates
@@ -53,7 +54,9 @@ async def fetch_agent_sdk_completion(body: dict[str, Any]) -> dict[str, Any]:
         resume=session_id,
         **translate_params(body),
     )
-    return to_completion(await run_query(options, prompt))
+    async with asyncio.timeout(TIMEOUT_SECONDS):
+        result = await run_query(options, prompt)
+    return to_completion(result)
 
 
 async def replay(turns: list[dict[str, Any]]) -> tuple[InMemorySessionStore, str]:

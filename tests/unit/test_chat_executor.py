@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -45,6 +46,22 @@ class TestBackend:
             await executor.execute(on_retry=lambda: None)
         fetch_sdk.assert_awaited_once()
         fetch.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_agent_sdk_timeout_reports_request_timed_out(self):
+        async def hang(*_):
+            await asyncio.sleep(1)
+
+        context = MagicMock(api_params={"model": "agent-sdk/claude-opus-5-5"})
+        executor = ChatExecutor(context, request_key="k")
+        messages = [{"role": "user", "content": "Hi"}]
+        with (
+            patch.object(executor, "_build_messages", return_value=messages),
+            patch("src.agent_sdk_client.TIMEOUT_SECONDS", 0.01),
+            patch("src.agent_sdk_client.run_query", hang),
+            pytest.raises(RuntimeError, match=r"^Request timed out$"),
+        ):
+            await executor.execute()
 
 
 class TestInjectInlineInstructions:

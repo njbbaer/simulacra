@@ -51,7 +51,7 @@ class ChatExecutor:
                 fetch = fetch.retry_with(before_sleep=lambda _: on_retry())  # type: ignore[attr-defined]
         try:
             data = await fetch(body)
-        except httpx.ReadTimeout as err:
+        except (httpx.ReadTimeout, TimeoutError) as err:
             raise RuntimeError("Request timed out") from err
 
         RequestRecorder().record(body, data, self.request_key)

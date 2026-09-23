@@ -15,6 +15,11 @@ from src.agent_sdk_client import (
 )
 
 
+@pytest.fixture(autouse=True)
+def oauth_token(monkeypatch):
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "token")
+
+
 def _text(role, text):
     return {"role": role, "content": [{"type": "text", "text": text}]}
 
@@ -192,3 +197,11 @@ def test_to_plan_usage_reads_window_utilization_from_raw_event():
         "seven_day": {"utilization": 0.38, "resets_at": 1790179200},
     }
     assert to_plan_usage({"status": "allowed"}) == {}
+
+
+@pytest.mark.asyncio
+async def test_fetch_requires_an_oauth_token(monkeypatch):
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN")
+    body = {"model": "agent-sdk/claude-opus-5-5", "messages": [_text("user", "Hi")]}
+    with pytest.raises(RuntimeError, match="claude setup-token"):
+        await fetch_agent_sdk_completion(body)

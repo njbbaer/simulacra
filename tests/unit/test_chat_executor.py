@@ -48,10 +48,11 @@ class TestBackend:
         fetch.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_agent_sdk_timeout_reports_request_timed_out(self):
+    async def test_agent_sdk_timeout_reports_request_timed_out(self, monkeypatch):
         async def hang(*_):
             await asyncio.sleep(1)
 
+        monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "token")
         context = MagicMock(api_params={"model": "agent-sdk/claude-opus-5-5"})
         executor = ChatExecutor(context, request_key="k")
         messages = [{"role": "user", "content": "Hi"}]

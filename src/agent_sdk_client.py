@@ -28,7 +28,19 @@ MODEL_PREFIX = "agent-sdk/"
 IGNORED_KEYS = {"messages", "provider", "session_id"}
 WORK_DIR = os.path.join(tempfile.gettempdir(), "simulacra-agent-sdk")
 TIMEOUT_SECONDS = 180
+# Blanking these keeps inherited credentials from billing an API or cloud account
+API_BILLING_ENV = dict.fromkeys(
+    (
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+        "CLAUDE_CODE_USE_FOUNDRY",
+    ),
+    "",
+)
 CLI_ENV = {
+    **API_BILLING_ENV,
     "CLAUDE_CODE_SESSION_NAME": "simulacra",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
 }

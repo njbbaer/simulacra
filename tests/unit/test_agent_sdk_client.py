@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.agent_sdk_client import (
+    CLI_ENV,
     fetch_agent_sdk_completion,
     split_messages,
     to_blocks,
@@ -125,11 +126,7 @@ def test_translate_params_maps_openrouter_params():
     assert translate_params(body) == {
         "model": "claude-opus-5-5",
         "effort": "low",
-        "env": {
-            "CLAUDE_CODE_SESSION_NAME": "simulacra",
-            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-            "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "500",
-        },
+        "env": {**CLI_ENV, "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "500"},
     }
 
 

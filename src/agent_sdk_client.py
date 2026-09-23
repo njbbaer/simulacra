@@ -43,6 +43,7 @@ async def fetch_agent_sdk_completion(body: dict[str, Any]) -> dict[str, Any]:
         setting_sources=[],
         cwd=WORK_DIR,
         verbatim_prompts=True,
+        extra_args={"no-session-persistence": None},
         session_store=store,
         resume=session_id,
         **translate_params(body),

@@ -129,7 +129,7 @@ Send `/syncbook <a short quote from where you stopped>`. The quote is fuzzy-matc
 
 ## Claude subscription (experimental)
 
-Prefix a model with `agent-sdk/` (e.g. `agent-sdk/claude-opus-5-5`) to serve its requests through the Claude Agent SDK on your Claude subscription instead of OpenRouter. This works anywhere a model is set, including `post_process` and trial candidates. Authenticate with `claude login` locally, or set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) in the environment for Docker. Only `max_tokens` and `reasoning.effort` are translated; `provider` is ignored and any other parameter is an error. Reported costs are estimates of the equivalent API price.
+Prefix a model with `agent-sdk/` (e.g. `agent-sdk/claude-opus-5-5`) to run it on your Claude subscription via the Claude Agent SDK. Authenticate with `claude login`, or set `CLAUDE_CODE_OAUTH_TOKEN` for Docker. Only `max_tokens` and `reasoning.effort` are supported.
 
 ## Docker
 

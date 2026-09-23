@@ -126,6 +126,7 @@ def test_translate_params_maps_openrouter_params():
         "effort": "low",
         "env": {
             "CLAUDE_CODE_SESSION_NAME": "simulacra",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
             "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "500",
         },
     }

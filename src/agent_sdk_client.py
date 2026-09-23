@@ -26,6 +26,11 @@ MODEL_PREFIX = "agent-sdk/"
 # OpenRouter provider routing and tracing have no SDK equivalent
 IGNORED_KEYS = {"messages", "provider", "session_id"}
 WORK_DIR = os.path.join(tempfile.gettempdir(), "simulacra-agent-sdk")
+CLI_ENV = {
+    "CLAUDE_CODE_SESSION_NAME": "simulacra",
+    # Disables telemetry, error reporting, and auto-updates
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+}
 
 
 def is_agent_sdk_model(model: str) -> bool:
@@ -65,7 +70,7 @@ def translate_params(body: dict[str, Any]) -> dict[str, Any]:
     """Map OpenRouter request params to `ClaudeAgentOptions` fields."""
     params = {k: v for k, v in body.items() if k not in IGNORED_KEYS}
     reasoning = params.pop("reasoning", {})
-    env = {"CLAUDE_CODE_SESSION_NAME": "simulacra"}
+    env = dict(CLI_ENV)
     if "max_tokens" in params:
         env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(params.pop("max_tokens"))
     options = {"model": params.pop("model").removeprefix(MODEL_PREFIX), "env": env}

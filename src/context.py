@@ -104,10 +104,10 @@ class Context:
         self._set_conversation_file(new_filename)
         return sanitized
 
-    def increment_cost(self, cost: float) -> None:
+    def increment_cost(self, cost: float, plan_cost: float = 0.0) -> None:
         current = float(self._state_data.get("total_cost", 0))
         self._state_data["total_cost"] = current + cost
-        self._conversation.increment_cost(cost)
+        self._conversation.increment_cost(cost, plan_cost)
 
     def apply_preset_overrides(self, key: str) -> None:
         preset = self.instruction_presets.get(key)

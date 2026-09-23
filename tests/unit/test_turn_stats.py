@@ -14,12 +14,13 @@ def request(**overrides) -> dict:
         "completion_tokens": 220,
         "reasoning_tokens": 0,
         "cost": 0.020664,
+        "plan_cost": 0.0,
         **overrides,
     }
 
 
 def test_without_a_turn_shows_only_the_conversation():
-    assert format_stats(None, 204, 37, 4.123) == (
+    assert format_stats(None, 204, 37, 4.123, 0.0) == (
         "*Conversation* · #204 · 37 messages · $4.12"
     )
 
@@ -43,7 +44,7 @@ def test_drafts_are_sorted_and_stages_are_grouped():
         ],
     )
 
-    assert format_stats(turn, 204, 37, 4.12) == "\n".join(
+    assert format_stats(turn, 204, 37, 4.12, 0.0) == "\n".join(
         [
             "*Turn* · retry · 9.7s · $0.064",
             "",
@@ -68,7 +69,7 @@ def test_shared_cache_rate_moves_to_the_heading():
         ],
     )
 
-    lines = format_stats(turn, 1, 2, 0.0).splitlines()
+    lines = format_stats(turn, 1, 2, 0.0, 0.0).splitlines()
 
     assert lines[2] == "*Response* · kimi-k3 · BaseTen · 5.8k prompt, 100% cached"
     assert lines[3] == "Draft 1 · 3.6s · 220 tokens · $0.021"
@@ -83,7 +84,7 @@ def test_candidates_keep_differing_prompts_providers_and_retries_on_the_line():
         ],
     )
 
-    lines = format_stats(turn, 1, 2, 0.0).splitlines()
+    lines = format_stats(turn, 1, 2, 0.0, 0.0).splitlines()
 
     assert lines[2] == "*Response* · kimi-k3"
     assert lines[3] == (
@@ -97,3 +98,27 @@ def test_turn_cost_sums_every_request():
     turn = TurnStats("chat", requests=[request(cost=0.1), request(cost=0.25)])
 
     assert turn.cost == 0.35
+
+
+def test_plan_cost_is_shown_beside_money_and_replaces_a_zero_cost():
+    turn = TurnStats(
+        "reply",
+        duration_ms=5000,
+        requests=[
+            request(
+                stage="response",
+                model="agent-sdk/claude-opus-5-5",
+                provider="Agent SDK",
+                cost=0.0,
+                plan_cost=0.4123,
+            ),
+            request(stage="post_process"),
+        ],
+    )
+
+    lines = format_stats(turn, 1, 2, 1.5, 8.25).splitlines()
+
+    assert lines[0] == "*Turn* · reply · 5.0s · $0.021 · plan $0.412"
+    assert lines[3].endswith("220 tokens · plan $0.412")
+    assert lines[6].endswith("220 tokens · $0.021")
+    assert lines[-1] == "*Conversation* · #1 · 2 messages · $1.50 · plan $8.25"

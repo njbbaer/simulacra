@@ -15,20 +15,34 @@ class TurnStats:
     def cost(self) -> float:
         return sum(request["cost"] for request in self.requests)
 
+    @property
+    def plan_cost(self) -> float:
+        return sum(request["plan_cost"] for request in self.requests)
+
 
 def format_stats(
-    turn: TurnStats | None, conversation_id: int, messages: int, cost: float
+    turn: TurnStats | None,
+    conversation_id: int,
+    messages: int,
+    cost: float,
+    plan_cost: float,
 ) -> str:
     """Return the /stats message in Telegram Markdown."""
     sections = []
     if turn and turn.requests:
         sections.append(
-            f"*Turn* · {turn.action} · {_seconds(turn.duration_ms)} · ${turn.cost:.3f}"
+            _join(
+                [
+                    f"*Turn* · {turn.action} · {_seconds(turn.duration_ms)}",
+                    _cost(turn.cost, turn.plan_cost, 3),
+                ]
+            )
         )
         stages = dict.fromkeys(request["stage"] for request in turn.requests)
         sections += [_stage_section(turn, stage) for stage in stages]
     sections.append(
-        f"*Conversation* · #{conversation_id} · {messages} messages · ${cost:.2f}"
+        f"*Conversation* · #{conversation_id} · {messages} messages · "
+        + _cost(cost, plan_cost, 2)
     )
     return "\n\n".join(sections)
 
@@ -56,7 +70,7 @@ def _stage_section(turn: TurnStats, stage: str) -> str:
                     _completion(request),
                     f"{attempts} attempts" if attempts > 1 else None,
                     None if provider else request["provider"],
-                    f"${request['cost']:.3f}",
+                    _cost(request["cost"], request["plan_cost"], 3),
                 ]
             )
         )
@@ -71,6 +85,16 @@ def _shared[T](values: Iterable[T]) -> T | None:
 
 def _join(parts: Iterable[str | None]) -> str:
     return " · ".join(part for part in parts if part)
+
+
+def _cost(cost: float, plan_cost: float, digits: int) -> str:
+    """Return the money spent and the plan-covered value, omitting a zero plan."""
+    return _join(
+        [
+            f"${cost:.{digits}f}" if cost or not plan_cost else None,
+            f"plan ${plan_cost:.{digits}f}" if plan_cost else None,
+        ]
+    )
 
 
 def _prompt(request: dict[str, Any]) -> str:

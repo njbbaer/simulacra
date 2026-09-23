@@ -42,6 +42,11 @@ class ChatCompletion:
             or self._usage["cost_details"]["upstream_inference_cost"]
         )
 
+    @property
+    def plan_cost(self) -> float:
+        """Return the API-price value of usage covered by a subscription plan."""
+        return self._usage.get("plan_cost", 0.0)
+
     def _validate(self) -> None:
         if self._error_message:
             raise RuntimeError(self._error_message)

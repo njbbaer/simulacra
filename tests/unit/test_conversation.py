@@ -18,6 +18,7 @@ class TestConversationRoundTrip:
         conv.add_message("user", "Hello")
         conv.add_message("assistant", "Hi there")
         conv.cost = 0.05
+        conv.plan_cost = 0.5
         conv.save()
 
         loaded = _reload()
@@ -26,6 +27,7 @@ class TestConversationRoundTrip:
         assert loaded.messages[0].content == "Hello"
         assert loaded.messages[1].content == "Hi there"
         assert loaded.cost == pytest.approx(0.05)
+        assert loaded.plan_cost == pytest.approx(0.5)
 
     def test_save_with_vars(self, conv):
         conv.set_var("mood", "happy")

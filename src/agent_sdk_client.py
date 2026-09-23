@@ -168,7 +168,6 @@ def to_completion(result: ResultMessage) -> dict[str, Any]:
         + cached
         + usage.get("cache_creation_input_tokens", 0)
     )
-    cost = result.total_cost_usd or 0.0
     return {
         "provider": "Agent SDK",
         "choices": [
@@ -183,8 +182,9 @@ def to_completion(result: ResultMessage) -> dict[str, Any]:
             "prompt_tokens": prompt_tokens,
             "completion_tokens": usage.get("output_tokens", 0),
             "prompt_tokens_details": {"cached_tokens": cached},
-            "cost": cost,
-            "cost_details": {"upstream_inference_cost": cost},
+            "cost": 0.0,
+            "cost_details": {"upstream_inference_cost": 0.0},
+            "plan_cost": result.total_cost_usd or 0.0,
         },
     }
 

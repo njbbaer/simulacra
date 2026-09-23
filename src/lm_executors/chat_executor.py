@@ -56,7 +56,7 @@ class ChatExecutor:
 
         RequestRecorder().record(body, data, self.request_key)
         completion = ChatCompletion(data)
-        self.context.increment_cost(completion.cost)
+        self.context.increment_cost(completion.cost, completion.plan_cost)
         return completion
 
     def _build_messages(self) -> list[dict[str, Any]]:

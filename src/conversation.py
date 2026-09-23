@@ -19,6 +19,7 @@ class Conversation:
                 data = yaml.load(file)
             self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
+            self.plan_cost = data.get("plan_cost", 0.0)
             self.models = data.get("models", {})
             self.vars = data.get("vars", {})
             self.memories = data.get("memories", [])
@@ -32,6 +33,7 @@ class Conversation:
         data_to_save = {
             "created_at": self.created_at,
             "cost": self.cost,
+            **({"plan_cost": self.plan_cost} if self.plan_cost else {}),
             **({"models": self.models} if self.models else {}),
             **({"vars": self.vars} if self.vars else {}),
             **({"memories": self.memories} if self.memories else {}),
@@ -43,6 +45,7 @@ class Conversation:
     def reset(self) -> None:
         self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
         self.cost = 0.0
+        self.plan_cost = 0.0
         self.models = {}
         self.vars = {}
         self.memories = []
@@ -81,5 +84,6 @@ class Conversation:
                 changed[key] = value
         return changed
 
-    def increment_cost(self, cost_increment: float) -> None:
-        self.cost += cost_increment
+    def increment_cost(self, cost: float, plan_cost: float = 0.0) -> None:
+        self.cost += cost
+        self.plan_cost += plan_cost

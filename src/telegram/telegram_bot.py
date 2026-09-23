@@ -189,6 +189,7 @@ class TelegramBot:
                 self.sim.context.conversation_id,
                 len(self.sim.context.conversation.messages),
                 self.sim.context.conversation.cost,
+                self.sim.context.conversation.plan_cost,
             )
         )
 

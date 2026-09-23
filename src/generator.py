@@ -124,7 +124,11 @@ class Generator:
         except BaseException as err:
             turn.duration_ms = record.fail(err)["duration_ms"]
             raise
-        row = record.ok(cost=turn.cost, chars=len(generation.display))
+        row = record.ok(
+            cost=turn.cost,
+            plan_cost=turn.plan_cost,
+            chars=len(generation.display),
+        )
         turn.duration_ms = row["duration_ms"]
         return generation
 
@@ -208,6 +212,7 @@ class Generator:
             cached_tokens=completion.cached_tokens,
             reasoning_tokens=completion.reasoning_tokens,
             cost=completion.cost,
+            plan_cost=completion.plan_cost,
             chars=len(completion.content),
         )
         assert self.last_turn is not None

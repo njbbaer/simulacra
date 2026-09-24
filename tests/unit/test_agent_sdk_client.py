@@ -103,6 +103,19 @@ def test_to_entries_chains_parents_and_marks_assistant_messages():
     assert all(e["sessionId"] == "sid" for e in entries)
 
 
+def test_to_entries_sets_cache_breakpoint_on_last_block_only():
+    turns = [
+        {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "A"}, {"type": "text", "text": "B"}],
+        },
+    ]
+    entries = to_entries(turns, "sid")
+    blocks = [b for e in entries for b in e["message"]["content"]]
+    assert [("cache_control" in b) for b in blocks] == [False, False, True]
+
+
 def test_to_completion_shapes_usage_like_openrouter():
     completion = to_completion(_result(), {})
     assert completion["choices"][0]["message"]["content"] == "Hi"

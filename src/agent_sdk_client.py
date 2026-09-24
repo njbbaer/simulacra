@@ -31,6 +31,7 @@ WORK_DIR = os.path.join(tempfile.gettempdir(), "simulacra-agent-sdk")
 CONFIG_DIR = os.path.join(WORK_DIR, "config")
 TOKEN_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
 TIMEOUT_SECONDS = 180
+HISTORY_CACHE_CONTROL = {"type": "ephemeral", "ttl": "1h"}
 # Blanking these keeps inherited credentials from billing an API or cloud account
 API_BILLING_ENV = dict.fromkeys(
     (
@@ -143,12 +144,16 @@ def to_blocks(content: str | list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def to_entries(turns: list[dict[str, Any]], session_id: str) -> list[SessionStoreEntry]:
-    """Build session transcript lines for prior turns."""
+    """Build session transcript lines for prior turns, caching through the last."""
     entries: list[SessionStoreEntry] = []
     parent = None
-    for turn in turns:
+    for i, turn in enumerate(turns):
         entry_id = str(uuid.uuid4())
-        message: dict[str, Any] = {"role": turn["role"], "content": turn["content"]}
+        content = turn["content"]
+        if i == len(turns) - 1 and content:
+            last = {**content[-1], "cache_control": HISTORY_CACHE_CONTROL}
+            content = [*content[:-1], last]
+        message: dict[str, Any] = {"role": turn["role"], "content": content}
         if turn["role"] == "assistant":
             message["type"] = "message"
             message["stop_reason"] = "end_turn"

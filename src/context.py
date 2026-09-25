@@ -51,13 +51,10 @@ class Context:
                 self.load()
 
     def load(self) -> None:
+        self._extend_dirs: list[str] = []
         with open(self._filepath) as file:
-            self._raw_data = yaml.load(file)
-        self._data = copy.deepcopy(self._raw_data)
-        self._apply_extends()
-        if self._overrides:
-            self._data = merge_dicts(self._data, self._overrides)
-        self._unresolved_data = self._data
+            data = self._extend_data(yaml.load(file), self.dir)
+        self._unresolved_data = merge_dicts(data, self._overrides)
         self._runtime_overrides: dict[str, Any] = {}
         self._state_data = self._load_state()
         if not self._is_ephemeral:
@@ -285,10 +282,6 @@ class Context:
         self._set_conversation_path(filename)
         self._load_conversation()
 
-    def _apply_extends(self) -> None:
-        self._extend_dirs: list[str] = []
-        self._data = self._extend_data(self._data, self.dir)
-
     def _extend_data(self, data: dict[str, Any], base_dir: str) -> dict[str, Any]:
         extends = data.pop("extends", None)
         if not extends:
@@ -301,17 +294,21 @@ class Context:
 
     def _rebuild(self) -> None:
         """Layer runtime overrides onto the base data and resolve templates."""
-        self._data = merge_dicts(self._unresolved_data, self._runtime_overrides)
-        self._resolve_templates()
-
-    def _resolve_templates(self) -> None:
-        resolver = TemplateResolver(self.dir, self._search_dirs)
+        data = merge_dicts(self._unresolved_data, self._runtime_overrides)
+        resolver = TemplateResolver(self.dir, self._search_dirs(data))
         extra_vars = {
             **self._state_data,
             "memories": self._conversation.memories,
             "vars": self._conversation.vars,
         }
-        self._data = resolver.resolve(self._data, extra_vars)
+        self._data = resolver.resolve(data, extra_vars)
+
+    def _search_dirs(self, data: dict[str, Any]) -> list[str]:
+        dirs = [os.path.join(d, "content") for d in [self.dir, *self._extend_dirs]]
+        shared_dir = data.get("shared_dir")
+        if shared_dir:
+            dirs.append(os.path.join(self.dir, shared_dir))
+        return dirs
 
     # Private properties
 
@@ -323,14 +320,6 @@ class Context:
     def _state_filepath(self) -> str:
         base, _ = os.path.splitext(self._filepath)
         return f"{base}.state.yml"
-
-    @property
-    def _search_dirs(self) -> list[str]:
-        dirs = [os.path.join(d, "content") for d in [self.dir, *self._extend_dirs]]
-        shared_dir = self._data.get("shared_dir")
-        if shared_dir:
-            dirs.append(os.path.join(self.dir, shared_dir))
-        return dirs
 
     @property
     def _conversation_files(self) -> ConversationFiles:

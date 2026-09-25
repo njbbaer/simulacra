@@ -9,7 +9,6 @@ from jinja2.nativetypes import NativeEnvironment
 
 class TemplateResolver:
     def __init__(self, base_dir: str, search_dirs: list[str] | None = None) -> None:
-        self._base_dir = base_dir
         self._search_dirs = search_dirs or []
         self._dir_stack = [base_dir]
         self._env = NativeEnvironment(

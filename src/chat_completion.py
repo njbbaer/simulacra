@@ -37,10 +37,9 @@ class ChatCompletion:
 
     @property
     def cost(self) -> float:
-        return (
-            self._usage["cost"]
-            or self._usage["cost_details"]["upstream_inference_cost"]
-        )
+        """Return the cost, or the upstream cost when billed to your own key."""
+        details = self._usage.get("cost_details") or {}
+        return self._usage["cost"] or details.get("upstream_inference_cost", 0.0)
 
     @property
     def plan_cost(self) -> float:

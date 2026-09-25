@@ -13,6 +13,7 @@ from src.agent_sdk_client import (
     to_plan_usage,
     translate_params,
 )
+from src.chat_completion import ChatCompletion
 
 
 @pytest.fixture(autouse=True)
@@ -123,8 +124,8 @@ def test_to_completion_shapes_usage_like_openrouter():
     assert completion["usage"]["prompt_tokens"] == 35
     assert completion["usage"]["completion_tokens"] == 7
     assert completion["usage"]["prompt_tokens_details"]["cached_tokens"] == 20
-    assert completion["usage"]["cost"] == 0.0
-    assert completion["usage"]["plan_cost"] == 0.01
+    assert ChatCompletion(completion).cost == 0.0
+    assert ChatCompletion(completion).plan_cost == 0.01
 
 
 def test_to_completion_reports_length_on_max_tokens():

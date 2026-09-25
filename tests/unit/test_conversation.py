@@ -112,3 +112,40 @@ class TestIncrementCost:
         conv.increment_cost(0.05)
         conv.increment_cost(0.10)
         assert conv.cost == pytest.approx(0.15)
+
+
+class TestReplaced:
+    def _retry(self, conv, content):
+        replaced = conv.messages.pop()
+        conv.add_message("assistant", content, replacing=replaced)
+
+    def test_restores_through_a_chain_of_retries(self, conv):
+        conv.add_message("assistant", "first", metadata={"trial": 1})
+        self._retry(conv, "second")
+        self._retry(conv, "third")
+        conv.save()
+        conv = _reload()
+
+        conv.restore_replaced()
+        assert conv.messages[-1].content == "second"
+        conv.restore_replaced()
+        assert conv.messages[-1].content == "first"
+        assert conv.messages[-1].metadata == {"trial": 1}
+        assert len(conv.messages) == 1
+
+    def test_restores_across_roles(self, conv):
+        conv.add_message("user", "old scene", metadata={"scene": True})
+        replaced = conv.messages.pop()
+        conv.add_message("user", "new scene", replacing=replaced)
+
+        conv.restore_replaced()
+
+        assert [m.content for m in conv.messages] == ["old scene"]
+
+    def test_raises_when_the_last_message_replaced_nothing(self, conv):
+        conv.add_message("assistant", "first")
+        self._retry(conv, "second")
+        conv.add_message("user", "next")
+
+        with pytest.raises(ValueError, match="No retry to undo"):
+            conv.restore_replaced()

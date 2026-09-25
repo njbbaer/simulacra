@@ -45,6 +45,7 @@ Actions
 /new - Start a new conversation
 /retry - Retry the last response
 /undo - Undo the last exchange
+/cancel - Cancel the pending response
 /clear - Clear the conversation
 /continue - Request another response
 /instruct (...) - Apply an instruction

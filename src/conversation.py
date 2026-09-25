@@ -68,8 +68,30 @@ class Conversation:
         message: str | None,
         image: str | None = None,
         metadata: dict[str, Any] | None = None,
+        replacing: Message | None = None,
     ) -> None:
+        """Append a message, keeping any it replaces in its `replaced` metadata."""
+        if replacing:
+            earlier = replacing.metadata.get("replaced", [])
+            previous = Message(
+                replacing.role,
+                replacing.content,
+                replacing.image,
+                {k: v for k, v in replacing.metadata.items() if k != "replaced"},
+            )
+            metadata = {**(metadata or {}), "replaced": [*earlier, previous.to_dict()]}
         self.messages.append(Message(role, message, image, metadata))
+
+    def restore_replaced(self) -> None:
+        """Swap the last message for the one it most recently replaced."""
+        replaced = self.messages[-1].metadata.get("replaced") if self.messages else None
+        if not replaced:
+            raise ValueError("No retry to undo")
+        self.messages.pop()
+        restored = Message.from_dict(replaced[-1])
+        if len(replaced) > 1:
+            restored.metadata["replaced"] = replaced[:-1]
+        self.messages.append(restored)
 
     def record_models(self, models: dict[str, str]) -> dict[str, str]:
         """Update the header, returning the keys that changed since last recorded."""

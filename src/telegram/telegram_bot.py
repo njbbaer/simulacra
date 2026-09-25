@@ -80,6 +80,7 @@ class TelegramBot:
             (["undoretry", "ur"], self._undo_retry),
             (["continue", "co"], self._continue),
             (["undo", "u"], self._undo),
+            (["cancel", "x"], self._cancel),
             (["last", "l"], self._last),
             (["set"], self._set_var),
             (["preset", "p"], self._apply_preset),
@@ -147,7 +148,6 @@ class TelegramBot:
 
     @message_handler
     async def _undo_retry(self, ctx: TelegramContext) -> None:
-        self.sim.cancel_pending_request()
         self.sim.undo_retry()
         await ctx.send_message("`↩️ Retry undone`")
 
@@ -165,6 +165,13 @@ class TelegramBot:
             await ctx.send_message("`🗑️ Last message undone`")
 
     @message_handler
+    async def _cancel(self, ctx: TelegramContext) -> None:
+        if self.sim.cancel_pending_request():
+            await ctx.send_message("`⏹️ Request cancelled`")
+        else:
+            await ctx.send_message("`❌ Nothing to cancel`")
+
+    @message_handler
     async def _last(self, ctx: TelegramContext) -> None:
         message = self.sim.load_last_message()
         if message and (text := message.display_text):
@@ -177,7 +184,6 @@ class TelegramBot:
         if not self.sim.context.scene_prompt:
             await ctx.send_message("`❌ No scene instructions configured`")
             return
-        self.sim.retry_stack.clear()
         await self._deliver(ctx, await self.sim.scene(ctx.command_body))
 
     @message_handler
@@ -246,6 +252,7 @@ class TelegramBot:
                 /retry - Retry the last response
                 /undoretry - Undo a retry
                 /undo (...) - Undo the last exchange, optionally replacing it
+                /cancel - Cancel the pending response
                 /last - Show the last message again
                 /clear - Clear the conversation
                 /scene (...) - Generate a scene narration

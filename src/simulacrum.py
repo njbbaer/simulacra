@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from . import notifications, trials
 from .book_reader import BookReader
-from .context import Context
+from .context import Context, Session
 from .document_cleaner import clean_document
 from .generator import Generation, Generator
 from .instruction_preset import InstructionPreset
@@ -37,14 +37,9 @@ class Simulacrum:
         self._trial_log = trials.TrialLog(self.context)
         self._generator = Generator(self._trial_log, telemetry or Telemetry())
         self._pending_instruction: PendingInstruction | None = None
-        self.retry_stack: list[list[Message]] = []
 
     async def chat(
-        self,
-        user_input: str | None,
-        image: str | None,
-        documents: list[str] | None,
-        action: str = "chat",
+        self, user_input: str | None, image: str | None, documents: list[str] | None
     ) -> str:
         self._ensure_idle()
         with self.context.session() as session:
@@ -52,71 +47,61 @@ class Simulacrum:
             if documents:
                 user_input = await self._process_documents(user_input, documents)
             if user_input or image:
-                self.retry_stack.clear()
                 self.context.conversation.add_message(
                     "user", user_input, image, metadata
                 )
             self.context.save()
-            generation = await self._generate(action)
-            self._add_generated_message("assistant", generation)
-            self._trial_log.write(generation.trial_record)
-        return generation.display if not session.superseded else ""
+            return await self._reply(session, "chat")
 
     async def new_conversation(self) -> None:
-        self.retry_stack.clear()
         with self.context.session():
             self.context.new_conversation()
 
     def compact_conversation(self) -> tuple[int, int]:
-        self.retry_stack.clear()
         with self.context.session():
             return self.context.compact_conversation()
 
     def reset_conversation(self) -> None:
-        self.retry_stack.clear()
         with self.context.session():
             self.context.conversation.reset()
         self._trial_log.delete()
 
     async def continue_conversation(self, instruction: str | None = None) -> str:
         self._ensure_idle()
-        self.retry_stack.clear()
-        if instruction:
-            self._set_inline_instruction(instruction)
-        return await self.chat(None, None, None, action="continue")
+        with self.context.session() as session:
+            if instruction:
+                self._set_inline_instruction(instruction)
+            self.context.save()
+            return await self._reply(session, "continue")
 
     async def scene(self, user_input: str | None = None) -> str:
         self._ensure_idle()
         with self.context.session() as session:
-            instructions = self.context.scene_prompt
-            prompt = f"<instruct>\n{instructions}\n</instruct>"
-            if user_input:
-                prompt += f"\n{user_input}"
-            self.context.save()
-            generation = await self._generate_transient(prompt)
-            metadata = {"scene": True, "scene_input": user_input}
-            self._add_generated_message("user", generation, metadata)
-        return generation.display if not session.superseded else ""
+            return await self._narrate(session, user_input)
 
     async def retry(self, instruction: str | None = None) -> str:
+        """Regenerate the last response or scene, keeping the old one to undo to."""
         self._ensure_idle()
-        self.context.load()
-        msgs = self.context.conversation.messages
-        if msgs and msgs[-1].metadata.get("scene"):
-            scene_input = msgs[-1].metadata.get("scene_input")
-            removed = self._undo_last_messages_by_role("user")
-            self.retry_stack.append(removed)
-            return await self.scene(scene_input)
-        with self.context.session():
-            popped = self._pop_last_message("assistant")
-            if popped:
-                self.retry_stack.append([popped])
-        if instruction:
-            self._set_inline_instruction(instruction)
-        return await self.chat(None, None, None, action="retry")
+        with self.context.session() as session:
+            messages = self.context.conversation.messages
+            last = self.last_message
+            replaced = None
+            if last and (last.role == "assistant" or last.metadata.get("scene")):
+                replaced = messages.pop()
+            try:
+                if replaced and replaced.metadata.get("scene"):
+                    scene_input = replaced.metadata.get("scene_input")
+                    return await self._narrate(session, scene_input, replaced)
+                if instruction:
+                    self._set_inline_instruction(instruction)
+                return await self._reply(session, "retry", replaced)
+            except BaseException:
+                # The pop was never saved, so this leaves the file unchanged
+                if replaced:
+                    messages.append(replaced)
+                raise
 
     def undo(self) -> None:
-        self.retry_stack.clear()
         with self.context.session():
             msgs = self.context.conversation.messages
             if not msgs:
@@ -127,15 +112,13 @@ class Simulacrum:
         self._trial_log.write()
 
     def undo_retry(self) -> None:
-        if not self.retry_stack:
-            raise ValueError("No retry to undo")
+        self._ensure_idle()
         with self.context.session():
-            self._pop_last_message("assistant")
-        self._restore_messages(self.retry_stack.pop())
+            self.context.conversation.restore_replaced()
         self._trial_log.write()
 
-    def cancel_pending_request(self) -> None:
-        self._generator.cancel()
+    def cancel_pending_request(self) -> bool:
+        return self._generator.cancel()
 
     def set_conversation_var(self, key: str, value: str) -> None:
         with self.context.session():
@@ -163,7 +146,6 @@ class Simulacrum:
             message_content = f"<book_content>\n{book_chunk}\n</book_content>"
             if postscript := self.context.book_postscript:
                 message_content += f"\n\n{postscript}"
-            self.retry_stack.clear()
             self.context.conversation.add_message(
                 "user", message_content, metadata={"end_idx": end_idx}
             )
@@ -199,7 +181,6 @@ class Simulacrum:
         return self.context.conversation.cost
 
     def switch_conversation(self, identifier: str) -> tuple[int, str | None]:
-        self.retry_stack.clear()
         with self.context.session():
             return self.context.switch_conversation(identifier)
 
@@ -211,10 +192,42 @@ class Simulacrum:
         if self._generator.busy:
             raise ValueError("Still responding")
 
-    def _add_generated_message(
-        self, role: str, generation: Generation, metadata: dict[str, Any] | None = None
-    ) -> None:
-        """Append the message, marking any model that differs from the last recorded."""
+    async def _reply(
+        self, session: Session, action: str, replacing: Message | None = None
+    ) -> str:
+        generation = await self._generate(action)
+        return self._record(session, "assistant", generation, replacing=replacing)
+
+    async def _narrate(
+        self,
+        session: Session,
+        user_input: str | None,
+        replacing: Message | None = None,
+    ) -> str:
+        prompt = f"<instruct>\n{self.context.scene_prompt}\n</instruct>"
+        if user_input:
+            prompt += f"\n{user_input}"
+        with self._temporary_message("user", prompt):
+            generation = await self._generate(
+                "scene",
+                skip_required_tags=True,
+                skip_injected_prompt=True,
+                skip_post_process=True,
+            )
+        metadata = {"scene": True, "scene_input": user_input}
+        return self._record(session, "user", generation, metadata, replacing)
+
+    def _record(
+        self,
+        session: Session,
+        role: str,
+        generation: Generation,
+        metadata: dict[str, Any] | None = None,
+        replacing: Message | None = None,
+    ) -> str:
+        """Append the message and trial, returning display text or "" if superseded."""
+        if session.superseded:
+            return ""
         conversation = self.context.conversation
         markers = conversation.record_models(generation.models)
         conversation.add_message(
@@ -225,19 +238,13 @@ class Simulacrum:
                 **({"models": markers} if markers else {}),
                 **generation.metadata,
             },
+            replacing=replacing,
         )
+        self._trial_log.write(generation.trial_record)
+        return generation.display
 
     async def _generate(self, action: str, **options: bool) -> Generation:
         return await self._generator.generate(self.context, action=action, **options)
-
-    async def _generate_transient(self, prompt: str) -> Generation:
-        with self._temporary_message("user", prompt):
-            return await self._generate(
-                "scene",
-                skip_required_tags=True,
-                skip_injected_prompt=True,
-                skip_post_process=True,
-            )
 
     @contextmanager
     def _temporary_message(self, role: str, content: str) -> Iterator[None]:
@@ -254,21 +261,6 @@ class Simulacrum:
         if msgs and msgs[-1].role == role:
             return msgs.pop()
         return None
-
-    def _undo_last_messages_by_role(self, role: str) -> list[Message]:
-        with self.context.session():
-            removed = []
-            msgs = self.context.conversation.messages
-            while msgs:
-                removed.append(msgs.pop())
-                if removed[-1].role == role:
-                    break
-            return removed
-
-    def _restore_messages(self, messages: list[Message]) -> None:
-        with self.context.session():
-            for message in reversed(messages):
-                self.context.conversation.messages.append(message)
 
     @staticmethod
     def _extract_inline_instruction(text: str) -> tuple[str, str | None]:
@@ -290,14 +282,13 @@ class Simulacrum:
         return text, metadata
 
     def _set_inline_instruction(self, instruction: str) -> None:
-        with self.context.session():
-            msgs = self.context.conversation.messages
-            if msgs and msgs[-1].role == "user":
-                msgs[-1].metadata["inline_instruction"] = instruction
-            else:
-                self.context.conversation.add_message(
-                    "user", None, metadata={"inline_instruction": instruction}
-                )
+        msgs = self.context.conversation.messages
+        if msgs and msgs[-1].role == "user":
+            msgs[-1].metadata["inline_instruction"] = instruction
+        else:
+            self.context.conversation.add_message(
+                "user", None, metadata={"inline_instruction": instruction}
+            )
 
     def _apply_pending_preset(self, text: str) -> tuple[str, str | None]:
         instruction: str | None = None

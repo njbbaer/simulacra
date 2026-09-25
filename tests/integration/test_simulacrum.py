@@ -1,4 +1,5 @@
 # ruff: noqa: ASYNC230
+import copy
 import json
 import os
 from typing import Any
@@ -131,7 +132,9 @@ async def test_retry(
     assert len(msgs) == 1
     assert msgs[0].role == "assistant"
     assert msgs[0].content == "Something"
-    assert len(simulacrum.retry_stack) == 1
+    assert msgs[0].metadata["replaced"] == [
+        {"role": "assistant", "content": "Hello user"}
+    ]
 
 
 @pytest.mark.asyncio
@@ -158,9 +161,28 @@ async def test_retry_detects_scene_message(
     assert metadata is not None
     assert metadata["scene"] is True
     assert metadata["scene_input"] == "darkness"
-    # Verify retry stack has the old scene message
-    assert len(simulacrum.retry_stack) == 1
-    assert simulacrum.retry_stack[0][0].content == "A dark room."
+    assert metadata["replaced"][0]["content"] == "A dark room."
+
+
+@pytest.mark.asyncio
+async def test_undo_retry_restores_a_retried_scene(
+    simulacrum: Simulacrum,
+    mock_openrouter,  # noqa: ARG001
+) -> None:
+    simulacrum.context.load()
+    simulacrum.context.conversation.add_message(
+        "user", "A dark room.", metadata={"scene": True, "scene_input": "darkness"}
+    )
+    simulacrum.context.save()
+
+    await simulacrum.retry()
+    simulacrum.undo_retry()
+
+    simulacrum.context.load()
+    assert [m.content for m in simulacrum.context.conversation.messages] == [
+        "Hello user",
+        "A dark room.",
+    ]
 
 
 @pytest.mark.asyncio
@@ -220,6 +242,33 @@ async def test_retried_turn_drops_out_of_the_trial_log(
     assert read_trial_log()["messages"] == [
         {"role": "assistant", "content": "Hello user"}
     ]
+
+
+@pytest.mark.asyncio
+async def test_retried_trial_is_kept_until_the_retry_is_undone(
+    trial_simulacrum: Simulacrum,
+    mock_candidate_responses,
+    mock_completion_response: dict[str, Any],
+    read_trial_log,
+) -> None:
+    await trial_simulacrum.chat("Hello assistant", None, None)
+    first = read_trial_log()["messages"][2]
+    for text in ["Something", "Third edit", "Fourth edit"]:
+        response = copy.deepcopy(mock_completion_response)
+        response["choices"][0]["message"]["content"] = text
+        mock_candidate_responses.add_response(
+            url="https://openrouter.ai/api/v1/chat/completions", json=response
+        )
+
+    await trial_simulacrum.retry()
+
+    retried = read_trial_log()["messages"][2]
+    assert retried["trial"]["id"] == first["trial"]["id"] + 1
+    assert retried["replaced"] == [first]
+
+    trial_simulacrum.undo_retry()
+
+    assert read_trial_log()["messages"][2] == first
 
 
 @pytest.mark.asyncio

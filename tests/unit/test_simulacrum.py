@@ -71,11 +71,6 @@ class TestUndoRetry:
         assert msgs[0].role == "user" and msgs[0].content == "Hi"
         assert msgs[1].role == "assistant" and msgs[1].content == "Hello"
 
-    def test_undo_clears_retry_stack(self, sim):
-        sim.retry_stack.append([Message("assistant", "old")])
-        sim.undo()
-        assert sim.retry_stack == []
-
     def test_undo_raises_when_no_messages(self, sim):
         sim.context.load()
         with sim.context.session():
@@ -83,18 +78,32 @@ class TestUndoRetry:
         with pytest.raises(ValueError, match="No messages to undo"):
             sim.undo()
 
-    def test_undo_retry_restores_previous_message(self, sim):
-        sim.retry_stack.append([Message("assistant", "original response")])
+    @pytest.mark.asyncio
+    async def test_undo_retry_restores_previous_message(self, sim):
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.return_value = Generation("retried", "retried")
+            await sim.retry()
 
         sim.undo_retry()
 
-        msgs = sim.context.conversation.messages
-        assert msgs[-1].content == "original response"
-        assert sim.retry_stack == []
+        sim.context.load()
+        assert [m.content for m in sim.context.conversation.messages] == ["Hi", "Hello"]
 
-    def test_undo_retry_with_empty_stack(self, sim):
+    def test_undo_retry_without_a_retry(self, sim):
         with pytest.raises(ValueError, match="No retry to undo"):
             sim.undo_retry()
+
+
+class TestRetry:
+    @pytest.mark.asyncio
+    async def test_failed_retry_keeps_the_original(self, sim):
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.side_effect = RuntimeError("Response was empty")
+            with pytest.raises(RuntimeError):
+                await sim.retry()
+
+        sim.context.load()
+        assert [m.content for m in sim.context.conversation.messages] == ["Hi", "Hello"]
 
 
 class TestApplyPreset:
@@ -252,6 +261,8 @@ class TestChat:
                 await sim.chat("second", None, None)
             with pytest.raises(ValueError, match="Still responding"):
                 await sim.retry()
+            with pytest.raises(ValueError, match="Still responding"):
+                sim.undo_retry()
 
         assert sim.context.conversation.messages[-1].content != "second"
 

@@ -1,11 +1,10 @@
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from src.cost_tracker import CostTracker
-from src.message import Message
 from src.simulacrum import Generation
 from src.telegram.telegram_bot import TelegramBot
 
@@ -83,12 +82,29 @@ class TestUndo:
 
 class TestUndoRetry:
     async def test_reports_status_without_reprinting_the_message(self, bot, sent):
-        bot.sim.retry_stack.append([Message("assistant", "Original reply")])
+        generation = Generation("Retried reply", "Retried reply")
+        with patch.object(bot.sim, "_generate", AsyncMock(return_value=generation)):
+            await bot.sim.retry()
 
         await bot._undo_retry(command("/undoretry"), None)
 
         assert sent == ["`↩️ Retry undone`"]
-        assert bot.sim.context.conversation.messages[-1].content == "Original reply"
+        assert bot.sim.context.conversation.messages[-1].content == "Latest reply"
+
+
+class TestCancel:
+    async def test_cancels_the_pending_request(self, bot, sent):
+        task = Mock()
+        with patch.object(bot.sim._generator, "_task", task):
+            await bot._cancel(command("/cancel"), None)
+
+        task.cancel.assert_called_once()
+        assert sent == ["`⏹️ Request cancelled`"]
+
+    async def test_reports_when_nothing_is_pending(self, bot, sent):
+        await bot._cancel(command("/cancel"), None)
+
+        assert sent == ["`❌ Nothing to cancel`"]
 
 
 class TestLast:

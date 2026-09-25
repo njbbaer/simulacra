@@ -91,10 +91,13 @@ class Generator:
     def busy(self) -> bool:
         return self._task is not None
 
-    def cancel(self) -> None:
-        if self._task:
-            self._task.cancel()
-            self._task = None
+    def cancel(self) -> bool:
+        """Cancel the pending request, returning whether there was one."""
+        if not self._task:
+            return False
+        self._task.cancel()
+        self._task = None
+        return True
 
     async def generate(
         self,

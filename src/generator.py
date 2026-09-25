@@ -104,10 +104,9 @@ class Generator:
         context: Context,
         *,
         action: str,
-        skip_required_tags: bool = False,
-        skip_injected_prompt: bool = False,
-        skip_post_process: bool = False,
+        raw: bool = False,
     ) -> Generation:
+        """Run a turn; a raw one skips the injected prompt, required tags and editor."""
         RequestRecorder().reset()
         self.last_turn = turn = TurnStats(action)
         self._turn = self._telemetry.scoped(
@@ -118,12 +117,7 @@ class Generator:
         )
         record = self._turn.start(kind="turn")
         try:
-            generation = await self._generate(
-                context,
-                skip_required_tags=skip_required_tags,
-                skip_injected_prompt=skip_injected_prompt,
-                skip_post_process=skip_post_process,
-            )
+            generation = await self._generate(context, raw=raw)
         except BaseException as err:
             turn.duration_ms = record.fail(err)["duration_ms"]
             raise
@@ -135,32 +129,16 @@ class Generator:
         turn.duration_ms = row["duration_ms"]
         return generation
 
-    async def _generate(
-        self,
-        context: Context,
-        *,
-        skip_required_tags: bool,
-        skip_injected_prompt: bool,
-        skip_post_process: bool,
-    ) -> Generation:
-        editing = not skip_post_process
-
+    async def _generate(self, context: Context, *, raw: bool) -> Generation:
         response = await self._run_stage(
-            RESPONSE,
-            context,
-            partial(
-                self._draft,
-                editing=editing,
-                skip_injected_prompt=skip_injected_prompt,
-                skip_required_tags=skip_required_tags,
-            ),
+            RESPONSE, context, partial(self._draft, raw=raw)
         )
         stages: dict[trials.Stage, trials.TrialRun[Any]] = {RESPONSE: response}
 
         result = response.result.results[0]
         models = {RESPONSE.name: result.context.model}
         drafts: list[str] = []
-        if editing and result.context.post_process_prompt:
+        if not raw and result.context.post_process_prompt:
             drafts = response.result.contents
             edited = await self._run_stage(
                 POST_PROCESS,
@@ -234,29 +212,15 @@ class Generator:
             draft=int(label) if label else None,
         )
 
-    async def _draft(
-        self,
-        context: Context,
-        alias: str | None,
-        *,
-        editing: bool,
-        skip_injected_prompt: bool,
-        skip_required_tags: bool,
-    ) -> Drafts:
+    async def _draft(self, context: Context, alias: str | None, *, raw: bool) -> Drafts:
         """Generate every draft the editor will see, or one if it will not run."""
-        count = context.post_process_drafts if editing else 1
+        count = 1 if raw else context.post_process_drafts
         labels = [None] if count == 1 else [str(i) for i in range(1, count + 1)]
         delay = 0.0 if self._cache_warm(context) else CACHE_WRITE_SECONDS
 
         async def respond(label: str | None, delay: float = 0.0) -> StageResult:
             await asyncio.sleep(delay)
-            return await self._respond(
-                context,
-                alias,
-                label,
-                skip_injected_prompt=skip_injected_prompt,
-                skip_required_tags=skip_required_tags,
-            )
+            return await self._respond(context, alias, label, raw=raw)
 
         results = await asyncio.gather(
             respond(labels[0]), *(respond(label, delay) for label in labels[1:])
@@ -273,18 +237,12 @@ class Generator:
         return (context.session_id, hash(context.resolved_data.get("system_prompt")))
 
     async def _respond(
-        self,
-        context: Context,
-        alias: str | None,
-        label: str | None,
-        *,
-        skip_injected_prompt: bool,
-        skip_required_tags: bool,
+        self, context: Context, alias: str | None, label: str | None, *, raw: bool
     ) -> StageResult:
         executor = ChatExecutor(
             context,
             request_key=RESPONSE.request_key(alias, label),
-            skip_injected_prompt=skip_injected_prompt,
+            skip_injected_prompt=raw,
         )
         record = self._start_request(RESPONSE, context.model, alias, label)
         completion = await self._complete(executor, record)
@@ -292,7 +250,7 @@ class Generator:
         content = transform_response(
             completion.content,
             context.response_patterns,
-            None if skip_required_tags else context.required_response_tags,
+            None if raw else context.required_response_tags,
         )
         return StageResult(content, context, completion)
 

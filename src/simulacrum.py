@@ -208,12 +208,7 @@ class Simulacrum:
         if user_input:
             prompt += f"\n{user_input}"
         with self._temporary_message("user", prompt):
-            generation = await self._generate(
-                "scene",
-                skip_required_tags=True,
-                skip_injected_prompt=True,
-                skip_post_process=True,
-            )
+            generation = await self._generate("scene", raw=True)
         metadata = {"scene": True, "scene_input": user_input}
         return self._record(session, "user", generation, metadata, replacing)
 
@@ -243,8 +238,8 @@ class Simulacrum:
         self._trial_log.write(generation.trial_record)
         return generation.display
 
-    async def _generate(self, action: str, **options: bool) -> Generation:
-        return await self._generator.generate(self.context, action=action, **options)
+    async def _generate(self, action: str, raw: bool = False) -> Generation:
+        return await self._generator.generate(self.context, action=action, raw=raw)
 
     @contextmanager
     def _temporary_message(self, role: str, content: str) -> Iterator[None]:

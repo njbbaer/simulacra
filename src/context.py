@@ -99,8 +99,9 @@ class Context:
         return (conv.id, conv.name)
 
     def name_conversation(self, name: str) -> str:
-        old_filename = os.path.basename(self._conversation_relpath)
-        new_filename, sanitized = self._conversation_files.rename(old_filename, name)
+        new_filename, sanitized = self._conversation_files.rename(
+            self._conversation_filename, name
+        )
         self._set_conversation_file(new_filename)
         return sanitized
 
@@ -165,7 +166,7 @@ class Context:
         if conv:
             return conv.id
         raise ValueError(
-            f"Invalid conversation file format: {self._conversation_relpath}"
+            f"Invalid conversation file format: {self._conversation_filename}"
         )
 
     @property
@@ -176,7 +177,7 @@ class Context:
     @property
     def session_id(self) -> str:
         """Return the conversation filename stem."""
-        return os.path.splitext(os.path.basename(self._conversation_relpath))[0]
+        return os.path.splitext(self._conversation_filename)[0]
 
     @property
     def book_path(self) -> str | None:
@@ -274,7 +275,7 @@ class Context:
         if "conversation_file" not in self._state_data:
             mgr = self._conversation_files
             self._set_conversation_path(mgr.generate_filename(mgr.next_id()))
-        full_path = os.path.join(self.dir, self._conversation_relpath)
+        full_path = os.path.join(self.conversations_dir, self._conversation_filename)
         self._conversation = Conversation(full_path)
 
     def _set_conversation_path(self, filename: str) -> None:
@@ -336,13 +337,12 @@ class Context:
         return ConversationFiles(self.conversations_dir, self.context_name)
 
     @property
-    def _conversation_relpath(self) -> str:
-        return self.conversation_file.replace("file://./", "")
+    def _conversation_filename(self) -> str:
+        return os.path.basename(self.conversation_file)
 
     @property
     def _current_conversation_file(self) -> ConversationFile | None:
-        filename = os.path.basename(self._conversation_relpath)
-        return self._conversation_files.parse_filename(filename)
+        return self._conversation_files.parse_filename(self._conversation_filename)
 
 
 def _require_model(params: dict[str, Any], key: str) -> str:

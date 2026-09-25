@@ -249,20 +249,21 @@ class TelegramBot:
                 /compact - Compact conversation
                 /switch <id|name> - Switch conversation
                 /name <name> - Name conversation
-                /retry - Retry the last response
+                /retry (...) - Retry the last response
                 /undoretry - Undo a retry
                 /undo (...) - Undo the last exchange, optionally replacing it
                 /cancel - Cancel the pending response
                 /last - Show the last message again
                 /clear - Clear the conversation
                 /scene (...) - Generate a scene narration
-                /continue - Request another response
+                /continue (...) - Request another response
                 /set <key> <value> - Set a variable
-                /preset (...) - Apply a preset
-                /instruct (...) - Freeform instruction
+                /preset <key> (...) - Apply a preset
+                /instruct <text> - Freeform instruction
                 /syncbook (...) - Sync book position
                 *Information*
                 /stats - Show conversation statistics
+                /version - Show the version
                 /help - Show this help message
                 """
             )

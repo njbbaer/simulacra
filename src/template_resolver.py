@@ -26,33 +26,21 @@ class TemplateResolver:
         self._variables = {**copy.deepcopy(data), **extra_vars}
 
         for _ in range(10):
-            self._variables, changed = self._resolve_value(self._variables)
-            if not changed:
-                return self._variables
+            resolved = self._resolve_value(self._variables)
+            if resolved == self._variables:
+                return resolved
+            self._variables = resolved
 
         raise RuntimeError("Template resolution did not converge")
 
-    def _resolve_value(self, obj: Any) -> tuple[Any, bool]:
+    def _resolve_value(self, obj: Any) -> Any:
         if isinstance(obj, dict):
-            changed = False
-            result: dict[str, Any] = {}
-            for k, v in obj.items():
-                new_v, v_changed = self._resolve_value(v)
-                result[k] = new_v
-                changed = changed or v_changed
-            return result, changed
+            return {k: self._resolve_value(v) for k, v in obj.items()}
         if isinstance(obj, list):
-            changed = False
-            items: list[Any] = []
-            for item in obj:
-                new_item, item_changed = self._resolve_value(item)
-                items.append(new_item)
-                changed = changed or item_changed
-            return items, changed
+            return [self._resolve_value(item) for item in obj]
         if isinstance(obj, str) and "{{" in obj and "}}" in obj:
-            rendered = self._env.from_string(obj).render(**self._variables)
-            return rendered, rendered != obj
-        return obj, False
+            return self._env.from_string(obj).render(**self._variables)
+        return obj
 
     def _load_string(self, filepath: str) -> str:
         full_path = self._full_path(filepath)

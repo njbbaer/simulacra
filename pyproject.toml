@@ -18,7 +18,8 @@ dependencies = [
     "trafilatura",
     "curl_cffi",
     "tenacity",
-    "claude-agent-sdk>=0.2.158",
+    # Later bundled CLIs append an environment block after the last user turn
+    "claude-agent-sdk==0.2.158",
 ]
 
 [dependency-groups]

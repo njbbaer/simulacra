@@ -26,12 +26,14 @@ class ChatExecutor:
         skip_injected_prompt: bool = False,
         extra_messages: list[Message] | None = None,
         include_images: bool = True,
+        record: bool = True,
     ) -> None:
         self.context = context
         self.request_key = request_key
         self._skip_injected_prompt = skip_injected_prompt
         self._extra_messages = extra_messages or []
         self._include_images = include_images
+        self._record = record
 
     async def execute(
         self,
@@ -54,7 +56,8 @@ class ChatExecutor:
         except (httpx.ReadTimeout, TimeoutError) as err:
             raise RuntimeError("Request timed out") from err
 
-        RequestRecorder().record(body, data, self.request_key)
+        if self._record:
+            RequestRecorder().record(body, data, self.request_key)
         completion = ChatCompletion(data)
         self.context.increment_cost(completion.cost, completion.plan_cost)
         return completion

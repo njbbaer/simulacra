@@ -11,7 +11,12 @@ from .context import Context
 from .lm_executors import ChatExecutor
 from .message import Message
 from .request_recorder import RequestRecorder
-from .response_transform import extract_tag, strip_tags, transform_response
+from .response_transform import (
+    ResponseFormatError,
+    extract_tag,
+    strip_tags,
+    transform_response,
+)
 from .telemetry import Telemetry, TimedRecord
 from .turn_stats import TurnStats
 
@@ -79,9 +84,15 @@ class Generation:
 class Generator:
     """Runs the stages of one turn, tracking its cost and pending request."""
 
-    def __init__(self, trial_log: trials.TrialLog, telemetry: Telemetry) -> None:
+    def __init__(
+        self,
+        trial_log: trials.TrialLog,
+        telemetry: Telemetry,
+        record_requests: bool = True,
+    ) -> None:
         self._trial_log = trial_log
         self._telemetry = telemetry
+        self._record_requests = record_requests
         self._turn = telemetry
         self.last_turn: TurnStats | None = None
         self._task: asyncio.Task | None = None
@@ -105,9 +116,13 @@ class Generator:
         *,
         action: str,
         raw: bool = False,
+        drafts: list[str] | None = None,
     ) -> Generation:
-        """Run a turn; a raw one skips the injected prompt, required tags and editor."""
-        RequestRecorder().reset()
+        """Run a turn; a raw one skips the injected prompt, required tags and editor.
+
+        Given drafts, skip the response stage and edit them instead."""
+        if self._record_requests:
+            RequestRecorder().reset()
         self.last_turn = turn = TurnStats(action)
         self._turn = self._telemetry.scoped(
             turn=secrets.token_hex(6),
@@ -117,7 +132,7 @@ class Generator:
         )
         record = self._turn.start(kind="turn")
         try:
-            generation = await self._generate(context, raw=raw)
+            generation = await self._generate(context, raw=raw, drafts=drafts)
         except BaseException as err:
             turn.duration_ms = record.fail(err)["duration_ms"]
             raise
@@ -129,33 +144,40 @@ class Generator:
         turn.duration_ms = row["duration_ms"]
         return generation
 
-    async def _generate(self, context: Context, *, raw: bool) -> Generation:
-        response = await self._run_stage(
-            RESPONSE, context, partial(self._draft, raw=raw)
-        )
-        stages: dict[trials.Stage, trials.TrialRun[Any]] = {RESPONSE: response}
-
-        result = response.result.results[0]
-        models = {RESPONSE.name: result.context.model}
-        drafts: list[str] = []
-        if not raw and result.context.post_process_prompt:
+    async def _generate(
+        self, context: Context, *, raw: bool, drafts: list[str] | None
+    ) -> Generation:
+        stages: dict[trials.Stage, trials.TrialRun[Any]] = {}
+        models: dict[str, str] = {}
+        result: StageResult | None = None
+        if drafts is None:
+            response = await self._run_stage(
+                RESPONSE, context, partial(self._draft, raw=raw)
+            )
+            stages[RESPONSE] = response
+            result = response.result.results[0]
+            context = result.context
+            models[RESPONSE.name] = context.model
             drafts = response.result.contents
+
+        edits = not raw and bool(context.post_process_prompt)
+        if edits:
             edited = await self._run_stage(
-                POST_PROCESS,
-                result.context,
-                partial(self._edit, drafts=drafts),
+                POST_PROCESS, context, partial(self._edit, drafts=drafts)
             )
             stages[POST_PROCESS] = edited
             result = edited.result
             models[POST_PROCESS.name] = result.context.post_process_model
+        elif result is None:
+            raise ValueError("Editing drafts needs a post-processing prompt")
 
         display = strip_tags(result.content)
         if not display:
-            raise ValueError("No displayable content")
+            raise ResponseFormatError("No displayable content")
         return Generation(
             result.content,
             display,
-            drafts,
+            drafts if edits else [],
             result.notes,
             self._trial_record(stages),
             models,
@@ -243,6 +265,7 @@ class Generator:
             context,
             request_key=RESPONSE.request_key(alias, label),
             skip_injected_prompt=raw,
+            record=self._record_requests,
         )
         record = self._start_request(RESPONSE, context.model, alias, label)
         completion = await self._complete(executor, record)
@@ -275,6 +298,7 @@ class Generator:
                 Message("user", instruction),
             ],
             include_images=context.post_process_supports_images,
+            record=self._record_requests,
         )
         record = self._start_request(
             POST_PROCESS, context.post_process_model, alias, None

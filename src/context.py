@@ -24,7 +24,11 @@ class Session:
 
 class Context:
     def __init__(
-        self, path: str, overrides: dict | None = None, ephemeral: bool = False
+        self,
+        path: str,
+        overrides: dict | None = None,
+        ephemeral: bool = False,
+        conversation: Conversation | None = None,
     ) -> None:
         if os.path.isdir(path):
             dirname = os.path.basename(os.path.normpath(path))
@@ -34,7 +38,7 @@ class Context:
         self._session_version = 0
         self._is_ephemeral = ephemeral
         if ephemeral:
-            self._conversation = Conversation()
+            self._conversation = conversation or Conversation()
         self.load()
 
     @contextmanager

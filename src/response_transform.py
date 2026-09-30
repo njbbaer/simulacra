@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from . import notifications
 
 
+class ResponseFormatError(ValueError):
+    """The model's response is missing required content or has unexpected tags."""
+
+
 @dataclass
 class Pattern:
     pattern: str
@@ -51,10 +55,12 @@ def _apply_patterns(content: str, patterns: list[Pattern]) -> str:
 def _validate_required_tags(content: str, required_tags: set[str]) -> None:
     missing = [tag for tag in required_tags if not _has_tag(tag, content)]
     if missing:
-        raise ValueError(f"Missing required tags: {', '.join(sorted(missing))}")
+        raise ResponseFormatError(
+            f"Missing required tags: {', '.join(sorted(missing))}"
+        )
     unexpected = set(re.findall(r"</?(\w+)>", content)) - required_tags
     if unexpected:
-        raise ValueError(f"Unexpected tags: {', '.join(sorted(unexpected))}")
+        raise ResponseFormatError(f"Unexpected tags: {', '.join(sorted(unexpected))}")
 
 
 def _has_tag(tag: str, content: str) -> bool:

@@ -213,6 +213,7 @@ def to_completion(
     """Shape the result like an OpenRouter chat-completions response."""
     usage = result.usage or {}
     cached = usage.get("cache_read_input_tokens", 0)
+    thinking = (usage.get("output_tokens_details") or {}).get("thinking_tokens", 0)
     prompt_tokens = (
         usage.get("input_tokens", 0)
         + cached
@@ -232,6 +233,7 @@ def to_completion(
             "prompt_tokens": prompt_tokens,
             "completion_tokens": usage.get("output_tokens", 0),
             "prompt_tokens_details": {"cached_tokens": cached},
+            "completion_tokens_details": {"reasoning_tokens": thinking},
             "cost": 0.0,
             "plan_cost": result.total_cost_usd or 0.0,
             "plan_usage": plan_usage or None,

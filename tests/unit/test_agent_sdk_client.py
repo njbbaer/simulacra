@@ -37,6 +37,7 @@ def _result(**overrides):
             "cache_read_input_tokens": 20,
             "cache_creation_input_tokens": 5,
             "output_tokens": 7,
+            "output_tokens_details": {"thinking_tokens": 3},
         },
     }
     return SimpleNamespace(**{**fields, **overrides})
@@ -124,6 +125,7 @@ def test_to_completion_shapes_usage_like_openrouter():
     assert completion["usage"]["prompt_tokens"] == 35
     assert completion["usage"]["completion_tokens"] == 7
     assert completion["usage"]["prompt_tokens_details"]["cached_tokens"] == 20
+    assert ChatCompletion(completion).reasoning_tokens == 3
     assert ChatCompletion(completion).cost == 0.0
     assert ChatCompletion(completion).plan_cost == 0.01
 

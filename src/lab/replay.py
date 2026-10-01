@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import shutil
 from collections.abc import Iterable
@@ -14,6 +15,10 @@ from ..message import Message
 from ..telemetry import Telemetry
 from ..turn_stats import TurnStats
 from ..utilities import merge_dicts
+
+type Edit = tuple[str, str, str]
+
+SNAPSHOT_RECORD = "snapshot.json"
 
 
 @dataclass(frozen=True)
@@ -59,6 +64,24 @@ class Turn:
         conversation.messages = source.messages[: self.index]
         return conversation
 
+    def transcript(self) -> str:
+        """Return the messages before this turn as `NAME:` and text blocks.
+
+        Names come from the character config; empty messages are skipped."""
+        character, user = _names(self.character_dir)
+        blocks = []
+        for message in self.conversation().messages:
+            if text := message.display_text:
+                speaker = character if message.role == "assistant" else user
+                blocks.append(f"{speaker.upper()}:\n{text}")
+        return "\n\n".join(blocks)
+
+
+def assistant_turns(log: str) -> list[Turn]:
+    """Return a Turn for each assistant message in the log."""
+    messages = _load(log).messages
+    return [Turn(log, i) for i, m in enumerate(messages) if m.role == "assistant"]
+
 
 @dataclass
 class Result:
@@ -72,20 +95,13 @@ class Result:
     prompts: dict[str, str | None]
 
     def to_dict(self) -> dict[str, Any]:
-        requests = self.stats.requests
         return {
             "content": self.content,
             "display": self.display,
             "drafts": self.drafts,
             "notes": self.notes,
             "prompts": self.prompts,
-            "duration_ms": self.stats.duration_ms,
-            "cost": self.stats.cost,
-            "plan_cost": self.stats.plan_cost,
-            "plan_usage": self.stats.plan_usage,
-            "prompt_tokens": sum(r["prompt_tokens"] for r in requests),
-            "cached_tokens": sum(r["cached_tokens"] for r in requests),
-            "requests": requests,
+            **_stats_dict(self.stats),
         }
 
 
@@ -138,25 +154,42 @@ async def draft(
 
 def combine(*results: Result) -> Result:
     """Return the last result, with the stats and prompts of all of them."""
-    stats = TurnStats(
-        "replay",
-        sum(r.stats.duration_ms for r in results),
-        [request for r in results for request in r.stats.requests],
-    )
     prompts: dict[str, str | None] = {}
     for result in results:
         prompts.update({k: v for k, v in result.prompts.items() if v})
     last = results[-1]
-    return Result(last.content, last.display, last.drafts, last.notes, stats, prompts)
+    return Result(
+        last.content, last.display, last.drafts, last.notes, _merge(results), prompts
+    )
 
 
-def take_snapshot(turns: Iterable[Turn], dest: str) -> str:
-    """Copy the turns' character files and shared/ into dest, unless it exists.
+def totals(*results: Result) -> dict[str, Any]:
+    """Return the summed request stats of the results, without their outputs."""
+    return _stats_dict(_merge(results))
 
-    Conversations are left out, and images are linked rather than copied."""
-    if os.path.exists(dest):
-        return dest
+
+def take_snapshot(turns: Iterable[Turn], dest: str, edits: Iterable[Edit] = ()) -> str:
+    """Copy the turns' character files and shared/ into dest, then apply the edits.
+
+    Each edit is (path within dest, old text, new text), and the old text must
+    appear exactly once. Conversations are left out, and images are linked
+    rather than copied. An existing dest is reused if it was taken with the
+    same edits and holds every turn's character."""
+    edit_list = [list(edit) for edit in edits]
     character_dirs = {turn.character_dir for turn in turns}
+    if os.path.exists(dest):
+        record = os.path.join(dest, SNAPSHOT_RECORD)
+        if not os.path.exists(record):
+            raise ValueError(f"{dest} has no record of its edits")
+        with open(record) as file:
+            recorded = json.load(file)["edits"]
+        if recorded != edit_list:
+            raise ValueError(f"{dest} was taken with other edits: {recorded}")
+        for source in character_dirs:
+            name = os.path.basename(source)
+            if not os.path.isdir(os.path.join(dest, "characters", name)):
+                raise ValueError(f"{dest} has no character {name}")
+        return dest
     roots = {os.path.dirname(os.path.dirname(d)) for d in character_dirs}
     if len(roots) != 1:
         raise ValueError(f"Turns come from more than one content root: {roots}")
@@ -171,8 +204,44 @@ def take_snapshot(turns: Iterable[Turn], dest: str) -> str:
         images = os.path.join(source, "images")
         if os.path.isdir(images):
             os.symlink(images, os.path.join(target, "images"))
+    for path, old, new in edit_list:
+        _replace_once(os.path.join(staging, path), old, new)
+    with open(os.path.join(staging, SNAPSHOT_RECORD), "w") as file:
+        json.dump({"edits": edit_list}, file, indent=1)
     os.rename(staging, dest)
     return dest
+
+
+def _replace_once(path: str, old: str, new: str) -> None:
+    with open(path) as file:
+        text = file.read()
+    count = text.count(old)
+    if count != 1:
+        raise ValueError(f"{path} has {count} copies of {old!r}, not one")
+    with open(path, "w") as file:
+        file.write(text.replace(old, new))
+
+
+def _merge(results: Iterable[Result]) -> TurnStats:
+    results = list(results)
+    return TurnStats(
+        "replay",
+        sum(r.stats.duration_ms for r in results),
+        [request for r in results for request in r.stats.requests],
+    )
+
+
+def _stats_dict(stats: TurnStats) -> dict[str, Any]:
+    requests = stats.requests
+    return {
+        "duration_ms": stats.duration_ms,
+        "cost": stats.cost,
+        "plan_cost": stats.plan_cost,
+        "plan_usage": stats.plan_usage,
+        "prompt_tokens": sum(r["prompt_tokens"] for r in requests),
+        "cached_tokens": sum(r["cached_tokens"] for r in requests),
+        "requests": requests,
+    }
 
 
 def _prompt_hashes(context: Context) -> dict[str, str | None]:
@@ -191,3 +260,10 @@ def _hash(text: str | None) -> str | None:
 @cache
 def _load(log: str) -> Conversation:
     return Conversation(log)
+
+
+@cache
+def _names(character_dir: str) -> tuple[str, str]:
+    """Return the character's and the user's names from the character config."""
+    context = Context(character_dir, ephemeral=True)
+    return context.character_name, context.resolved_data["user_name"]

@@ -207,18 +207,7 @@ class Generator:
         except BaseException as err:
             record.fail(err)
             raise
-        row = record.ok(
-            generation_id=completion.id,
-            provider=completion.provider,
-            prompt_tokens=completion.prompt_tokens,
-            completion_tokens=completion.completion_tokens,
-            cached_tokens=completion.cached_tokens,
-            reasoning_tokens=completion.reasoning_tokens,
-            cost=completion.cost,
-            plan_cost=completion.plan_cost,
-            plan_usage=completion.plan_usage,
-            chars=len(completion.content),
-        )
+        row = record.ok(**completion.request_fields())
         assert self.last_turn is not None
         self.last_turn.requests.append(row)
         return completion

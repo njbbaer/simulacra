@@ -25,7 +25,7 @@ RETRYABLE = (
 ATTEMPTS = 3
 RETRY_SECONDS = 10
 BREAKER = 3
-PLAN_LIMITS = {"five_hour": 0.85, "seven_day": 0.9}
+PLAN_LIMITS = {"five_hour": 0.8, "seven_day": 0.9}
 
 
 @dataclass
@@ -43,18 +43,21 @@ async def run_batch(
     group: Callable[[Job], Hashable] = lambda _: None,
     concurrency: int = 5,
     max_cost: float | None = None,
+    plan_limits: dict[str, float] | None = None,
 ) -> BatchSummary:
     """Run `fn` on each job, appending `{"job": job, **result}` lines to `out`.
 
     Jobs already in `out` are skipped. At most `concurrency` jobs run at once,
     and each group runs one job before the rest so they can read the prompt
-    cache it writes.
+    cache it writes. `plan_limits` overrides the PLAN_LIMITS utilization at
+    which the batch stops.
     """
     records = _read(out)
     done = {_key(r["job"]) for r in records}
     pending = [job for job in jobs if _key(job) not in done]
     spent = sum(r.get("cost", 0.0) for r in records)
-    batch = _Batch(fn, out, len(pending), spent, max_cost)
+    limits = {**PLAN_LIMITS, **(plan_limits or {})}
+    batch = _Batch(fn, out, len(pending), spent, max_cost, limits)
     _log(f"{len(pending)} jobs ({len(done)} already done)")
 
     groups: dict[Hashable, list[Job]] = {}
@@ -63,15 +66,21 @@ async def run_batch(
 
     semaphore = asyncio.Semaphore(concurrency)
 
-    async def run(job: Job) -> None:
+    async def run(job: Job, *, warm: bool) -> None:
         async with semaphore:
-            await batch.run(job)
+            await batch.run(job, warm=warm)
 
     async def run_group(group_jobs: list[Job]) -> None:
-        await run(group_jobs[0])
-        await asyncio.gather(*(run(job) for job in group_jobs[1:]))
+        await run(group_jobs[0], warm=False)
+        await asyncio.gather(*(run(job, warm=True) for job in group_jobs[1:]))
 
     await asyncio.gather(*(run_group(g) for g in groups.values()))
+    if batch.warm_prompt:
+        share = batch.warm_cached / batch.warm_prompt
+        _log(
+            f"cached {batch.warm_cached}/{batch.warm_prompt} ({share:.0%}) "
+            "of prompt tokens in jobs after each group's first"
+        )
     totals = f"{batch.ok} ok, {batch.failed} failed"
     _log(f"STOPPED: {totals}" if batch.aborted else f"ALL DONE: {totals}")
     return BatchSummary(batch.ok, batch.failed, batch.aborted)
@@ -85,18 +94,22 @@ class _Batch:
         total: int,
         spent: float,
         max_cost: float | None,
+        plan_limits: dict[str, float],
     ) -> None:
         self._fn = fn
         self._out = out
         self._total = total
         self._spent = spent
         self._max_cost = max_cost
+        self._plan_limits = plan_limits
         self._consecutive_failures = 0
         self.ok = 0
         self.failed = 0
         self.aborted: str | None = None
+        self.warm_cached = 0
+        self.warm_prompt = 0
 
-    async def run(self, job: Job) -> None:
+    async def run(self, job: Job, *, warm: bool) -> None:
         label = " ".join(f"{k}={v}" for k, v in job.items())
         for attempt in range(1, ATTEMPTS + 1):
             if self.aborted:
@@ -117,6 +130,9 @@ class _Batch:
                 self._abort(f"local error on {label}\n{traceback.format_exc()}")
                 return
             self._record(job, label, result)
+            if warm:
+                self.warm_cached += result.get("cached_tokens", 0)
+                self.warm_prompt += result.get("prompt_tokens", 0)
             return
 
     def _abort(self, reason: str) -> None:
@@ -141,7 +157,7 @@ class _Batch:
         _log(f"ok {label} {_summarize(result)} [{self.ok}/{self._total}]")
         usage = result.get("plan_usage") or {}
         if any(
-            window["utilization"] >= PLAN_LIMITS.get(name, 0.9)
+            window["utilization"] >= self._plan_limits.get(name, 0.8)
             for name, window in usage.items()
         ):
             self._abort(f"plan usage near its limit: {usage}")

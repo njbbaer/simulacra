@@ -51,6 +51,21 @@ class ChatCompletion:
         """Return the utilization and reset time of each subscription limit window."""
         return self._usage.get("plan_usage")
 
+    def request_fields(self) -> dict[str, Any]:
+        """Return the fields of the request's telemetry row."""
+        return {
+            "generation_id": self.id,
+            "provider": self.provider,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "cached_tokens": self.cached_tokens,
+            "reasoning_tokens": self.reasoning_tokens,
+            "cost": self.cost,
+            "plan_cost": self.plan_cost,
+            "plan_usage": self.plan_usage,
+            "chars": len(self.content),
+        }
+
     def _validate(self) -> None:
         if self._error_message:
             raise RuntimeError(self._error_message)

@@ -187,3 +187,28 @@ async def test_logs_an_abort_before_calls_in_flight_finish(out: str, capsys) -> 
     finished = next(i for i, line in enumerate(lines) if "ok turn=t2" in line)
     assert aborted < finished
     assert "STOPPED: 2 ok, 0 failed" in lines[-1]
+
+
+@pytest.mark.asyncio
+async def test_plan_limits_override_the_defaults(out: str) -> None:
+    async def fn(_):
+        return {"plan_usage": {"five_hour": {"utilization": 0.9}}}
+
+    summary = await run_batch(jobs(3), fn, out, plan_limits={"five_hour": 0.95})
+
+    assert summary.ok == 3
+    assert summary.aborted is None
+
+
+@pytest.mark.asyncio
+async def test_reports_the_cached_share_after_each_groups_first(
+    out: str, capsys
+) -> None:
+    async def fn(job):
+        cached = 0 if job["sample"] == 0 else 90
+        return {"cached_tokens": cached, "prompt_tokens": 100}
+
+    group_jobs = [{"turn": f"t{i}", "sample": s} for i in range(2) for s in range(3)]
+    await run_batch(group_jobs, fn, out, group=lambda j: j["turn"])
+
+    assert "cached 360/400 (90%)" in capsys.readouterr().out

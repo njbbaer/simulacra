@@ -41,7 +41,7 @@ async def run_batch(
     out: str,
     *,
     group: Callable[[Job], Hashable] = lambda _: None,
-    concurrency: int = 5,
+    concurrency: int = 10,
     max_cost: float | None = None,
     plan_limits: dict[str, float] | None = None,
 ) -> BatchSummary:

@@ -42,7 +42,10 @@ def paired_effect(
 
     def effect(sample: list[Hashable]) -> float:
         b = statistics.fmean(means[turn][0] for turn in sample)
-        return statistics.fmean(means[turn][1] for turn in sample) / b - 1
+        t = statistics.fmean(means[turn][1] for turn in sample)
+        if not b:
+            return math.copysign(math.inf, t) if t else 0.0
+        return t / b - 1
 
     rng = random.Random(seed)
     boots = sorted(effect(rng.choices(turns, k=len(turns))) for _ in range(resamples))

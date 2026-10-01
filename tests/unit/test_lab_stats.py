@@ -32,6 +32,17 @@ def test_paired_effect_averages_samples_within_a_turn() -> None:
     assert effect.low <= effect.effect <= effect.high
 
 
+def test_paired_effect_bounds_resamples_without_base_hits() -> None:
+    rows = [("a", "base", 1), ("a", "treat", 1)]
+    rows += [(turn, cond, 0) for turn in "bcdefgh" for cond in ("base", "treat")]
+    rows += [("i", "base", 0), ("i", "treat", 1)]
+
+    effect = paired_effect(rows, "base", "treat", resamples=200)
+
+    assert effect.effect == pytest.approx(1)
+    assert effect.high == float("inf")
+
+
 def test_pilot_separates_between_and_within_turn_variance() -> None:
     pilot = Pilot.from_rows(simulate(400, 3, 1.0, 4.0, seed=1), "base", "treat")
 

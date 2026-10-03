@@ -14,6 +14,7 @@ def context_data() -> dict[str, Any]:
         "total_cost": 0.0,
         "api_params": {"model": "test/model"},
         "system_prompt": "Hello",
+        "feedback_prompt": "Take the feedback into account.",
         "instruction_presets": {
             "formal": {
                 "content": "Be formal.",

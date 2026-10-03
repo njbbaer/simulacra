@@ -20,7 +20,8 @@ def sample_turns(
     """Draw quotas[character] turns with a logged draft, or reload them from path.
 
     Turns come from conversations numbered since[character] or later, at
-    min_index or later, and not among the excluded turn IDs. A selection is
+    min_index or later, and not among the excluded turn IDs. Retries shown
+    feedback are skipped, since their drafts aren't ordinary ones. A selection is
     saved to path, and reloading raises if it was drawn with other arguments.
     The exclusions aren't compared, since the lists they come from grow."""
     args = {"quotas": quotas, "seed": seed, "since": since or {}, "min": min_index}
@@ -39,7 +40,10 @@ def sample_turns(
             (turn.log, turn.index)
             for log in _logs(characters_dir, character, (since or {}).get(character, 0))
             for turn in assistant_turns(log)
-            if turn.index >= min_index and turn.drafts and turn.id not in excluded
+            if turn.index >= min_index
+            and turn.drafts
+            and not turn.steered
+            and turn.id not in excluded
         )
         if len(pool) < quota:
             raise ValueError(f"{character} has {len(pool)} turns, short of {quota}")

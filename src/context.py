@@ -214,6 +214,10 @@ class Context:
         return self._data.get("scene_prompt")
 
     @property
+    def feedback_prompt(self) -> str | None:
+        return self._data.get("feedback_prompt")
+
+    @property
     def post_process_prompt(self) -> str | None:
         return self._post_process.get("prompt")
 

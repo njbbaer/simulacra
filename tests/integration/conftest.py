@@ -30,6 +30,7 @@ def context_data() -> dict[str, Any]:
         "system_prompt": "Say something!",
         "scene_prompt": "Describe the scene.",
         "continue_prompt": "Continue",
+        "feedback_prompt": "Take the feedback into account.",
     }
 
 

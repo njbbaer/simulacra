@@ -105,6 +105,37 @@ class TestRetry:
         sim.context.load()
         assert [m.content for m in sim.context.conversation.messages] == ["Hi", "Hello"]
 
+    @pytest.mark.asyncio
+    async def test_a_failed_retry_leaves_its_note_for_the_next(self, sim):
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.side_effect = [
+                RuntimeError("Response was empty"),
+                Generation("Two", "Two"),
+            ]
+            with pytest.raises(RuntimeError):
+                await sim.retry("too stiff")
+            await sim.retry()
+
+        assert "too stiff" in mock_gen.call_args.kwargs["feedback"]
+
+    @pytest.mark.asyncio
+    async def test_shows_every_earlier_attempt_with_feedback(self, sim):
+        with patch.object(sim, "_generate", new_callable=AsyncMock) as mock_gen:
+            mock_gen.side_effect = [
+                Generation(content, content) for content in ["Two", "Three", "Four"]
+            ]
+            await sim.retry("too stiff")
+            await sim.retry()
+            await sim.retry("cheesy")
+
+        calls = mock_gen.call_args_list
+        second, third = (call.kwargs["feedback"] for call in calls[1:])
+        assert "too stiff" in second
+        assert "Two" not in third
+        shown = ["Hello", "too stiff", "Three", "cheesy"]
+        order = [third.index(text) for text in shown]
+        assert order == sorted(order)
+
 
 class TestApplyPreset:
     def test_known_preset(self, sim):

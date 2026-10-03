@@ -24,6 +24,7 @@ class ChatExecutor:
         *,
         request_key: str,
         skip_injected_prompt: bool = False,
+        feedback: str | None = None,
         extra_messages: list[Message] | None = None,
         include_images: bool = True,
         record: bool = True,
@@ -31,6 +32,7 @@ class ChatExecutor:
         self.context = context
         self.request_key = request_key
         self._skip_injected_prompt = skip_injected_prompt
+        self._feedback = feedback
         self._extra_messages = extra_messages or []
         self._include_images = include_images
         self._record = record
@@ -76,6 +78,7 @@ class ChatExecutor:
                 messages,
                 template_vars.get("reinforcement_prompt"),
                 template_vars.get("continue_prompt"),
+                self._feedback,
             )
         )
         env = jinja2.Environment(trim_blocks=True, lstrip_blocks=True)
@@ -90,12 +93,15 @@ class ChatExecutor:
         messages: list,
         reinforcement_prompt: str | None,
         continue_prompt: str | None,
+        feedback: str | None,
     ) -> str | None:
         parts = []
         if reinforcement_prompt:
             parts.append(reinforcement_prompt)
         if continue_prompt and messages and messages[-1].role == "assistant":
             parts.append(f"<instruct>{continue_prompt}</instruct>")
+        if feedback:
+            parts.append(feedback)
         return "\n\n".join(parts) if parts else None
 
     @staticmethod

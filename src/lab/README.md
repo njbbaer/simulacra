@@ -4,7 +4,7 @@ Replays logged turns through the production generator and runs them in resumable
 
 Harnesses outside the repo put the repo root on `sys.path` and run with `uv run --project <repo> python`. Importing `src.lab` loads the repo's `.env`. Load another experiment's module by its file path with `importlib`, since experiment folders reuse names like `run.py` and `check.py` and a `sys.path` import silently returns whichever loaded first.
 
-- Draw turns with `sample_turns` and save them, so reruns use the same selection.
+- Draw turns with `sample_turns` and save them, so reruns use the same selection. It skips turns whose response was a retry shown feedback (`Turn.steered`), since their drafts aren't ordinary ones. Harnesses that read logged drafts directly should skip them too.
 - Replay from a snapshot (`take_snapshot`) to keep edits to the live characters during a batch out of it. Give prompt changes as snapshot edits rather than editing the copy by hand.
 - Call judges and other models with `complete`, and return `totals` of every result in a job so the log and the plan limit see all its calls.
 - Group batch jobs by shared prompt prefix, usually the turn. Each group's first job warms the cache for the rest. Pass `warm_by` with a coarser key, usually the character, so its system prompt is cached once before the groups fan out. The line at the end of a batch shows the cached share of the jobs after each group's first.

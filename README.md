@@ -43,7 +43,8 @@ Send `/help` to see a list of commands:
 ```text
 Actions
 /new - Start a new conversation
-/retry - Retry the last response
+/retry (...) - Retry the last response, optionally with feedback
+/feedback <note> - Leave feedback on the last response
 /undo - Undo the last exchange
 /cancel - Cancel the pending response
 /clear - Clear the conversation

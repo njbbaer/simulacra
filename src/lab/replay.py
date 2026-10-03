@@ -55,6 +55,12 @@ class Turn:
             return list(metadata["drafts"])
         return [metadata["draft"]] if "draft" in metadata else []
 
+    @property
+    def steered(self) -> bool:
+        """Whether the logged response was a retry shown feedback on earlier ones."""
+        earlier = self.logged.attempts[:-1]
+        return any(attempt.metadata.get("feedback") for attempt in earlier)
+
     def conversation(self) -> Conversation:
         """Return an in-memory copy of the conversation up to this turn."""
         source = _load(self.log)

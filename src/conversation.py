@@ -70,17 +70,18 @@ class Conversation:
         metadata: dict[str, Any] | None = None,
         replacing: Message | None = None,
     ) -> None:
-        """Append a message, keeping any it replaces in its `replaced` metadata."""
+        """Append a message, keeping every attempt it replaces under `replaced`."""
         if replacing:
-            earlier = replacing.metadata.get("replaced", [])
-            previous = Message(
-                replacing.role,
-                replacing.content,
-                replacing.image,
-                {k: v for k, v in replacing.metadata.items() if k != "replaced"},
-            )
-            metadata = {**(metadata or {}), "replaced": [*earlier, previous.to_dict()]}
+            replaced = [attempt.to_dict() for attempt in replacing.attempts]
+            metadata = {**(metadata or {}), "replaced": replaced}
         self.messages.append(Message(role, message, image, metadata))
+
+    def set_feedback(self, note: str) -> None:
+        """Set the note on the last response or scene, replacing any earlier one."""
+        last = self.messages[-1] if self.messages else None
+        if not last or not last.generated:
+            raise ValueError("No response to give feedback on")
+        last.metadata["feedback"] = note
 
     def restore_replaced(self) -> None:
         """Swap the last message for the one it most recently replaced."""

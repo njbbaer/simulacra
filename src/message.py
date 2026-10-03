@@ -20,6 +20,19 @@ class Message:
     def display_text(self) -> str:
         return strip_tags(self.content or "")
 
+    @property
+    def generated(self) -> bool:
+        """Whether this is a response or scene, which a retry can replace."""
+        return self.role == "assistant" or bool(self.metadata.get("scene"))
+
+    @property
+    def attempts(self) -> list[Message]:
+        """Every attempt at this message, oldest first, ending with this one."""
+        replaced = self.metadata.get("replaced", [])
+        earlier = [Message.from_dict(data) for data in replaced]
+        metadata = {k: v for k, v in self.metadata.items() if k != "replaced"}
+        return [*earlier, Message(self.role, self.content, self.image, metadata)]
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "role": self.role,

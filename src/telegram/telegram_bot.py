@@ -78,6 +78,7 @@ class TelegramBot:
             (["compact", "com"], self._compact_conversation),
             (["retry", "r"], self._retry),
             (["undoretry", "ur"], self._undo_retry),
+            (["feedback", "f"], self._feedback),
             (["continue", "co"], self._continue),
             (["undo", "u"], self._undo),
             (["cancel", "x"], self._cancel),
@@ -150,6 +151,12 @@ class TelegramBot:
     async def _undo_retry(self, ctx: TelegramContext) -> None:
         self.sim.undo_retry()
         await ctx.send_message("`↩️ Retry undone`")
+
+    @message_handler
+    @requires_body("/feedback <note>")
+    async def _feedback(self, ctx: TelegramContext, body: str) -> None:
+        self.sim.set_feedback(body)
+        await ctx.send_message("`📝 Noted`")
 
     @message_handler
     async def _continue(self, ctx: TelegramContext) -> None:
@@ -249,8 +256,9 @@ class TelegramBot:
                 /compact - Compact conversation
                 /switch <id|name> - Switch conversation
                 /name <name> - Name conversation
-                /retry (...) - Retry the last response
+                /retry (...) - Retry the last response, optionally with feedback
                 /undoretry - Undo a retry
+                /feedback <note> - Leave feedback on the last response
                 /undo (...) - Undo the last exchange, optionally replacing it
                 /cancel - Cancel the pending response
                 /last - Show the last message again

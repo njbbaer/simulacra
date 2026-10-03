@@ -186,6 +186,46 @@ async def test_undo_retry_restores_a_retried_scene(
 
 
 @pytest.mark.asyncio
+async def test_retry_with_a_note_shows_it_in_the_injected_prompt(
+    simulacrum: Simulacrum,
+    mock_openrouter,
+) -> None:
+    await simulacrum.retry("too stiff")
+
+    request = mock_openrouter.get_requests(
+        url="https://openrouter.ai/api/v1/chat/completions",
+    )[0]
+    injected = json.loads(request.content)["messages"][-1]
+    assert injected["role"] == "system"
+    assert (
+        "<earlier_response>\nHello user\n</earlier_response>\n"
+        "<feedback>\ntoo stiff\n</feedback>"
+    ) in injected["content"][0]["text"]
+    replaced = simulacrum.context.conversation.messages[-1].metadata["replaced"]
+    assert replaced[0]["metadata"]["feedback"] == "too stiff"
+
+
+@pytest.mark.asyncio
+async def test_scene_retry_with_a_note_shows_it_in_the_scene_prompt(
+    simulacrum: Simulacrum,
+    mock_openrouter,
+) -> None:
+    simulacrum.context.load()
+    simulacrum.context.conversation.add_message(
+        "user", "A dark room.", metadata={"scene": True, "scene_input": "darkness"}
+    )
+    simulacrum.context.save()
+
+    await simulacrum.retry("too dark")
+
+    request = mock_openrouter.get_requests(
+        url="https://openrouter.ai/api/v1/chat/completions",
+    )[0]
+    prompt = json.loads(request.content)["messages"][-1]["content"][0]["text"]
+    assert "<feedback>\ntoo dark\n</feedback>" in prompt
+
+
+@pytest.mark.asyncio
 async def test_continue_conversation(
     simulacrum: Simulacrum,
     mock_openrouter,

@@ -117,10 +117,12 @@ class Generator:
         action: str,
         raw: bool = False,
         drafts: list[str] | None = None,
+        feedback: str | None = None,
     ) -> Generation:
         """Run a turn; a raw one skips the injected prompt, required tags and editor.
 
-        Given drafts, skip the response stage and edit them instead."""
+        Given drafts, skip the response stage and edit them instead. Given
+        feedback, add it to the response stage's injected prompt."""
         if self._record_requests:
             RequestRecorder().reset()
         self.last_turn = turn = TurnStats(action)
@@ -132,7 +134,9 @@ class Generator:
         )
         record = self._turn.start(kind="turn")
         try:
-            generation = await self._generate(context, raw=raw, drafts=drafts)
+            generation = await self._generate(
+                context, raw=raw, drafts=drafts, feedback=feedback
+            )
         except BaseException as err:
             turn.duration_ms = record.fail(err)["duration_ms"]
             raise
@@ -145,14 +149,19 @@ class Generator:
         return generation
 
     async def _generate(
-        self, context: Context, *, raw: bool, drafts: list[str] | None
+        self,
+        context: Context,
+        *,
+        raw: bool,
+        drafts: list[str] | None,
+        feedback: str | None,
     ) -> Generation:
         stages: dict[trials.Stage, trials.TrialRun[Any]] = {}
         models: dict[str, str] = {}
         result: StageResult | None = None
         if drafts is None:
             response = await self._run_stage(
-                RESPONSE, context, partial(self._draft, raw=raw)
+                RESPONSE, context, partial(self._draft, raw=raw, feedback=feedback)
             )
             stages[RESPONSE] = response
             result = response.result.results[0]
@@ -223,7 +232,14 @@ class Generator:
             draft=int(label) if label else None,
         )
 
-    async def _draft(self, context: Context, alias: str | None, *, raw: bool) -> Drafts:
+    async def _draft(
+        self,
+        context: Context,
+        alias: str | None,
+        *,
+        raw: bool,
+        feedback: str | None,
+    ) -> Drafts:
         """Generate every draft the editor will see, or one if it will not run."""
         count = 1 if raw else context.post_process_drafts
         labels = [None] if count == 1 else [str(i) for i in range(1, count + 1)]
@@ -231,7 +247,9 @@ class Generator:
 
         async def respond(label: str | None, delay: float = 0.0) -> StageResult:
             await asyncio.sleep(delay)
-            return await self._respond(context, alias, label, raw=raw)
+            return await self._respond(
+                context, alias, label, raw=raw, feedback=feedback
+            )
 
         results = await asyncio.gather(
             respond(labels[0]), *(respond(label, delay) for label in labels[1:])
@@ -248,12 +266,19 @@ class Generator:
         return (context.session_id, hash(context.resolved_data.get("system_prompt")))
 
     async def _respond(
-        self, context: Context, alias: str | None, label: str | None, *, raw: bool
+        self,
+        context: Context,
+        alias: str | None,
+        label: str | None,
+        *,
+        raw: bool,
+        feedback: str | None,
     ) -> StageResult:
         executor = ChatExecutor(
             context,
             request_key=RESPONSE.request_key(alias, label),
             skip_injected_prompt=raw,
+            feedback=feedback,
             record=self._record_requests,
         )
         record = self._start_request(RESPONSE, context.model, alias, label)

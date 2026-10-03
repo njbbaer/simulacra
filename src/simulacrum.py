@@ -79,21 +79,21 @@ class Simulacrum:
         with self.context.session() as session:
             return await self._narrate(session, user_input)
 
-    async def retry(self, instruction: str | None = None) -> str:
+    async def retry(self, note: str | None = None) -> str:
         """Regenerate the last response or scene, keeping the old one to undo to."""
         self._ensure_idle()
         with self.context.session() as session:
-            messages = self.context.conversation.messages
+            conversation = self.context.conversation
+            if note:
+                conversation.set_feedback(note)
+                self.context.save()
+            messages = conversation.messages
             last = self.last_message
-            replaced = None
-            if last and (last.role == "assistant" or last.metadata.get("scene")):
-                replaced = messages.pop()
+            replaced = messages.pop() if last and last.generated else None
             try:
                 if replaced and replaced.metadata.get("scene"):
                     scene_input = replaced.metadata.get("scene_input")
                     return await self._narrate(session, scene_input, replaced)
-                if instruction:
-                    self._set_inline_instruction(instruction)
                 return await self._reply(session, "retry", replaced)
             except BaseException:
                 # The pop was never saved, so this leaves the file unchanged
@@ -116,6 +116,11 @@ class Simulacrum:
         with self.context.session():
             self.context.conversation.restore_replaced()
         self._trial_log.write()
+
+    def set_feedback(self, note: str) -> None:
+        self._ensure_idle()
+        with self.context.session():
+            self.context.conversation.set_feedback(note)
 
     def cancel_pending_request(self) -> bool:
         return self._generator.cancel()
@@ -195,7 +200,8 @@ class Simulacrum:
     async def _reply(
         self, session: Session, action: str, replacing: Message | None = None
     ) -> str:
-        generation = await self._generate(action)
+        feedback = self._feedback_prompt(replacing)
+        generation = await self._generate(action, feedback=feedback)
         return self._record(session, "assistant", generation, replacing=replacing)
 
     async def _narrate(
@@ -207,6 +213,8 @@ class Simulacrum:
         prompt = f"<instruct>\n{self.context.scene_prompt}\n</instruct>"
         if user_input:
             prompt += f"\n{user_input}"
+        if feedback := self._feedback_prompt(replacing):
+            prompt += f"\n\n{feedback}"
         with self._temporary_message("user", prompt):
             generation = await self._generate("scene", raw=True)
         metadata = {"scene": True, "scene_input": user_input}
@@ -238,8 +246,26 @@ class Simulacrum:
         self._trial_log.write(generation.trial_record)
         return generation.display
 
-    async def _generate(self, action: str, raw: bool = False) -> Generation:
-        return await self._generator.generate(self.context, action=action, raw=raw)
+    def _feedback_prompt(self, replacing: Message | None) -> str | None:
+        """Return the attempts with feedback as a prompt, or None if none have any."""
+        attempts = replacing.attempts if replacing else []
+        flagged = [attempt for attempt in attempts if attempt.metadata.get("feedback")]
+        if not flagged or not self.context.feedback_prompt:
+            return None
+        shown = [
+            f"<earlier_response>\n{attempt.display_text}\n</earlier_response>\n"
+            f"<feedback>\n{attempt.metadata['feedback']}\n</feedback>"
+            for attempt in flagged
+        ]
+        body = "\n\n".join([self.context.feedback_prompt, *shown])
+        return f"<instruct>\n{body}\n</instruct>"
+
+    async def _generate(
+        self, action: str, raw: bool = False, feedback: str | None = None
+    ) -> Generation:
+        return await self._generator.generate(
+            self.context, action=action, raw=raw, feedback=feedback
+        )
 
     @contextmanager
     def _temporary_message(self, role: str, content: str) -> Iterator[None]:

@@ -44,13 +44,16 @@ async def run_batch(
     concurrency: int = 10,
     max_cost: float | None = None,
     plan_limits: dict[str, float] | None = None,
+    warm_by: Callable[[Job], Hashable] | None = None,
 ) -> BatchSummary:
     """Run `fn` on each job, appending `{"job": job, **result}` lines to `out`.
 
     Jobs already in `out` are skipped. At most `concurrency` jobs run at once,
     and each group runs one job before the rest so they can read the prompt
-    cache it writes. `plan_limits` overrides the PLAN_LIMITS utilization at
-    which the batch stops.
+    cache it writes. `warm_by` keys a prefix that groups share, such as the
+    character, and one group per key runs its first job before any other group
+    starts. `plan_limits` overrides the PLAN_LIMITS utilization at which the
+    batch stops.
     """
     records = _read(out)
     done = {_key(r["job"]) for r in records}
@@ -70,11 +73,20 @@ async def run_batch(
         async with semaphore:
             await batch.run(job, warm=warm)
 
-    async def run_group(group_jobs: list[Job]) -> None:
-        await run(group_jobs[0], warm=False)
+    async def run_group(group_jobs: list[Job], *, warmed: bool) -> None:
+        if not warmed:
+            await run(group_jobs[0], warm=False)
         await asyncio.gather(*(run(job, warm=True) for job in group_jobs[1:]))
 
-    await asyncio.gather(*(run_group(g) for g in groups.values()))
+    leaders: dict[Hashable, list[Job]] = {}
+    if warm_by:
+        for group_jobs in groups.values():
+            leaders.setdefault(warm_by(group_jobs[0]), group_jobs)
+    await asyncio.gather(*(run(g[0], warm=False) for g in leaders.values()))
+    warmed = {id(g) for g in leaders.values()}
+    await asyncio.gather(
+        *(run_group(g, warmed=id(g) in warmed) for g in groups.values())
+    )
     if batch.warm_prompt:
         share = batch.warm_cached / batch.warm_prompt
         _log(

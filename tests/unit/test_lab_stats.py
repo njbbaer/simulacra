@@ -43,6 +43,13 @@ def test_paired_effect_bounds_resamples_without_base_hits() -> None:
     assert effect.high == float("inf")
 
 
+def test_paired_effect_reports_the_share_of_resamples_below_base() -> None:
+    rows = simulate(40, 2, 1.0, 4.0, seed=2)
+
+    assert paired_effect(rows, "base", "treat", resamples=500).below == 1.0
+    assert paired_effect(rows, "treat", "base", resamples=500).below == 0.0
+
+
 def test_pilot_separates_between_and_within_turn_variance() -> None:
     pilot = Pilot.from_rows(simulate(400, 3, 1.0, 4.0, seed=1), "base", "treat")
 

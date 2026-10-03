@@ -9,17 +9,19 @@ type Row = tuple[Hashable, str, float]
 
 @dataclass(frozen=True)
 class Effect:
-    """The relative change from base to treatment, with a bootstrap 95% CI."""
+    """The relative change from base to treatment, with a bootstrap 95% CI and the
+    share of resamples in which the treatment came out below the base."""
 
     effect: float
     low: float
     high: float
     turns: int
+    below: float
 
     def __str__(self) -> str:
         return (
             f"{self.effect:+.0%} (95% CI {self.low:+.0%} to {self.high:+.0%}, "
-            f"{self.turns} turns)"
+            f"{self.turns} turns, below base in {self.below:.0%} of resamples)"
         )
 
 
@@ -50,7 +52,8 @@ def paired_effect(
     rng = random.Random(seed)
     boots = sorted(effect(rng.choices(turns, k=len(turns))) for _ in range(resamples))
     low, high = boots[round(0.025 * resamples)], boots[round(0.975 * resamples) - 1]
-    return Effect(effect(turns), low, high, len(turns))
+    below = sum(boot < 0 for boot in boots) / resamples
+    return Effect(effect(turns), low, high, len(turns), below)
 
 
 @dataclass(frozen=True)

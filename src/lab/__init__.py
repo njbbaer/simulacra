@@ -19,6 +19,7 @@ from .replay import (
 )
 from .sampling import sample_turns
 from .stats import Effect, Pilot, paired_effect
+from .text import sections, segments, sentences, speech
 
 dotenv.load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
@@ -37,6 +38,10 @@ __all__ = [
     "replay",
     "run_batch",
     "sample_turns",
+    "sections",
+    "segments",
+    "sentences",
+    "speech",
     "take_snapshot",
     "totals",
 ]

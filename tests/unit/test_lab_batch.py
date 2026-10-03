@@ -172,6 +172,30 @@ async def test_runs_one_job_per_group_before_the_rest(out: str) -> None:
 
 
 @pytest.mark.asyncio
+async def test_warms_one_group_per_prefix_before_the_others(out: str) -> None:
+    events = []
+
+    async def fn(job):
+        events.append(("start", job["turn"]))
+        await asyncio.sleep(0)
+        events.append(("end", job["turn"]))
+        return {}
+
+    group_jobs = [
+        {"turn": f"{char}{i}", "char": char, "sample": s}
+        for char in "ab" for i in range(2) for s in range(2)
+    ]  # fmt: skip
+    await run_batch(
+        group_jobs, fn, out, group=lambda j: j["turn"], warm_by=lambda j: j["char"]
+    )
+
+    assert sorted(events[:4]) == sorted(
+        [("start", "a0"), ("end", "a0"), ("start", "b0"), ("end", "b0")]
+    )
+    assert len(read(out)) == 8
+
+
+@pytest.mark.asyncio
 async def test_logs_an_abort_before_calls_in_flight_finish(out: str, capsys) -> None:
     async def fn(job):
         if job["turn"] == "t1":

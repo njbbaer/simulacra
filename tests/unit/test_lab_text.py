@@ -13,7 +13,7 @@ A note.
 Go on, then."""
 
 
-def test_sentences_are_numbered_as_his_marks_number_them() -> None:
+def test_sentences_are_numbered_as_the_users_marks_number_them() -> None:
     spoken = sections(RESPONSE)["spoken"]
 
     assert sentences(spoken) == ["No.", "I am not the one asking.", "Go on, then."]

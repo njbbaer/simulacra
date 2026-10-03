@@ -22,7 +22,7 @@ def segments(spoken: str) -> list[dict[str, Any]]:
     """Split a spoken line into stage directions, paragraph breaks, and sentences.
 
     Sentences are numbered from 1 in `n`, skipping stage directions, which is
-    how his sentence marks number them."""
+    how the user's sentence marks number them."""
     out: list[dict[str, Any]] = []
     for part in re.split(r"(\([^)]*\))", spoken):
         if not part.strip():

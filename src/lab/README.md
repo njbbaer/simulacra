@@ -11,7 +11,7 @@ Harnesses outside the repo put the repo root on `sys.path` and run with `uv run 
 - When conditions share a prompt prefix, as a judge's conversation does, put every condition for a (turn, sample) into one job. The group's first job then warms all of them.
 - Concurrency counts jobs, not calls. A job that gathers k calls can have k × concurrency calls in flight.
 - Check the prompt hashes in results to confirm that conditions differ where they should.
-- Split responses with `sections` and number spoken sentences with `sentences`, which numbers them as his sentence marks do.
+- Split responses with `sections` and number spoken sentences with `sentences`, which numbers them as the user's sentence marks do.
 - Size a run from a pilot with `Pilot` before running it, and report with `paired_effect`, whose `below` is the share of resamples where the treatment came out below the base.
 
 A harness may work around lab for a one-off need. A need that comes up again belongs in lab.

@@ -222,6 +222,10 @@ class Context:
         return self._post_process.get("prompt")
 
     @property
+    def post_process_feedback_prompt(self) -> str | None:
+        return self._post_process.get("feedback_prompt")
+
+    @property
     def post_process_drafts(self) -> int:
         """Drafts the editor will see, or one when no editor is configured."""
         if not self.post_process_prompt:

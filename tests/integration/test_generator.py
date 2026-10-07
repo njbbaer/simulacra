@@ -64,6 +64,27 @@ async def test_post_process_extracts_editor_notes(
     assert message.metadata["editor_notes"] == "Cut the hedge in the last line."
 
 
+@pytest.mark.asyncio
+async def test_retry_with_a_note_shows_it_to_the_editor(
+    post_process_simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+    mock_edited_response,
+) -> None:
+    context_data["post_process"]["feedback_prompt"] = "Keep what answers it."
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+
+    await post_process_simulacrum.retry("too stiff")
+
+    body = json.loads(mock_edited_response.get_requests()[1].content)
+    assert body["messages"][-1]["content"][0]["text"] == (
+        "<instruct>\nRevise the draft.\n</instruct>\n\n"
+        "<instruct>\nKeep what answers it.\n\n"
+        "<earlier_response>\nHello user\n</earlier_response>\n"
+        "<feedback>\ntoo stiff\n</feedback>\n</instruct>"
+    )
+
+
 @pytest.fixture
 def strict_post_process_simulacrum(
     post_process_simulacrum: Simulacrum,

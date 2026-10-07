@@ -9,7 +9,7 @@ from . import notifications, trials
 from .book_reader import BookReader
 from .context import Context, Session
 from .document_cleaner import clean_document
-from .generator import Generation, Generator
+from .generator import Generation, Generator, feedback_prompt
 from .instruction_preset import InstructionPreset
 from .message import Message
 from .telemetry import Telemetry
@@ -200,8 +200,14 @@ class Simulacrum:
     async def _reply(
         self, session: Session, action: str, replacing: Message | None = None
     ) -> str:
-        feedback = self._feedback_prompt(replacing)
-        generation = await self._generate(action, feedback=feedback)
+        attempts = replacing.attempts if replacing else []
+        generation = await self._generate(
+            action,
+            feedback=feedback_prompt(attempts, self.context.feedback_prompt),
+            editor_feedback=feedback_prompt(
+                attempts, self.context.post_process_feedback_prompt
+            ),
+        )
         return self._record(session, "assistant", generation, replacing=replacing)
 
     async def _narrate(
@@ -213,7 +219,8 @@ class Simulacrum:
         prompt = f"<instruct>\n{self.context.scene_prompt}\n</instruct>"
         if user_input:
             prompt += f"\n{user_input}"
-        if feedback := self._feedback_prompt(replacing):
+        attempts = replacing.attempts if replacing else []
+        if feedback := feedback_prompt(attempts, self.context.feedback_prompt):
             prompt += f"\n\n{feedback}"
         with self._temporary_message("user", prompt):
             generation = await self._generate("scene", raw=True)
@@ -246,25 +253,19 @@ class Simulacrum:
         self._trial_log.write(generation.trial_record)
         return generation.display
 
-    def _feedback_prompt(self, replacing: Message | None) -> str | None:
-        """Return the attempts with feedback as a prompt, or None if none have any."""
-        attempts = replacing.attempts if replacing else []
-        flagged = [attempt for attempt in attempts if attempt.metadata.get("feedback")]
-        if not flagged or not self.context.feedback_prompt:
-            return None
-        shown = [
-            f"<earlier_response>\n{attempt.display_text}\n</earlier_response>\n"
-            f"<feedback>\n{attempt.metadata['feedback']}\n</feedback>"
-            for attempt in flagged
-        ]
-        body = "\n\n".join([self.context.feedback_prompt, *shown])
-        return f"<instruct>\n{body}\n</instruct>"
-
     async def _generate(
-        self, action: str, raw: bool = False, feedback: str | None = None
+        self,
+        action: str,
+        raw: bool = False,
+        feedback: str | None = None,
+        editor_feedback: str | None = None,
     ) -> Generation:
         return await self._generator.generate(
-            self.context, action=action, raw=raw, feedback=feedback
+            self.context,
+            action=action,
+            raw=raw,
+            feedback=feedback,
+            editor_feedback=editor_feedback,
         )
 
     @contextmanager

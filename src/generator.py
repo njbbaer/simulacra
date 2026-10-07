@@ -30,6 +30,20 @@ CACHE_TTL_SECONDS = 15 * 60
 CACHE_WRITE_SECONDS = 2.0
 
 
+def feedback_prompt(attempts: list[Message], intro: str | None) -> str | None:
+    """Return the attempts with feedback under the intro, or None if none have any."""
+    flagged = [attempt for attempt in attempts if attempt.metadata.get("feedback")]
+    if not flagged or not intro:
+        return None
+    shown = [
+        f"<earlier_response>\n{attempt.display_text}\n</earlier_response>\n"
+        f"<feedback>\n{attempt.metadata['feedback']}\n</feedback>"
+        for attempt in flagged
+    ]
+    body = "\n\n".join([intro, *shown])
+    return f"<instruct>\n{body}\n</instruct>"
+
+
 @dataclass
 class StageResult:
     """One candidate's output, with the context and completion behind it."""
@@ -118,11 +132,13 @@ class Generator:
         raw: bool = False,
         drafts: list[str] | None = None,
         feedback: str | None = None,
+        editor_feedback: str | None = None,
     ) -> Generation:
         """Run a turn; a raw one skips the injected prompt, required tags and editor.
 
         Given drafts, skip the response stage and edit them instead. Given
-        feedback, add it to the response stage's injected prompt."""
+        feedback, add it to the response stage's injected prompt, and given
+        editor_feedback, add it to the editor's instruction."""
         if self._record_requests:
             RequestRecorder().reset()
         self.last_turn = turn = TurnStats(action)
@@ -135,7 +151,11 @@ class Generator:
         record = self._turn.start(kind="turn")
         try:
             generation = await self._generate(
-                context, raw=raw, drafts=drafts, feedback=feedback
+                context,
+                raw=raw,
+                drafts=drafts,
+                feedback=feedback,
+                editor_feedback=editor_feedback,
             )
         except BaseException as err:
             turn.duration_ms = record.fail(err)["duration_ms"]
@@ -155,6 +175,7 @@ class Generator:
         raw: bool,
         drafts: list[str] | None,
         feedback: str | None,
+        editor_feedback: str | None,
     ) -> Generation:
         stages: dict[trials.Stage, trials.TrialRun[Any]] = {}
         models: dict[str, str] = {}
@@ -172,7 +193,9 @@ class Generator:
         edits = not raw and bool(context.post_process_prompt)
         if edits:
             edited = await self._run_stage(
-                POST_PROCESS, context, partial(self._edit, drafts=drafts)
+                POST_PROCESS,
+                context,
+                partial(self._edit, drafts=drafts, feedback=editor_feedback),
             )
             stages[POST_PROCESS] = edited
             result = edited.result
@@ -292,9 +315,14 @@ class Generator:
         return StageResult(content, context, completion)
 
     async def _edit(
-        self, context: Context, alias: str | None, *, drafts: list[str]
+        self,
+        context: Context,
+        alias: str | None,
+        *,
+        drafts: list[str],
+        feedback: str | None,
     ) -> StageResult:
-        """Re-generate the drafts under the post-processing prompt."""
+        """Re-generate the drafts under the post-processing prompt and any feedback."""
         if len(drafts) == 1:
             tagged = f"<draft>\n{drafts[0]}\n</draft>"
         else:
@@ -303,6 +331,8 @@ class Generator:
                 for i, draft in enumerate(drafts, start=1)
             )
         instruction = f"<instruct>\n{context.post_process_prompt}\n</instruct>"
+        if feedback:
+            instruction += f"\n\n{feedback}"
         executor = ChatExecutor(
             context,
             request_key=POST_PROCESS.request_key(alias),

@@ -10,7 +10,7 @@ from typing import Any
 from .. import trials
 from ..context import Context
 from ..conversation import Conversation
-from ..generator import Generator
+from ..generator import Generator, feedback_prompt
 from ..message import Message
 from ..telemetry import Telemetry
 from ..turn_stats import TurnStats
@@ -116,12 +116,15 @@ async def replay(
     overrides: dict[str, Any] | None = None,
     *,
     drafts: list[str] | None = None,
+    attempts: list[Message] | None = None,
     snapshot: str | None = None,
 ) -> Result:
     """Regenerate the turn through the production generator.
 
-    Given drafts, only the editor runs on them. Given a snapshot directory,
-    character files and templates come from it instead of the live ones."""
+    Given drafts, only the editor runs on them. Given earlier attempts at the
+    turn, each stage sees those with feedback, as on a retry. Given a snapshot
+    directory, character files and templates come from it instead of the live
+    ones."""
     character_dir = turn.character_dir
     if snapshot:
         name = os.path.basename(character_dir)
@@ -133,7 +136,15 @@ async def replay(
         conversation=turn.conversation(),
     )
     generator = Generator(trials.TrialLog(context), Telemetry(), record_requests=False)
-    generation = await generator.generate(context, action="replay", drafts=drafts)
+    generation = await generator.generate(
+        context,
+        action="replay",
+        drafts=drafts,
+        feedback=feedback_prompt(attempts or [], context.feedback_prompt),
+        editor_feedback=feedback_prompt(
+            attempts or [], context.post_process_feedback_prompt
+        ),
+    )
     assert generator.last_turn is not None
     return Result(
         generation.content,

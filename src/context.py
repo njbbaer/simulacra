@@ -79,6 +79,7 @@ class Context:
         with open(self._state_filepath, "w") as f:
             yaml.dump(dict(self._state_data), f)
         self._conversation.save()
+        self._write_transcript()
 
     def new_conversation(self, name: str | None = None) -> None:
         mgr = self._conversation_files
@@ -148,6 +149,10 @@ class Context:
     @property
     def trials_dir(self) -> str:
         return f"{self.dir}/trials"
+
+    @property
+    def transcripts_dir(self) -> str:
+        return f"{self.dir}/transcripts"
 
     @property
     def character_name(self) -> str:
@@ -293,6 +298,16 @@ class Context:
     def _set_conversation_file(self, filename: str) -> None:
         self._set_conversation_path(filename)
         self._load_conversation()
+
+    def _write_transcript(self) -> None:
+        user_name = self._data.get("user_name", "User")
+        transcript = self._conversation.format_as_transcript(
+            self.character_name, user_name
+        )
+        os.makedirs(self.transcripts_dir, exist_ok=True)
+        filename = f"{self.context_name}_{self.conversation_id}.md"
+        with open(os.path.join(self.transcripts_dir, filename), "w") as f:
+            f.write(transcript)
 
     def _extend_data(self, data: dict[str, Any], base_dir: str) -> dict[str, Any]:
         extends = data.pop("extends", None)

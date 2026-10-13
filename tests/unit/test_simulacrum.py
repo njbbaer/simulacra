@@ -251,7 +251,7 @@ class TestEphemeral:
                 {"role": "assistant", "content": "old reply"},
             ],
         }
-        with open("conversations/test_0.yml", "w") as f:
+        with open("conversations/context_0.yml", "w") as f:
             yaml.dump(conv_data, f)
         return Simulacrum("context.yml", ephemeral=True)
 
@@ -274,7 +274,7 @@ class TestEphemeral:
             mock_gen.return_value = Generation("response", "response")
             await sim.chat("hello", None, None)
 
-        with open("conversations/test_0.yml") as f:  # noqa: ASYNC230
+        with open("conversations/context_0.yml") as f:  # noqa: ASYNC230
             saved_conv = yaml.load(f)
         assert saved_conv["cost"] == 0.5
         assert len(saved_conv["messages"]) == 2

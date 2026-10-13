@@ -42,8 +42,8 @@ def sim(fs, context_data, conversation_data):
     with open("context.yml", "w") as f:
         yaml.dump(context_data, f)
     with open("context.state.yml", "w") as f:
-        yaml.dump({"conversation_file": "file://./conversations/test_0.yml"}, f)
+        yaml.dump({"conversation_file": "file://./conversations/context_0.yml"}, f)
     os.makedirs("conversations", exist_ok=True)
-    with open("conversations/test_0.yml", "w") as f:
+    with open("conversations/context_0.yml", "w") as f:
         yaml.dump(conversation_data, f)
     return Simulacrum("context.yml")

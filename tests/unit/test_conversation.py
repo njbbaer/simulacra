@@ -107,6 +107,23 @@ class TestFormatAsMemory:
         assert result == ""
 
 
+class TestFormatAsTranscript:
+    def test_renders_screenplay(self, conv):
+        conv.add_message("user", "(scene)", metadata={"scene": True})
+        conv.add_message("user", "(sits down)")
+        conv.add_message("assistant", "<character>\nA\n\nB\n</character>\n\nHi.")
+        conv.add_message("user", "(waves) Hello", image="images/a.jpg")
+        assert conv.format_as_transcript("Bot", "Sam") == (
+            "(scene)\n\nSAM\n\n(sits down)\n\nBOT\n\n> A\n>\n> B\n\nHi.\n\n"
+            "SAM\n\n(waves) Hello\n\n[image: images/a.jpg]\n"
+        )
+
+    def test_omits_replaced_attempts(self, conv):
+        conv.add_message("assistant", "First")
+        conv.add_message("assistant", "Second", replacing=conv.messages.pop())
+        assert conv.format_as_transcript("Bot", "Sam") == "BOT\n\nSecond\n"
+
+
 class TestIncrementCost:
     def test_increments(self, conv):
         conv.increment_cost(0.05)

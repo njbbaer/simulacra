@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,13 @@ class Conversation:
                 lines.append(f"{role}\n\n{content}")
         return "\n\n".join(lines)
 
+    def format_as_transcript(self, character_name: str, user_name: str) -> str:
+        """Render the messages as a screenplay, with thoughts quoted above the lines."""
+        blocks = (
+            _transcript_block(m, character_name, user_name) for m in self.messages
+        )
+        return "\n\n".join(block for block in blocks if block) + "\n"
+
     def add_message(
         self,
         role: str,
@@ -110,3 +118,21 @@ class Conversation:
     def increment_cost(self, cost: float, plan_cost: float = 0.0) -> None:
         self.cost += cost
         self.plan_cost += plan_cost
+
+
+def _transcript_block(message: Message, character_name: str, user_name: str) -> str:
+    """Scenes stand alone; other messages go under the speaker's name."""
+    text = message.display_text
+    if message.image:
+        text = f"{text}\n\n[image: {message.image}]".strip()
+    if message.metadata.get("scene"):
+        return text
+    tagged = re.finditer(r"<(\w+)>\s*(.*?)\s*</\1>", message.content or "", re.DOTALL)
+    thoughts = [
+        "\n".join(f"> {line}".rstrip() for line in match.group(2).splitlines())
+        for match in tagged
+    ]
+    if not text and not thoughts:
+        return ""
+    speaker = character_name if message.role == "assistant" else user_name
+    return "\n\n".join([speaker.upper(), *thoughts, *([text] if text else [])])

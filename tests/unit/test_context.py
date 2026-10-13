@@ -349,6 +349,12 @@ class TestStateFile:
         assert state["total_cost"] == 1.0
         assert "conversation_file" in state
 
+    def test_writes_transcript_on_save(self, context):
+        context.conversation.add_message("assistant", "Hi.")
+        context.save()
+        with open(f"/test/transcripts/alice_{context.conversation_id}.md") as f:
+            assert f.read() == "ALICE\n\nHi.\n"
+
     def test_context_file_unchanged_after_save(self, context):
         with open("/test/alice.yml") as f:
             original = f.read()

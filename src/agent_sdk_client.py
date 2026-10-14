@@ -144,13 +144,14 @@ def to_blocks(content: str | list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def to_entries(turns: list[dict[str, Any]], session_id: str) -> list[SessionStoreEntry]:
-    """Build session transcript lines for prior turns, caching through the last."""
+    """Build session transcript lines for prior turns, caching the last user turn."""
     entries: list[SessionStoreEntry] = []
     parent = None
+    users = [i for i, turn in enumerate(turns) if turn["role"] == "user"]
     for i, turn in enumerate(turns):
         entry_id = str(uuid.uuid4())
         content = turn["content"]
-        if i == len(turns) - 1 and content:
+        if users and i == users[-1] and content:
             last = {**content[-1], "cache_control": HISTORY_CACHE_CONTROL}
             content = [*content[:-1], last]
         message: dict[str, Any] = {"role": turn["role"], "content": content}

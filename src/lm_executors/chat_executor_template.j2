@@ -4,9 +4,11 @@
     - type: text
       text: |-
         {{ system_prompt | indent(8) }}
+      {% if 'claude' in api_params.model %}
       cache_control:
         type: ephemeral
         ttl: 1h
+      {% endif %}
 {% for message in messages %}
 - role: {{ message.role }}
   content:

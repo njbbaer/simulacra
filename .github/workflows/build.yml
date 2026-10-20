@@ -81,6 +81,6 @@ jobs:
     steps:
       - name: Deploy new version
         run: |
-          cd /opt/homeworld
+          cd /opt/compose
           docker compose pull simulacra
           docker compose up -d simulacra

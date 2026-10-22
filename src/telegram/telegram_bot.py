@@ -94,6 +94,7 @@ class TelegramBot:
             (["help", "h"], self._help),
             (["switch", "sw"], self._switch_conversation),
             (["name", "nm"], self._name_conversation),
+            (["model", "m"], self._model),
             (["parrot"], self._parrot),
             (["start"], self._do_nothing),
         ]
@@ -256,6 +257,7 @@ class TelegramBot:
                 /compact - Compact conversation
                 /switch <id|name> - Switch conversation
                 /name <name> - Name conversation
+                /model (...) - Show or switch the model
                 /retry (...) - Retry the last response, optionally with feedback
                 /undoretry - Undo a retry
                 /feedback <note> - Leave feedback on the last response
@@ -304,6 +306,20 @@ class TelegramBot:
             )
         else:
             await ctx.send_message(f"`✅ Switched to conversation #{conv_id}`")
+
+    @message_handler
+    async def _model(self, ctx: TelegramContext) -> None:
+        if key := ctx.command_body:
+            self.sim.set_model(key)
+            await ctx.send_message(f"`✅ Switched to model '{key}'`")
+            return
+        self.sim.context.load()
+        current = self.sim.context.model_key
+        if not current:
+            await ctx.send_message("`❌ No models configured`")
+            return
+        available = ", ".join(self.sim.context.model_keys)
+        await ctx.send_message(f"*Model* · {current}\n*Available* · {available}")
 
     @message_handler
     @requires_body("/name <name>")

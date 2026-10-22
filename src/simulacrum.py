@@ -189,6 +189,11 @@ class Simulacrum:
         with self.context.session():
             return self.context.switch_conversation(identifier)
 
+    def set_model(self, key: str) -> None:
+        self._ensure_idle()
+        with self.context.session():
+            self.context.set_model(key)
+
     def name_conversation(self, name: str) -> str:
         with self.context.session():
             return self.context.name_conversation(name)

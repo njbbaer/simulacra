@@ -58,12 +58,13 @@ class Context:
         self._extend_dirs: list[str] = []
         with open(self._filepath) as file:
             data = self._extend_data(yaml.load(file), self.dir)
-        self._unresolved_data = merge_dicts(data, self._overrides)
+        self._models = _load_models(data.pop("models", None))
+        self._file_data = data
         self._runtime_overrides: dict[str, Any] = {}
         self._state_data = self._load_state()
         if not self._is_ephemeral:
             self._load_conversation()
-        self._rebuild()
+        self._apply_model()
 
     def with_overrides(self, overrides: dict[str, Any]) -> Context:
         """Return a copy with extra overrides applied. The copy shares the
@@ -111,6 +112,12 @@ class Context:
         current = float(self._state_data.get("total_cost", 0))
         self._state_data["total_cost"] = current + cost
         self._conversation.increment_cost(cost, plan_cost)
+
+    def set_model(self, key: str) -> None:
+        if key not in self._models["models"]:
+            raise ValueError(f"Unknown model: {key}")
+        self._state_data["model"] = key
+        self._apply_model()
 
     def apply_preset_overrides(self, key: str) -> None:
         preset = self.instruction_presets.get(key)
@@ -161,6 +168,15 @@ class Context:
     @property
     def model(self) -> str:
         return _require_model(self.api_params, "api_params")
+
+    @property
+    def model_key(self) -> str | None:
+        """The selected key in the models file, or its default."""
+        return self._state_data.get("model") or self._models.get("default")
+
+    @property
+    def model_keys(self) -> list[str]:
+        return list(self._models["models"])
 
     @property
     def conversation_file(self) -> str:
@@ -310,6 +326,8 @@ class Context:
             f.write(transcript)
 
     def _extend_data(self, data: dict[str, Any], base_dir: str) -> dict[str, Any]:
+        if isinstance(data.get("models"), str):
+            data["models"] = os.path.join(base_dir, data["models"])
         extends = data.pop("extends", None)
         if not extends:
             return data
@@ -318,6 +336,16 @@ class Context:
         with open(path) as f:
             base_data = self._extend_data(yaml.load(f), os.path.dirname(path))
         return merge_dicts(base_data, data)
+
+    def _apply_model(self) -> None:
+        """Layer the selected model's settings and the overrides onto the files."""
+        key = self.model_key
+        if key and key not in self._models["models"]:
+            raise ValueError(f"Unknown model: {key}")
+        profile = self._models["models"].get(key) or {}
+        data = merge_dicts(self._file_data, profile)
+        self._unresolved_data = merge_dicts(data, self._overrides)
+        self._rebuild()
 
     def _rebuild(self) -> None:
         """Layer runtime overrides onto the base data and resolve templates."""
@@ -359,6 +387,17 @@ class Context:
     @property
     def _current_conversation_file(self) -> ConversationFile | None:
         return self._conversation_files.parse_filename(self._conversation_filename)
+
+
+def _load_models(path: str | None) -> dict[str, Any]:
+    if not path:
+        return {"models": {}}
+    with open(path) as f:
+        data = yaml.load(f) or {}
+    data.setdefault("models", {})
+    if data.get("default") and data["default"] not in data["models"]:
+        raise ValueError(f"Default model is not in {path}: {data['default']}")
+    return data
 
 
 def _require_model(params: dict[str, Any], key: str) -> str:

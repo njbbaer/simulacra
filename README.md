@@ -111,6 +111,7 @@ A context file contains the following keys:
 | Key | Description |
 | --- | ----------- |
 | `extends` | Relative path to a base context file to inherit from (chainable) |
+| `models` | Relative path to a models file (see below) |
 | `character_name` | The bot's character name |
 | `shared_dir` | Relative path to a directory of shared template files |
 | `conversation_file` | Relative file link to the conversation file (auto-generated) |
@@ -122,6 +123,23 @@ A context file contains the following keys:
 | `book_path` | Relative path to a book text file for co-reading (see below) |
 
 Conversations are stored separately in a `conversations/` directory. Changes to the context file take effect immediately.
+
+### Models file
+
+A models file names sets of settings to switch between with `/model <key>`. Each entry under `models` is merged over the context file, so it can set `api_params`, `post_process` or any other key. The selected key is kept in the state file and stays in effect for new conversations. `default` applies until a key is selected.
+
+```yaml
+default: opus
+models:
+  opus:
+    api_params:
+      model: agent-sdk/claude-opus-5-5
+      reasoning:
+        effort: low
+  argon:
+    api_params:
+      model: google/gemini-4-argon
+```
 
 ### Co-reading with /syncbook
 

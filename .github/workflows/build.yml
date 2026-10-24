@@ -3,6 +3,9 @@ name: build
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -44,17 +47,21 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [test, lint]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
       - name: Create GitHub Release
-        uses: ncipollo/release-action@v1.21.0
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --notes ""
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -73,14 +80,3 @@ jobs:
 
       - name: Push latest tag to GHCR
         run: docker push ghcr.io/${{ github.repository }}:latest
-
-  deploy:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: publish
-    runs-on: self-hosted
-    steps:
-      - name: Deploy new version
-        run: |
-          cd /opt/compose
-          docker compose pull simulacra
-          docker compose up -d simulacra

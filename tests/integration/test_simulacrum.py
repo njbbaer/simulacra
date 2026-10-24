@@ -132,9 +132,7 @@ async def test_retry(
     assert len(msgs) == 1
     assert msgs[0].role == "assistant"
     assert msgs[0].content == "Something"
-    assert msgs[0].metadata["replaced"] == [
-        {"role": "assistant", "content": "Hello user"}
-    ]
+    assert msgs[0].to_dict()["replaced"] == [{"content": "Hello user"}]
 
 
 @pytest.mark.asyncio
@@ -161,7 +159,7 @@ async def test_retry_detects_scene_message(
     assert metadata is not None
     assert metadata["scene"] is True
     assert metadata["scene_input"] == "darkness"
-    assert metadata["replaced"][0]["content"] == "A dark room."
+    assert msgs[0].replaced[0].content == "A dark room."
 
 
 @pytest.mark.asyncio
@@ -201,8 +199,8 @@ async def test_retry_with_a_note_shows_it_in_the_injected_prompt(
         "<earlier_response>\nHello user\n</earlier_response>\n"
         "<feedback>\ntoo stiff\n</feedback>"
     ) in injected["content"][0]["text"]
-    replaced = simulacrum.context.conversation.messages[-1].metadata["replaced"]
-    assert replaced[0]["metadata"]["feedback"] == "too stiff"
+    replaced = simulacrum.context.conversation.messages[-1].replaced
+    assert replaced[0].metadata["feedback"] == "too stiff"
 
 
 @pytest.mark.asyncio

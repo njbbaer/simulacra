@@ -79,10 +79,8 @@ class Conversation:
         replacing: Message | None = None,
     ) -> None:
         """Append a message, keeping every attempt it replaces under `replaced`."""
-        if replacing:
-            replaced = [attempt.to_dict() for attempt in replacing.attempts]
-            metadata = {**(metadata or {}), "replaced": replaced}
-        self.messages.append(Message(role, message, image, metadata))
+        replaced = replacing.attempts if replacing else None
+        self.messages.append(Message(role, message, image, metadata, replaced))
 
     def set_feedback(self, note: str) -> None:
         """Set the note on the last response or scene, replacing any earlier one."""
@@ -93,13 +91,12 @@ class Conversation:
 
     def restore_replaced(self) -> None:
         """Swap the last message for the one it most recently replaced."""
-        replaced = self.messages[-1].metadata.get("replaced") if self.messages else None
+        replaced = self.messages[-1].replaced if self.messages else None
         if not replaced:
             raise ValueError("No retry to undo")
         self.messages.pop()
-        restored = Message.from_dict(replaced[-1])
-        if len(replaced) > 1:
-            restored.metadata["replaced"] = replaced[:-1]
+        restored = replaced[-1]
+        restored.replaced = replaced[:-1]
         self.messages.append(restored)
 
     def record_models(self, models: dict[str, str]) -> dict[str, str]:

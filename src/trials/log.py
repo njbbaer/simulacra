@@ -65,10 +65,7 @@ class TrialLog:
             entry["content"] = message.content
         else:
             return None
-        replaced = (
-            self._entry(Message.from_dict(data), records)
-            for data in message.metadata.get("replaced", [])
-        )
+        replaced = (self._entry(attempt, records) for attempt in message.replaced)
         if kept := [replaced_entry for replaced_entry in replaced if replaced_entry]:
             entry["replaced"] = kept
         return entry

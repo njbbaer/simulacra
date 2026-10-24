@@ -11,6 +11,7 @@ from .. import trials
 from ..context import Context
 from ..conversation import Conversation
 from ..generator import Generator, feedback_prompt
+from ..history import layer_values
 from ..message import Message
 from ..telemetry import Telemetry
 from ..turn_stats import TurnStats
@@ -50,16 +51,12 @@ class Turn:
     @property
     def drafts(self) -> list[str]:
         """Return the logged drafts the editor saw, or [] if none were logged."""
-        metadata = self.logged.metadata
-        if "drafts" in metadata:
-            return list(metadata["drafts"])
-        return [metadata["draft"]] if "draft" in metadata else []
+        return layer_values(self.logged, "draft")
 
     @property
     def steered(self) -> bool:
         """Whether the logged response was a retry shown feedback on earlier ones."""
-        earlier = self.logged.attempts[:-1]
-        return any(attempt.metadata.get("feedback") for attempt in earlier)
+        return any(attempt.metadata.get("feedback") for attempt in self.logged.replaced)
 
     def conversation(self) -> Conversation:
         """Return an in-memory copy of the conversation up to this turn."""

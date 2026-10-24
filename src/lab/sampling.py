@@ -3,7 +3,7 @@ import os
 import random
 from collections.abc import Iterable
 
-from ..conversation_files import ConversationFiles
+from ..history import History
 from .replay import Turn, assistant_turns
 
 
@@ -32,14 +32,15 @@ def sample_turns(
             raise ValueError(f"{path} was drawn with {saved['args']}")
         return [Turn(t["log"], t["index"]) for t in saved["turns"]]
 
+    history = History(characters_dir)
     excluded = set(exclude)
     rng = random.Random(seed)
     chosen: list[tuple[str, int]] = []
     for character, quota in quotas.items():
         pool = sorted(
             (turn.log, turn.index)
-            for log in _logs(characters_dir, character, (since or {}).get(character, 0))
-            for turn in assistant_turns(log)
+            for log in history.logs(character, (since or {}).get(character, 0))
+            for turn in assistant_turns(log.path)
             if turn.index >= min_index
             and turn.drafts
             and not turn.steered
@@ -54,12 +55,3 @@ def sample_turns(
         turns = [{"log": log, "index": index} for log, index in chosen]
         json.dump({"args": args, "turns": turns}, file, indent=1)
     return [Turn(log, index) for log, index in chosen]
-
-
-def _logs(characters_dir: str, character: str, since: int) -> list[str]:
-    directory = os.path.join(characters_dir, character, "conversations")
-    return [
-        os.path.join(directory, conv.filename)
-        for conv in ConversationFiles(directory, character).list()
-        if conv.id >= since and "sync-conflict" not in conv.filename
-    ]

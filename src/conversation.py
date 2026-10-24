@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from .message import Message
-from .yaml_config import yaml
+from .yaml_config import load_fast, yaml
 
 
 class Conversation:
@@ -17,7 +17,7 @@ class Conversation:
     def load(self) -> None:
         if self._filepath and self._filepath.exists():
             with open(self._filepath) as file:
-                data = yaml.load(file)
+                data = load_fast(file)
             self.created_at = data.get("created_at")
             self.cost = data.get("cost", 0.0)
             self.plan_cost = data.get("plan_cost", 0.0)

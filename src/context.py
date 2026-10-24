@@ -235,6 +235,10 @@ class Context:
         return self._data.get("scene_prompt")
 
     @property
+    def btw_prompt(self) -> str | None:
+        return self._data.get("btw_prompt")
+
+    @property
     def feedback_prompt(self) -> str | None:
         return self._data.get("feedback_prompt")
 
@@ -284,6 +288,16 @@ class Context:
     @property
     def api_params(self) -> dict[str, Any]:
         return self._data.get("api_params") or {}
+
+    @property
+    def alt_api_params(self) -> dict[str, Any]:
+        """Return the api_params with the reasoning effort set to alt_effort, if any."""
+        params = self.api_params
+        effort = self._data.get("alt_effort")
+        if not effort:
+            return params
+        reasoning = {**params.get("reasoning", {}), "effort": effort}
+        return {**params, "reasoning": reasoning}
 
     def candidates(self, scope: str | None = None) -> list[dict[str, Any]]:
         """Return the `candidates` list from the `scope` section, or from the root."""

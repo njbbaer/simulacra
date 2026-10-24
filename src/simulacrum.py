@@ -79,6 +79,17 @@ class Simulacrum:
         with self.context.session() as session:
             return await self._narrate(session, user_input)
 
+    async def btw(self, question: str) -> str:
+        """Answer a question about the conversation without adding to it."""
+        self._ensure_idle()
+        with self.context.session():
+            if not self.context.btw_prompt:
+                raise ValueError("No btw prompt configured")
+            prompt = f"<instruct>\n{self.context.btw_prompt}\n</instruct>\n{question}"
+            with self._temporary_message("user", prompt):
+                generation = await self._generate("btw", raw=True)
+            return generation.display
+
     async def retry(self, note: str | None = None) -> str:
         """Regenerate the last response or scene, keeping the old one to undo to."""
         self._ensure_idle()

@@ -8,6 +8,7 @@ import pytest
 from ruamel.yaml import YAML
 
 from src.simulacrum import Simulacrum
+from src.yaml_config import yaml
 
 
 @pytest.mark.asyncio
@@ -320,3 +321,59 @@ async def test_reset_conversation_deletes_the_trial_log(
     trial_simulacrum.reset_conversation()
 
     assert not os.path.exists("trials/test_0.yml")  # noqa: ASYNC240
+
+
+@pytest.fixture
+def btw_simulacrum(simulacrum: Simulacrum, context_data: dict[str, Any]) -> Simulacrum:
+    context_data["btw_prompt"] = "Answer out of character."
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    return simulacrum
+
+
+def _sent_messages(request) -> list[tuple[str, str]]:
+    return [
+        (m["role"], m["content"][0]["text"])
+        for m in json.loads(request.content)["messages"]
+    ]
+
+
+@pytest.mark.asyncio
+async def test_btw_answers_without_changing_the_conversation(
+    btw_simulacrum: Simulacrum,
+    mock_openrouter,
+    conversation_data: dict[str, Any],
+) -> None:
+    response = await btw_simulacrum.btw("Which deck?")
+
+    assert response == "Something"
+    sent = _sent_messages(mock_openrouter.get_requests()[0])
+    assert sent[1:] == [
+        ("assistant", "Hello user"),
+        ("user", "<instruct>\nAnswer out of character.\n</instruct>\nWhich deck?"),
+    ]
+    with open("conversations/test_0.yml") as f:
+        saved = YAML(typ="safe").load(f)
+    assert saved["messages"] == conversation_data["messages"]
+    assert saved["cost"] > conversation_data["cost"]
+
+
+@pytest.mark.asyncio
+async def test_alt_effort_applies_to_scenes_but_not_chat(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+    mock_openrouter,
+    mock_completion_response: dict[str, Any],
+) -> None:
+    context_data["api_params"]["reasoning"] = {"effort": "low"}
+    context_data["alt_effort"] = "medium"
+    with open("test.yml", "w") as f:
+        yaml.dump(context_data, f)
+    mock_openrouter.add_response(json=mock_completion_response)
+
+    await simulacrum.scene()
+    await simulacrum.chat("Hello assistant", None, None)
+
+    scene, chat = [json.loads(r.content) for r in mock_openrouter.get_requests()]
+    assert scene["reasoning"] == {"effort": "medium"}
+    assert chat["reasoning"] == {"effort": "low"}

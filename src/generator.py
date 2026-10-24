@@ -136,9 +136,10 @@ class Generator:
     ) -> Generation:
         """Run a turn; a raw one skips the injected prompt, required tags and editor.
 
-        Given drafts, skip the response stage and edit them instead. Given
-        feedback, add it to the response stage's injected prompt, and given
-        editor_feedback, add it to the editor's instruction."""
+        A raw turn also uses the alt effort. Given drafts, skip the response
+        stage and edit them instead. Given feedback, add it to the response
+        stage's injected prompt, and given editor_feedback, add it to the
+        editor's instruction."""
         if self._record_requests:
             RequestRecorder().reset()
         self.last_turn = turn = TurnStats(action)
@@ -305,7 +306,8 @@ class Generator:
             record=self._record_requests,
         )
         record = self._start_request(RESPONSE, context.model, alias, label)
-        completion = await self._complete(executor, record)
+        params = context.alt_api_params if raw else None
+        completion = await self._complete(executor, record, params)
         self._cache_written[self._cache_key(context)] = time.monotonic()
         content = transform_response(
             completion.content,

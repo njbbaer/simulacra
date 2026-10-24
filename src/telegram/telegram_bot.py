@@ -89,6 +89,7 @@ class TelegramBot:
             (["stats", "s"], self._stats),
             (["clear"], self._clear),
             (["scene", "sc"], self._scene),
+            (["btw", "b"], self._btw),
             (["syncbook", "sb"], self._sync_book),
             (["version", "v"], self._version),
             (["help", "h"], self._help),
@@ -195,6 +196,12 @@ class TelegramBot:
         await self._deliver(ctx, await self.sim.scene(ctx.command_body))
 
     @message_handler
+    @requires_body("/btw <question>")
+    async def _btw(self, ctx: TelegramContext, body: str) -> None:
+        await ctx.send_message(f"💭 {await self.sim.btw(body)}")
+        await self._warn_cost(ctx)
+
+    @message_handler
     async def _stats(self, ctx: TelegramContext) -> None:
         self.sim.context.load()
         await ctx.send_message(
@@ -267,6 +274,7 @@ class TelegramBot:
                 /clear - Clear the conversation
                 /scene (...) - Generate a scene narration
                 /continue (...) - Request another response
+                /btw <question> - Ask about the conversation without adding to it
                 /set <key> <value> - Set a variable
                 /preset <key> (...) - Apply a preset
                 /instruct <text> - Freeform instruction

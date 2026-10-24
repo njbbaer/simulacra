@@ -1,7 +1,15 @@
 import pytest
 
 from src.conversation import Conversation
-from src.history import History, Scope, render_turn, word_diff
+from src.history import (
+    History,
+    Scope,
+    edited_draft,
+    layer_values,
+    render_turn,
+    word_diff,
+)
+from src.message import Message
 
 CHARACTERS = "/characters"
 
@@ -20,7 +28,9 @@ def history(fs):
         conv.add_message("user", "Where's the clipboard?")
         conv.add_message(
             "assistant",
-            "<character>\nHe wants the clipboard.\n</character>\n\nOn the desk.",
+            "<character>\nHe wants the clipboard.\n</character>\n\n"
+            "<playwright>\nShe points at the clipboard.\n</playwright>\n\n"
+            "On the desk.",
             metadata={"feedback": "too curt"},
         )
         conv.save()
@@ -34,6 +44,9 @@ def history(fs):
         replacing=retried.messages.pop(),
     )
     retried.save()
+    unedited = _write_log("pearl", 2)
+    unedited.add_message("assistant", "Hi.", metadata={"draft": "Hi."})
+    unedited.save()
     return History(CHARACTERS)
 
 
@@ -63,10 +76,23 @@ class TestSearch:
             ("margaret_10:1", ["Where's the clipboard?"]),
         ]
 
-    def test_thoughts_layer_matches_tagged_blocks(self, history):
+    def test_character_and_playwright_layers_split_the_tagged_blocks(self, history):
         scope = [Scope("margaret", 10)]
-        hits = _hits(history.search("clipboard", scope, layer="thoughts"))
+        hits = _hits(history.search("clipboard", scope, layer="playwright"))
+        assert hits == [("margaret_10:2", ["She points at the clipboard."])]
+        hits = _hits(history.search("clipboard", scope, layer="character"))
         assert hits == [("margaret_10:2", ["He wants the clipboard."])]
+
+    def test_edits_layer_matches_what_the_editor_cut(self, history):
+        hits = _hits(history.search(r"\[-Lovely", [Scope("pearl")], layer="edits"))
+        assert hits == [("pearl_1:1", ["Hello, Nemo. [-Lovely day.-]"])]
+
+    def test_edits_layer_searches_unchanged_drafts_for_the_edit_rate(self, history):
+        results = history.search(r"\[-", [Scope("pearl")], layer="edits")
+        assert [(log.id, lines) for log, _, lines in results] == [
+            ("pearl_1", ["Hello, Nemo. [-Lovely day.-]"]),
+            ("pearl_2", []),
+        ]
 
     def test_feedback_layer_includes_replaced_attempts(self, history):
         hits = _hits(history.search(None, layer="feedback"))
@@ -101,8 +127,8 @@ class TestShow:
         assert render_turn(log, 1) == (
             "── pearl_1:0  user\nHello\n\n"
             "══ pearl_1:1  assistant  retried 1x  feedback\nHello, Nemo.\n\n"
-            "── editor\nHello, Nemo. [-Lovely day.-]\n\n"
-            "── notes\nCut it.\n\n"
+            "── edits\nHello, Nemo. [-Lovely day.-]\n\n"
+            "── editor\nCut it.\n\n"
             "── replaced 1 of 1\nfeedback: too stiff\nHi.\n"
         )
 
@@ -111,3 +137,21 @@ def test_word_diff_skips_unchanged_paragraphs():
     old = "Same.\n\nShe cuts this, keeping that."
     new = "Same.\n\nShe cuts, keeping that."
     assert word_diff(old, new) == "She [-cuts this,-] {+cuts,+} keeping that."
+
+
+def test_edited_draft_is_the_closest_one():
+    drafts = ["Something else entirely.", "Hello, Nemo. Lovely day."]
+    message = Message("assistant", "Hello, Nemo.", metadata={"drafts": drafts})
+    assert edited_draft(message) == (2, "Hello, Nemo. Lovely day.")
+
+
+def test_layers_read_older_tag_names():
+    content = (
+        "<think_character>\nA\n</think_character>\n\n<thinking>\nB\n</thinking>\n\n"
+        "<think_playwright>\nC\n</think_playwright>\n\n<note>\nD\n</note>\n\n"
+        "<character_response>\nE\n</character_response>"
+    )
+    message = Message("assistant", content)
+    assert layer_values(message, "character") == ["A"]
+    assert layer_values(message, "playwright") == ["C", "D"]
+    assert layer_values(message, "text") == ["E"]

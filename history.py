@@ -9,7 +9,8 @@ from src.history import KINDS, LAYERS, History, Scope, render_conversation, rend
 CHARACTERS_DIR = "~/simulacra-sync/characters"
 
 
-def search(history: History, args: argparse.Namespace) -> list[str]:
+def search(history: History, args: argparse.Namespace) -> tuple[list[str], bool]:
+    """Return the output lines and whether anything matched."""
     results = history.search(
         args.pattern,
         [Scope.parse(scope) for scope in args.scopes],
@@ -19,28 +20,32 @@ def search(history: History, args: argparse.Namespace) -> list[str]:
         ignore_case=args.ignore_case,
     )
     if not args.count:
-        return [
+        hits = [
             f"{log.id}:{index}  {line}"
             for log, index, lines in results
             for line in lines
         ]
+        return hits[-args.last :] if args.last else hits, bool(hits)
     matched: Counter[str] = Counter()
     searched: Counter[str] = Counter()
     for log, _, lines in results:
         searched[log.id] += 1
         matched[log.id] += bool(lines)
-    width = max((len(log_id) for log_id in searched), default=0)
-    return [
-        f"{log_id:<{width}}  {matched[log_id]}/{n}" for log_id, n in searched.items()
-    ]
+    rows = [(log_id, f"{matched[log_id]}/{n}") for log_id, n in searched.items()]
+    rows = [row for row in rows if matched[row[0]]]
+    total = f"{sum(matched.values())}/{sum(searched.values())}"
+    rows.append(("total", f"{total} in {len(rows)} of {len(searched)} conversations"))
+    width = max(len(log_id) for log_id, _ in rows)
+    lines = [f"{log_id:<{width}}  {count}" for log_id, count in rows]
+    return lines, any(matched.values())
 
 
-def show(history: History, args: argparse.Namespace) -> list[str]:
+def show(history: History, args: argparse.Namespace) -> tuple[list[str], bool]:
     scope = Scope.parse(args.id)
     log = history.log(scope)
     if scope.index is None:
-        return [render_conversation(log)]
-    return [render_turn(log, scope.index, args.context)]
+        return [render_conversation(log)], True
+    return [render_turn(log, scope.index, args.context)], True
 
 
 def main() -> None:
@@ -50,15 +55,15 @@ def main() -> None:
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
+    layers = "\n".join(f"  {name:<11} {about}" for name, about in LAYERS.items())
     search_parser = commands.add_parser(
-        "search", help="Print matching lines under message IDs"
+        "search",
+        help="Print matching lines under message IDs",
+        description="Print matching lines under message IDs, exiting 1 if none.",
+        epilog=f"layers:\n{layers}",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    search_parser.add_argument(
-        "pattern",
-        nargs="?",
-        help="Regex; omit to print the whole layer. A first argument naming a "
-        "character, conversation, or message is taken as a scope instead.",
-    )
+    search_parser.add_argument("pattern", help="Regex, or '' to print the whole layer")
     search_parser.add_argument(
         "scopes", nargs="*", help="Characters, conversations, or messages"
     )
@@ -72,7 +77,7 @@ def main() -> None:
     search_parser.add_argument(
         "--count",
         action="store_true",
-        help="Print matching/searched messages per conversation",
+        help="Print matching/searched messages per conversation with a match",
     )
 
     show_parser = commands.add_parser(
@@ -87,26 +92,16 @@ def main() -> None:
 
     args = parser.parse_args()
     history = History(os.path.expanduser(args.characters))
-    if args.command == "search" and args.pattern and _is_scope(history, args.pattern):
-        args.scopes.insert(0, args.pattern)
-        args.pattern = None
     try:
-        lines = (search if args.command == "search" else show)(history, args)
+        lines, found = (search if args.command == "search" else show)(history, args)
     except (ValueError, re.error) as error:
-        parser.exit(1, f"{error}\n")
-    if args.command == "search" and args.last:
-        lines = lines[-args.last :]
+        parser.exit(2, f"{error}\n")
     try:
-        print("\n".join(lines))
+        if lines:
+            print("\n".join(lines))
     except BrokenPipeError:
         sys.stdout = None
-
-
-def _is_scope(history: History, pattern: str) -> bool:
-    try:
-        return Scope.parse(pattern).character in history.characters()
-    except ValueError:
-        return False
+    sys.exit(0 if found else 1)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 import difflib
 import os
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from itertools import zip_longest
@@ -11,8 +11,18 @@ from itertools import zip_longest
 from .conversation import Conversation
 from .conversation_files import ConversationFiles
 from .message import Message
+from .response_transform import strip_tags
 
-LAYERS = ("text", "thoughts", "draft", "notes", "feedback", "replaced")
+LAYERS = {
+    "text": "what was shown, without thought tags",
+    "character": "the character's thoughts",
+    "playwright": "the playwright's notes",
+    "draft": "the generator's drafts before the editor",
+    "edits": "the editor's changes to the closest draft, marked [-cut-] {+added+}",
+    "editor": "the editor's notes",
+    "feedback": "the user's notes on the message and the attempts it replaced",
+    "replaced": "the earlier attempts a retry replaced",
+}
 KINDS = ("user", "assistant", "scene")
 EXCERPT_RADIUS = 100
 
@@ -100,8 +110,9 @@ class History:
     ) -> Iterator[tuple[Log, int, list[str]]]:
         """Yield each searched message with its matching lines, which may be none.
 
-        Messages without that layer, or not of that kind, aren't searched. With no
-        pattern, every value in the layer matches as one line."""
+        Messages without that layer, or not of that kind, aren't searched; for
+        edits, that means messages without a draft. With no pattern, every value in
+        the layer matches as one line."""
         regex = (
             re.compile(pattern, re.IGNORECASE if ignore_case else 0)
             if pattern
@@ -113,7 +124,8 @@ class History:
                     continue
                 if kind and kind_of(message) != kind:
                     continue
-                if values := layer_values(message, layer):
+                values = layer_values(message, layer)
+                if values or (layer == "edits" and _drafts(message)):
                     yield log, index, _matches(values, regex)
 
     def _targets(
@@ -139,22 +151,41 @@ def layer_values(message: Message, layer: str) -> list[str]:
     return [value for value in _layer_values(message, layer) if value]
 
 
-def _layer_values(message: Message, layer: str) -> list[str | None]:
+def _layer_values(message: Message, layer: str) -> Sequence[str | None]:
     metadata = message.metadata
     match layer:
         case "text":
-            return [message.display_text]
-        case "thoughts":
-            return [m.group(2) for m in _TAGGED.finditer(message.content or "")]
+            return [_shown(message)]
+        case "character" | "playwright":
+            tagged = _TAGGED.finditer(message.content or "")
+            return [m.group(2) for m in tagged if _tag_layer(m.group(1)) == layer]
         case "draft":
-            return list(metadata.get("drafts") or [metadata.get("draft")])
-        case "notes":
+            return _drafts(message)
+        case "edits":
+            if not (edited := edited_draft(message)):
+                return []
+            return _paragraphs(word_diff(edited[1], message.content or ""))
+        case "editor":
             return [metadata.get("editor_notes")]
         case "feedback":
             return [attempt.metadata.get("feedback") for attempt in message.attempts]
         case "replaced":
             return [attempt.content for attempt in message.replaced]
     raise ValueError(f"Unknown layer: {layer}")
+
+
+def edited_draft(message: Message) -> tuple[int, str] | None:
+    """Return the number and text of the draft closest to the message, if any."""
+    drafts = _drafts(message)
+    if not drafts:
+        return None
+    words = (message.content or "").split()
+    ratios = [
+        difflib.SequenceMatcher(None, draft.split(), words, autojunk=False).ratio()
+        for draft in drafts
+    ]
+    best = ratios.index(max(ratios))
+    return best + 1, drafts[best]
 
 
 def render_conversation(log: Log) -> str:
@@ -169,6 +200,9 @@ def render_conversation(log: Log) -> str:
     if conversation.memories:
         header.append(f"{len(conversation.memories)} memories")
     blocks = ["  ".join(header)]
+    if conversation.models:
+        models = ", ".join(f"{k} {v}" for k, v in conversation.models.items())
+        blocks[0] += f"\nmodels: {models}"
     for index, message in enumerate(conversation.messages):
         blocks.append(_heading("──", log, index) + _body(message))
     return "\n\n".join(blocks) + "\n"
@@ -193,7 +227,7 @@ def render_turn(log: Log, index: int, context: int = 1) -> str:
     if edit := _edit(message):
         blocks.append(edit)
     if notes := message.metadata.get("editor_notes"):
-        blocks.append(f"── notes\n{notes}")
+        blocks.append(f"── editor\n{notes}")
     for number, attempt in enumerate(message.replaced, 1):
         blocks.append(_attempt(attempt, number, len(message.replaced)))
     for after in range(index + 1, min(len(messages), index + 1 + context)):
@@ -214,6 +248,8 @@ def word_diff(old: str, new: str) -> str:
 
 
 _TAGGED = re.compile(r"<(\w+)>\s*(.*?)\s*</\1>", re.DOTALL)
+_SPOKEN = re.compile(r"<((?:character_)?response)>\s*(.*?)\s*</\1>", re.DOTALL)
+_CHARACTER_TAGS = {"character", "think", "think_character", "character_think"}
 _SHOWN_ELSEWHERE = {"draft", "drafts", "editor_notes", "feedback", "scene"}
 
 
@@ -250,7 +286,7 @@ def _heading(rule: str, log: Log, index: int) -> str:
 
 
 def _body(message: Message) -> str:
-    lines = [message.display_text]
+    lines = [_shown(message)]
     if message.image:
         lines.append(f"[image: {message.image}]")
     if instruction := message.metadata.get("inline_instruction"):
@@ -268,12 +304,34 @@ def _extras(message: Message) -> str:
 
 
 def _edit(message: Message) -> str | None:
-    drafts = layer_values(message, "draft")
-    if not drafts:
+    edited = edited_draft(message)
+    if not edited:
         return None
-    title = "── editor" + (f" (draft 1 of {len(drafts)})" if len(drafts) > 1 else "")
-    diff = word_diff(drafts[0], message.content or "")
+    number, draft = edited
+    total = len(_drafts(message))
+    title = "── edits" + (f" (draft {number} of {total})" if total > 1 else "")
+    diff = word_diff(draft, message.content or "")
     return f"{title}\n{diff or 'unchanged'}"
+
+
+def _drafts(message: Message) -> list[str]:
+    metadata = message.metadata
+    return [d for d in metadata.get("drafts") or [metadata.get("draft")] if d]
+
+
+def _tag_layer(tag: str) -> str | None:
+    """Return the layer of a thought tag from any era of the response format."""
+    tag = tag.lower()
+    if tag in _CHARACTER_TAGS:
+        return "character"
+    if "playwright" in tag or tag in {"note", "notes"}:
+        return "playwright"
+    return None
+
+
+def _shown(message: Message) -> str:
+    """Return the shown text, including spoken lines older formats tagged."""
+    return strip_tags(_SPOKEN.sub(r"\2", message.content or ""))
 
 
 def _attempt(attempt: Message, number: int, total: int) -> str:
@@ -282,7 +340,7 @@ def _attempt(attempt: Message, number: int, total: int) -> str:
         lines.append(f"feedback: {feedback}")
     lines.append(attempt.content or "")
     if notes := attempt.metadata.get("editor_notes"):
-        lines.append(f"notes: {notes}")
+        lines.append(f"editor: {notes}")
     return "\n".join(lines)
 
 

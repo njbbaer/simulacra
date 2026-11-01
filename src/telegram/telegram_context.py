@@ -56,20 +56,23 @@ class TelegramContext:
     async def send_response(self, text: str) -> None:
         await self.send_message(text, italicize_asides=True)
 
-    @retry_on(TimedOut, 5)
     async def send_message(self, text: str, italicize_asides: bool = False) -> None:
-        """Send each chunk as Markdown, or as the plain chunk if it fails to parse."""
         for chunk in self._split_message(text):
             formatted = _italicize_asides(chunk) if italicize_asides else chunk
-            try:
-                await self.app.bot.send_message(
-                    self._chat_id, formatted, parse_mode="Markdown"
-                )
-            except BadRequest:
-                await self.app.bot.send_message(self._chat_id, chunk)
+            await self._send_chunk(chunk, formatted)
 
     async def send_typing_action(self) -> None:
         await self.app.bot.send_chat_action(chat_id=self._chat_id, action="typing")
+
+    @retry_on(TimedOut, 5)
+    async def _send_chunk(self, chunk: str, formatted: str) -> None:
+        """Send the formatted chunk as Markdown, or the plain one if it fails."""
+        try:
+            await self.app.bot.send_message(
+                self._chat_id, formatted, parse_mode="Markdown"
+            )
+        except BadRequest:
+            await self.app.bot.send_message(self._chat_id, chunk)
 
     @property
     def _chat_id(self) -> int:

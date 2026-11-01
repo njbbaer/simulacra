@@ -25,7 +25,13 @@ async def fetch_completion(
             headers={"Authorization": f"Bearer {api_key}", **APP_HEADERS},
             json=body,
         )
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            response.raise_for_status()
+            raise RuntimeError(
+                f"Non-JSON response from OpenRouter ({response.status_code})"
+            ) from None
         if "error" in data:
             raise RuntimeError(data["error"])
         response.raise_for_status()

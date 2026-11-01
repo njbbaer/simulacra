@@ -12,6 +12,7 @@ from .generator import Generation, Generator, feedback_prompt
 from .instruction_preset import InstructionPreset
 from .message import Message
 from .telemetry import Telemetry
+from .transcriber import transcribe
 from .utilities import parse_value
 
 if TYPE_CHECKING:
@@ -51,6 +52,14 @@ class Simulacrum:
                 )
             self.context.save()
             return await self._reply(session, "chat")
+
+    async def transcribe(self, audio: bytes) -> str:
+        """Transcribe a voice message, charging its cost to the conversation."""
+        self._ensure_idle()
+        text, cost = await transcribe(audio)
+        with self.context.session():
+            self.context.increment_cost(cost)
+        return text
 
     async def new_conversation(self) -> None:
         with self.context.session():

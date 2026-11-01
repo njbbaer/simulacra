@@ -57,7 +57,10 @@ class TelegramBot:
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
         image = await ctx.save_image_locally(self.sim.context.images_dir)
         document = await ctx.get_document_content()
-        text = await ctx.get_text()
+        text = ctx.get_text()
+        if voice := await ctx.get_voice():
+            text = await self.sim.transcribe(voice)
+            await ctx.send_message(f"`🎙️ {text}`")
         text, url_content = await extract_url_content(text)
         documents = [d for d in [document, url_content] if d]
         await self._chat(ctx, text, image, documents=documents)

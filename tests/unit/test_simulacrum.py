@@ -23,6 +23,19 @@ def book_sim(sim):
     return sim
 
 
+class TestTranscribe:
+    @pytest.mark.asyncio
+    async def test_charges_cost_to_conversation(self, sim):
+        before = sim.get_conversation_cost()
+        with patch(
+            "src.simulacrum.transcribe",
+            new_callable=AsyncMock,
+            return_value=("Hello there.", 0.25),
+        ):
+            assert await sim.transcribe(b"voice") == "Hello there."
+        assert sim.get_conversation_cost() == pytest.approx(before + 0.25)
+
+
 class TestExtractInlineInstruction:
     def test_with_instruction(self):
         text, instruction = Simulacrum._extract_inline_instruction("Hello [be concise]")

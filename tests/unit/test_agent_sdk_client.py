@@ -1,3 +1,4 @@
+import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -92,16 +93,18 @@ def test_to_blocks_converts_data_url_image():
     ]
 
 
-def test_to_entries_chains_parents_and_marks_assistant_messages():
+def test_to_entries_opens_with_date_and_chains_parents():
     turns = [
         {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
         {"role": "assistant", "content": [{"type": "text", "text": "Hello"}]},
     ]
     entries = to_entries(turns, "sid")
+    today = datetime.date.today().isoformat()
+    assert entries[0]["attachment"] == {"type": "date", "date": today}
     assert entries[0]["parentUuid"] is None
-    assert entries[1]["parentUuid"] == entries[0]["uuid"]
-    assert entries[1]["type"] == "assistant"
-    assert entries[1]["message"]["stop_reason"] == "end_turn"
+    assert [e["parentUuid"] for e in entries[1:]] == [e["uuid"] for e in entries[:-1]]
+    assert entries[2]["type"] == "assistant"
+    assert entries[2]["message"]["stop_reason"] == "end_turn"
     assert all(e["sessionId"] == "sid" for e in entries)
 
 
@@ -115,7 +118,7 @@ def test_to_entries_sets_cache_breakpoint_on_last_user_block_only():
         },
         {"role": "assistant", "content": [{"type": "text", "text": "Draft"}]},
     ]
-    entries = to_entries(turns, "sid")
+    entries = to_entries(turns, "sid")[1:]
     blocks = [b for e in entries for b in e["message"]["content"]]
     assert [("cache_control" in b) for b in blocks] == [
         False,

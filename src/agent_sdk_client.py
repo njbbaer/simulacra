@@ -2,7 +2,9 @@
 
 Runs on a Claude subscription instead of OpenRouter, selected by an `agent-sdk/`
 model prefix. Prior turns are replayed by resuming a synthetic session, and any
-trailing system message is folded into the final user turn.
+trailing system message is folded into the final user turn. A replayed session
+opens with today's date, which the CLI otherwise appends after the final user
+turn.
 """
 
 import asyncio
@@ -144,12 +146,14 @@ def to_blocks(content: str | list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def to_entries(turns: list[dict[str, Any]], session_id: str) -> list[SessionStoreEntry]:
-    """Build session transcript lines for prior turns, caching the last user turn."""
-    entries: list[SessionStoreEntry] = []
-    parent = None
+    """Build session transcript lines for today's date and prior turns.
+
+    The last user turn gets a cache breakpoint.
+    """
+    date = {"type": "date", "date": datetime.date.today().isoformat()}
+    entries = [_entry({"type": "attachment", "attachment": date}, None, session_id)]
     users = [i for i, turn in enumerate(turns) if turn["role"] == "user"]
     for i, turn in enumerate(turns):
-        entry_id = str(uuid.uuid4())
         content = turn["content"]
         if users and i == users[-1] and content:
             last = {**content[-1], "cache_control": HISTORY_CACHE_CONTROL}
@@ -158,19 +162,24 @@ def to_entries(turns: list[dict[str, Any]], session_id: str) -> list[SessionStor
         if turn["role"] == "assistant":
             message["type"] = "message"
             message["stop_reason"] = "end_turn"
-        entry = {
-            "type": turn["role"],
-            "uuid": entry_id,
-            "parentUuid": parent,
-            "isSidechain": False,
-            "message": message,
-            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
-            "sessionId": session_id,
-            "cwd": WORK_DIR,
-        }
-        entries.append(cast(SessionStoreEntry, entry))
-        parent = entry_id
+        fields = {"type": turn["role"], "message": message}
+        entries.append(_entry(fields, entries[-1]["uuid"], session_id))
     return entries
+
+
+def _entry(
+    fields: dict[str, Any], parent: str | None, session_id: str
+) -> SessionStoreEntry:
+    entry = {
+        **fields,
+        "uuid": str(uuid.uuid4()),
+        "parentUuid": parent,
+        "isSidechain": False,
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+        "sessionId": session_id,
+        "cwd": WORK_DIR,
+    }
+    return cast(SessionStoreEntry, entry)
 
 
 async def run_query(

@@ -45,20 +45,16 @@ class TelegramContext:
         return self._message.text or self._message.caption
 
     async def send_response(self, text: str) -> None:
-        # Italicize parenthetical asides
-        text = text.replace("(", "_(").replace(")", ")_")
-
-        # Attempt to fix broken markdown
-        if text.count("_") % 2 != 0 and text.endswith("_"):
-            text = text[:-1]
-        await self.send_message(text)
+        await self.send_message(text, italicize_asides=True)
 
     @retry_on(TimedOut, 5)
-    async def send_message(self, text: str) -> None:
+    async def send_message(self, text: str, italicize_asides: bool = False) -> None:
+        """Send each chunk as Markdown, or as the plain chunk if it fails to parse."""
         for chunk in self._split_message(text):
+            formatted = _italicize_asides(chunk) if italicize_asides else chunk
             try:
                 await self.app.bot.send_message(
-                    self._chat_id, chunk, parse_mode="Markdown"
+                    self._chat_id, formatted, parse_mode="Markdown"
                 )
             except BadRequest:
                 await self.app.bot.send_message(self._chat_id, chunk)
@@ -106,3 +102,10 @@ class TelegramContext:
             return transcript.text
         finally:
             os.remove(voice_filepath)
+
+
+def _italicize_asides(text: str) -> str:
+    text = text.replace("(", "_(").replace(")", ")_")
+    if text.count("_") % 2 != 0 and text.endswith("_"):
+        text = text[:-1]
+    return text

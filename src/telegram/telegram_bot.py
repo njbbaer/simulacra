@@ -12,7 +12,6 @@ from ..simulacrum import Simulacrum
 from ..telemetry import Telemetry
 from ..turn_stats import format_stats
 from ..utilities import PROJECT_ROOT, extract_url_content
-from .filters import StaleMessageFilter
 from .message_handler import message_handler, requires_body
 from .telegram_context import TelegramContext
 
@@ -52,7 +51,7 @@ class TelegramBot:
         self._register_handlers(authorized_user)
 
     def run(self) -> None:
-        self.app.run_polling()
+        self.app.run_polling(drop_pending_updates=True)
 
     @message_handler
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
@@ -64,8 +63,6 @@ class TelegramBot:
         await self._chat(ctx, text, image, documents=documents)
 
     def _register_handlers(self, authorized_user: str) -> None:
-        self.app.add_handler(MessageHandler(StaleMessageFilter(), self._do_nothing))
-
         self.app.add_handler(
             MessageHandler(
                 ~filters.User(username=[authorized_user]),  # type: ignore

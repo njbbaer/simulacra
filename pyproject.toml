@@ -4,7 +4,6 @@ version = "2.91.0"
 requires-python = "~=3.14.0"
 dependencies = [
     "openai",
-    "pytz",
     "pyyaml",
     "python-telegram-bot",
     "ruamel.yaml",
@@ -34,7 +33,6 @@ dev = [
     "pytest-cov",
     "mypy",
     "types-pyyaml",
-    "types-pytz",
     "types-toml",
     "types-aiofiles",
     "genbadge[coverage]",

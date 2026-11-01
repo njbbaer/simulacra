@@ -48,5 +48,36 @@ def test_garbage_query_raises(tmp_path):
 def test_quote_before_position_raises(tmp_path):
     reader = _make_reader(tmp_path, SAMPLE)
     start = SAMPLE.index("Jumped")
-    with pytest.raises(ValueError, match="at or before your current position"):
+    with pytest.raises(ValueError, match="ahead of your position"):
         reader.next_chunk("quick brown fox", start_idx=start)
+
+
+def test_at_end_of_book_raises(tmp_path):
+    reader = _make_reader(tmp_path, SAMPLE)
+    with pytest.raises(ValueError, match="end of the book"):
+        reader.next_chunk("", start_idx=len(SAMPLE))
+
+
+REPEATED = (
+    "The count bowed.\n"
+    "A storm rose over the harbor.\n"
+    "The count bowed.\n"
+    "Morning came quietly.\n"
+    "The count bowed.\n"
+    "The letter was never sent.\n"
+)
+
+
+def test_quote_matching_twice_ahead_raises(tmp_path):
+    reader = _make_reader(tmp_path, REPEATED)
+    start = REPEATED.index("A storm")
+    with pytest.raises(ValueError, match="more than one place ahead"):
+        reader.next_chunk("The count bowed.", start_idx=start)
+
+
+def test_quote_matching_once_ahead_syncs_despite_earlier_copies(tmp_path):
+    reader = _make_reader(tmp_path, REPEATED)
+    start = REPEATED.index("Morning")
+    chunk, end_idx = reader.next_chunk("The count bowed.", start_idx=start)
+    assert chunk == "Morning came quietly.\nThe count bowed."
+    assert end_idx == REPEATED.index("The letter") - 1

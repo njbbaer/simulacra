@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.utilities import (
+    clean_web_text,
     extract_url_content,
     make_base64_loader,
     merge_dicts,
@@ -87,6 +88,17 @@ class TestExtractUrlContent:
         text, content = await extract_url_content("https://example.com")
         assert text is None
         assert content == "web text"
+
+
+class TestCleanWebText:
+    def test_strips_wiki_markers(self):
+        text = "Plot\n[edit]\nA square narrates.[4] Sequels exist.[citation needed]"
+        assert clean_web_text(text) == "Plot\nA square narrates. Sequels exist."
+
+    def test_drops_repeated_paragraphs_but_keeps_short_lines(self):
+        paragraph = "The CEO defended the company's position in the AI landscape."
+        text = f"{paragraph}\n- Published\n{paragraph}\n- Published"
+        assert clean_web_text(text) == f"{paragraph}\n- Published\n- Published"
 
 
 class TestParsePdf:

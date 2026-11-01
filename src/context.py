@@ -270,10 +270,6 @@ class Context:
         return bool(self._post_process.get("supports_images", True))
 
     @property
-    def document_cleanup_prompt(self) -> str | None:
-        return self._data.get("document_cleanup_prompt")
-
-    @property
     def instruction_presets(self) -> dict[str, InstructionPreset]:
         return InstructionPreset.from_dict(self._data.get("instruction_presets", {}))
 

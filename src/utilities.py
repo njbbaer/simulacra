@@ -17,6 +17,8 @@ from tenacity import (
 )
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+DUPLICATE_MIN_CHARS = 40
+PDF_X_TOLERANCE = 1.5
 
 
 def retry_on(exception: type[BaseException], attempts: int):
@@ -47,13 +49,31 @@ async def extract_url_content(text: str | None) -> tuple[str | None, str | None]
     if not content:
         raise ValueError("Failed to extract content from URL")
     stripped = re.sub(r"\s+", " ", text.replace(url, "")).strip() or None
-    return stripped, content
+    return stripped, clean_web_text(content)
+
+
+def clean_web_text(text: str) -> str:
+    """Strip wiki edit and citation markers and drop repeated paragraphs."""
+    text = re.sub(r"\[(?:\d+|edit|citation needed)\]", "", text)
+    seen: set[str] = set()
+    lines = []
+    for line in text.splitlines():
+        key = line.strip()
+        if not key:
+            continue
+        if len(key) >= DUPLICATE_MIN_CHARS:
+            if key in seen:
+                continue
+            seen.add(key)
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def parse_pdf(content: bytes) -> str:
     binary_data = BytesIO(content)
     with pdfplumber.open(binary_data) as pdf:
-        text = "\n".join(page.extract_text() for page in pdf.pages)
+        pages = (page.extract_text(x_tolerance=PDF_X_TOLERANCE) for page in pdf.pages)
+        text = "\n".join(pages)
         normalized = unicodedata.normalize("NFKD", text)
         return "".join(c for c in normalized if c.isprintable() or c in "\n\r\t ")
 

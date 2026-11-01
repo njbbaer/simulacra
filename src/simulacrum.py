@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from . import notifications, trials
 from .book_reader import BookReader
 from .context import Context, Session
-from .document_cleaner import clean_document
 from .generator import Generation, Generator, feedback_prompt
 from .instruction_preset import InstructionPreset
 from .message import Message
@@ -45,7 +44,7 @@ class Simulacrum:
         with self.context.session() as session:
             user_input, metadata = self._parse_user_input(user_input)
             if documents:
-                user_input = await self._process_documents(user_input, documents)
+                user_input = self._process_documents(user_input, documents)
             if user_input or image:
                 self.context.conversation.add_message(
                     "user", user_input, image, metadata
@@ -355,12 +354,8 @@ class Simulacrum:
 
         return text, preset_key
 
-    async def _process_documents(
-        self, text: str | None, documents: list[str]
-    ) -> str | None:
-        prompt = self.context.document_cleanup_prompt
+    def _process_documents(self, text: str | None, documents: list[str]) -> str | None:
         for document in documents:
-            document = await clean_document(document, prompt)
             tokens = len(document) // 4
             notifications.send(f"Document added: {tokens:,} tokens")
             text = self._append_document(text, document)

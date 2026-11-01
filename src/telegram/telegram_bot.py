@@ -57,10 +57,10 @@ class TelegramBot:
     @message_handler
     async def chat_message_handler(self, ctx: TelegramContext) -> None:
         image = await ctx.save_image_locally(self.sim.context.images_dir)
-        pdf_content = await ctx.get_pdf_content()
+        document = await ctx.get_document_content()
         text = await ctx.get_text()
         text, url_content = await extract_url_content(text)
-        documents = [d for d in [pdf_content, url_content] if d]
+        documents = [d for d in [document, url_content] if d]
         await self._chat(ctx, text, image, documents=documents)
 
     def _register_handlers(self, authorized_user: str) -> None:

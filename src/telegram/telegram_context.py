@@ -8,6 +8,9 @@ from telegram.error import BadRequest, TimedOut
 
 from ..utilities import parse_pdf, retry_on
 
+TEXT_MIME_TYPES = {"application/json", "application/x-yaml", "application/yaml"}
+TEXT_EXTENSIONS = {".txt", ".md", ".yml", ".yaml", ".json"}
+
 
 class TelegramContext:
     def __init__(self, app, update, context) -> None:
@@ -31,13 +34,19 @@ class TelegramContext:
         await image_file.download_to_drive(image_filepath)
         return filename
 
-    async def get_pdf_content(self) -> str | None:
-        if not self._message.document:
+    async def get_document_content(self) -> str | None:
+        """Return the text of an attached PDF or text file."""
+        document = self._message.document
+        if not document:
             return None
-
-        document = await self._message.document.get_file()
-        data = await document.download_as_bytearray()
-        return parse_pdf(bytes(data))
+        mime_type = document.mime_type or ""
+        extension = os.path.splitext(document.file_name or "")[1].lower()
+        is_pdf = mime_type == "application/pdf" or extension == ".pdf"
+        is_text = mime_type.startswith("text/") or mime_type in TEXT_MIME_TYPES
+        if not is_pdf and not is_text and extension not in TEXT_EXTENSIONS:
+            raise ValueError(f"Unsupported attachment: {mime_type or extension}")
+        data = bytes(await (await document.get_file()).download_as_bytearray())
+        return parse_pdf(data) if is_pdf else data.decode("utf-8")
 
     async def get_text(self) -> str | None:
         if self._message.voice:

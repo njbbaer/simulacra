@@ -46,6 +46,8 @@ def test_drafts_are_sorted_and_stages_are_grouped():
 
     assert format_stats(turn, 204, 37, 4.12, 0.0) == "\n".join(
         [
+            "*Conversation* · #204 · 37 messages · $4.12",
+            "",
             "*Turn* · retry · 9.7s · $0.064",
             "",
             "*Response* · kimi-k3 · BaseTen · 5.8k prompt",
@@ -54,8 +56,6 @@ def test_drafts_are_sorted_and_stages_are_grouped():
             "",
             "*Post-process* · glm-5.3 · BaseTen · 6.9k prompt",
             "4.7s · 1.2k tokens, 851 reasoning · $0.022",
-            "",
-            "*Conversation* · #204 · 37 messages · $4.12",
         ]
     )
 
@@ -71,8 +71,8 @@ def test_shared_cache_rate_moves_to_the_heading():
 
     lines = format_stats(turn, 1, 2, 0.0, 0.0).splitlines()
 
-    assert lines[2] == "*Response* · kimi-k3 · BaseTen · 5.8k prompt, 100% cached"
-    assert lines[3] == "Draft 1 · 3.6s · 220 tokens · $0.021"
+    assert lines[4] == "*Response* · kimi-k3 · BaseTen · 5.8k prompt, 100% cached"
+    assert lines[5] == "Draft 1 · 3.6s · 220 tokens · $0.021"
 
 
 def test_candidates_keep_differing_prompts_providers_and_retries_on_the_line():
@@ -86,12 +86,12 @@ def test_candidates_keep_differing_prompts_providers_and_retries_on_the_line():
 
     lines = format_stats(turn, 1, 2, 0.0, 0.0).splitlines()
 
-    assert lines[2] == "*Response* · kimi-k3"
-    assert lines[3] == (
+    assert lines[4] == "*Response* · kimi-k3"
+    assert lines[5] == (
         "A · Draft 1 · 3.6s · 5.8k prompt, 71% cached · 220 tokens"
         " · 3 attempts · BaseTen · $0.021"
     )
-    assert lines[4] == "B · 3.6s · 6.0k prompt · 220 tokens · Fireworks · $0.021"
+    assert lines[6] == "B · 3.6s · 6.0k prompt · 220 tokens · Fireworks · $0.021"
 
 
 def test_turn_cost_sums_every_request():
@@ -118,10 +118,10 @@ def test_plan_cost_is_shown_beside_money_and_replaces_a_zero_cost():
 
     lines = format_stats(turn, 1, 2, 1.5, 8.25).splitlines()
 
-    assert lines[0] == "*Turn* · reply · 5.0s · $0.021 · plan $0.412"
-    assert lines[3].endswith("220 tokens · plan $0.412")
-    assert lines[6].endswith("220 tokens · $0.021")
-    assert lines[-1] == "*Conversation* · #1 · 2 messages · $1.50 · plan $8.25"
+    assert lines[2] == "*Turn* · reply · 5.0s · $0.021 · plan $0.412"
+    assert lines[5].endswith("220 tokens · plan $0.412")
+    assert lines[8].endswith("220 tokens · $0.021")
+    assert lines[0] == "*Conversation* · #1 · 2 messages · $1.50 · plan $8.25"
 
 
 def plan_usage(five_hour: float, resets_in: float) -> dict:

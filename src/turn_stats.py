@@ -40,7 +40,10 @@ def format_stats(
     now: float | None = None,
 ) -> str:
     """Return the /stats message in Telegram Markdown."""
-    sections = []
+    sections = [
+        f"*Conversation* · #{conversation_id} · {messages} messages · "
+        + _cost(cost, plan_cost, 2)
+    ]
     if turn and turn.requests:
         sections.append(
             _join(
@@ -52,10 +55,6 @@ def format_stats(
         )
         stages = dict.fromkeys(request["stage"] for request in turn.requests)
         sections += [_stage_section(turn, stage) for stage in stages]
-    sections.append(
-        f"*Conversation* · #{conversation_id} · {messages} messages · "
-        + _cost(cost, plan_cost, 2)
-    )
     if turn and turn.plan_usage:
         sections.append(_plan_section(turn.plan_usage, now or time.time()))
     return "\n\n".join(sections)

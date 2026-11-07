@@ -130,7 +130,8 @@ class TelegramBot:
         if self.sim.has_messages():
             await self.sim.new_conversation()
             self.cost_tracker.reset()
-            await ctx.send_message("`✅ New conversation started`")
+            model = self.sim.context.model_key
+            await ctx.send_message(f"`✅ New conversation with model '{model}'`")
         else:
             await ctx.send_message("`❌ No messages in conversation`")
 

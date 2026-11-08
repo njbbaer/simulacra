@@ -1,5 +1,6 @@
 import datetime
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -98,7 +99,7 @@ def test_to_entries_opens_with_date_and_chains_parents():
         {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
         {"role": "assistant", "content": [{"type": "text", "text": "Hello"}]},
     ]
-    entries = to_entries(turns, "sid")
+    entries = cast(list[dict[str, Any]], to_entries(turns, "sid"))
     today = datetime.date.today().isoformat()
     assert entries[0]["attachment"] == {"type": "date", "date": today}
     assert entries[0]["parentUuid"] is None
@@ -118,7 +119,7 @@ def test_to_entries_sets_cache_breakpoint_on_last_user_block_only():
         },
         {"role": "assistant", "content": [{"type": "text", "text": "Draft"}]},
     ]
-    entries = to_entries(turns, "sid")[1:]
+    entries = cast(list[dict[str, Any]], to_entries(turns, "sid"))[1:]
     blocks = [b for e in entries for b in e["message"]["content"]]
     assert [("cache_control" in b) for b in blocks] == [
         False,

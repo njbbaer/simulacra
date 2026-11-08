@@ -51,11 +51,13 @@ class TestExtractInlineInstruction:
 class TestAppendDocument:
     def test_with_text(self):
         result = Simulacrum._append_document("my message", "doc content")
+        assert result is not None
         assert "<document>\ndoc content\n</document>" in result
         assert "my message" in result
 
     def test_without_text(self):
         result = Simulacrum._append_document(None, "doc content")
+        assert result is not None
         assert "<document>\ndoc content\n</document>" in result
 
 

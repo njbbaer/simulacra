@@ -1,12 +1,15 @@
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
 from src.message import Message
 from src.trials import Stage, TrialLog, run
 from src.yaml_config import yaml
+
+if TYPE_CHECKING:
+    from src.context import Context
 
 POST_PROCESS = Stage("post_process", scope="post_process")
 RESPONSE = Stage("response")
@@ -28,6 +31,11 @@ class FakeContext:
         return block.get("candidates") or []
 
 
+def as_context(fake: FakeContext | FakeLogContext) -> Context:
+    """Pass a fake where a Context is expected."""
+    return cast("Context", fake)
+
+
 @pytest.fixture
 def context() -> FakeContext:
     return FakeContext(
@@ -44,7 +52,7 @@ def context() -> FakeContext:
     )
 
 
-async def echo_model(context: FakeContext, alias: str | None) -> tuple[str | None, Any]:
+async def echo_model(context: Any, alias: str | None) -> tuple[str | None, Any]:
     return alias, context.overrides
 
 
@@ -52,7 +60,7 @@ class TestRun:
     @pytest.mark.asyncio
     async def test_runs_once_without_candidates(self):
         context = FakeContext({})
-        trial = await run(context, POST_PROCESS, echo_model)
+        trial = await run(as_context(context), POST_PROCESS, echo_model)
         assert trial.selected is None
         assert trial.outputs == {}
         assert trial.result == (None, {})
@@ -62,13 +70,13 @@ class TestRun:
         context = FakeContext(
             {"candidates": [{"api_params": {"model": "one"}}, {"system_prompt": "Hi"}]}
         )
-        trial = await run(context, RESPONSE, echo_model)
+        trial = await run(as_context(context), RESPONSE, echo_model)
         assert trial.outputs["A"][1] == {"api_params": {"model": "one"}}
         assert trial.outputs["B"][1] == {"system_prompt": "Hi"}
 
     @pytest.mark.asyncio
     async def test_assigns_aliases_by_position(self, context):
-        trial = await run(context, POST_PROCESS, echo_model)
+        trial = await run(as_context(context), POST_PROCESS, echo_model)
         assert list(trial.outputs) == ["A", "B", "C"]
         assert trial.outputs["B"][1] == {
             "post_process": {"api_params": {"model": "two"}}
@@ -77,25 +85,25 @@ class TestRun:
     @pytest.mark.asyncio
     async def test_selects_a_candidate(self, context, monkeypatch):
         monkeypatch.setattr("src.trials.runner.random.choice", lambda _: "C")
-        trial = await run(context, POST_PROCESS, echo_model)
+        trial = await run(as_context(context), POST_PROCESS, echo_model)
         assert trial.selected == "C"
         assert trial.result is trial.outputs["C"]
 
     @pytest.mark.asyncio
     async def test_candidates_key_is_not_passed_through(self, context):
         context.resolved_data["post_process"]["candidates"][0]["candidates"] = ["x"]
-        trial = await run(context, POST_PROCESS, echo_model)
+        trial = await run(as_context(context), POST_PROCESS, echo_model)
         assert "candidates" not in trial.outputs["A"][1]["post_process"]
 
     @pytest.mark.asyncio
     async def test_a_failing_candidate_fails_the_trial(self, context):
-        async def execute(_: FakeContext, alias: str | None):
+        async def execute(_: Any, alias: str | None):
             if alias == "B":
                 raise ValueError("bad edit")
             return alias
 
         with pytest.raises(ValueError, match="bad edit"):
-            await run(context, POST_PROCESS, execute)
+            await run(as_context(context), POST_PROCESS, execute)
 
 
 class TestStage:
@@ -142,25 +150,25 @@ class TestTrialLog:
         ]
 
     def test_writes_the_conversation_with_candidates(self, fs, messages):  # noqa: ARG002
-        TrialLog(FakeLogContext(messages)).write(record(1, "Edited"))
+        TrialLog(as_context(FakeLogContext(messages))).write(record(1, "Edited"))
         data = read_log()
         assert data["conversation_id"] == 4
         assert data["messages"][0] == {"role": "user", "content": "Hi"}
         assert data["messages"][1]["trial"]["selected"] == "A"
 
     def test_omits_content_on_trial_turns(self, fs, messages):  # noqa: ARG002
-        TrialLog(FakeLogContext(messages)).write(record(1, "Edited"))
+        TrialLog(as_context(FakeLogContext(messages))).write(record(1, "Edited"))
         assert "content" not in read_log()["messages"][1]
 
     def test_next_id_follows_the_highest_recorded(self, fs, messages):  # noqa: ARG002
-        log = TrialLog(FakeLogContext(messages))
+        log = TrialLog(as_context(FakeLogContext(messages)))
         assert log.next_id() == 1
         log.write(record(1, "Edited"))
         assert log.next_id() == 2
 
     def test_drops_records_no_longer_in_the_conversation(self, fs, messages):  # noqa: ARG002
         context = FakeLogContext(messages)
-        log = TrialLog(context)
+        log = TrialLog(as_context(context))
         log.write(record(1, "Edited"))
         context.conversation.messages = [Message("user", "Hi")]
         log.write()
@@ -168,7 +176,7 @@ class TestTrialLog:
 
     def test_carries_earlier_records_forward(self, fs, messages):  # noqa: ARG002
         context = FakeLogContext(messages)
-        log = TrialLog(context)
+        log = TrialLog(as_context(context))
         log.write(record(1, "First"))
         context.conversation.messages = [
             *messages,
@@ -181,21 +189,21 @@ class TestTrialLog:
         assert entries[3]["trial"]["candidates"]["A"]["content"] == "Second"
 
     def test_does_nothing_without_a_record_or_existing_log(self, fs, messages):  # noqa: ARG002
-        TrialLog(FakeLogContext(messages)).write()
+        TrialLog(as_context(FakeLogContext(messages))).write()
         assert not os.path.exists("/test/trials")
 
     def test_skips_ephemeral_contexts(self, fs, messages):  # noqa: ARG002
         context = FakeLogContext(messages)
         context.is_ephemeral = True
-        TrialLog(context).write(record(1, "Edited"))
+        TrialLog(as_context(context)).write(record(1, "Edited"))
         assert not os.path.exists("/test/trials")
 
     def test_delete_removes_the_log(self, fs, messages):  # noqa: ARG002
-        log = TrialLog(FakeLogContext(messages))
+        log = TrialLog(as_context(FakeLogContext(messages)))
         log.write(record(1, "Edited"))
         log.delete()
         assert not os.path.exists("/test/trials/alice_4.yml")
 
     def test_delete_without_a_log_is_a_no_op(self, fs, messages):  # noqa: ARG002
-        TrialLog(FakeLogContext(messages)).delete()
+        TrialLog(as_context(FakeLogContext(messages))).delete()
         assert not os.path.exists("/test/trials")

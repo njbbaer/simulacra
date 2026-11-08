@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -38,7 +38,7 @@ def conversation_data() -> dict[str, Any]:
 @pytest.fixture
 def bot(sim):
     bot = TelegramBot.__new__(TelegramBot)
-    bot.app = SimpleNamespace(bot=FakeBotAPI())
+    bot.app = cast(Any, SimpleNamespace(bot=FakeBotAPI()))
     bot._token = "12345:SECRET"
     bot.sim = sim
     bot.cost_tracker = CostTracker()

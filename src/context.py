@@ -77,8 +77,13 @@ class Context:
     def save(self) -> None:
         if self._is_ephemeral:
             return
+        state = {
+            "conversation_file": self._state_data["conversation_file"],
+            "transcript_file": f"file://./transcripts/{self._transcript_filename}",
+            **self._state_data,
+        }
         with open(self._state_filepath, "w") as f:
-            yaml.dump(dict(self._state_data), f)
+            yaml.dump(state, f)
         self._conversation.save()
         self._write_transcript()
 
@@ -307,7 +312,9 @@ class Context:
     def _load_state(self) -> dict[str, Any]:
         if os.path.exists(self._state_filepath):
             with open(self._state_filepath) as f:
-                return yaml.load(f) or {}
+                state = yaml.load(f) or {}
+            state.pop("transcript_file", None)
+            return state
         return {}
 
     def _load_conversation(self) -> None:
@@ -331,9 +338,13 @@ class Context:
             self.character_name, user_name
         )
         os.makedirs(self.transcripts_dir, exist_ok=True)
-        filename = f"{self.context_name}_{self.conversation_id}.md"
-        with open(os.path.join(self.transcripts_dir, filename), "w") as f:
+        path = os.path.join(self.transcripts_dir, self._transcript_filename)
+        with open(path, "w") as f:
             f.write(transcript)
+
+    @property
+    def _transcript_filename(self) -> str:
+        return f"{self.context_name}_{self.conversation_id}.md"
 
     def _extend_data(self, data: dict[str, Any], base_dir: str) -> dict[str, Any]:
         if isinstance(data.get("models"), str):

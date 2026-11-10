@@ -3,7 +3,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-WINDOW_LABELS = {"five_hour": "5-hour", "seven_day": "Weekly"}
+WINDOW_LABELS = {
+    "five_hour": "5-hour",
+    "seven_day": "Weekly",
+    "seven_day_overage_included": "Fable",
+}
 
 
 @dataclass
@@ -24,11 +28,11 @@ class TurnStats:
 
     @property
     def plan_usage(self) -> dict[str, dict[str, Any]] | None:
-        """Return the plan utilization reported by the latest request with one."""
-        for request in reversed(self.requests):
-            if request.get("plan_usage"):
-                return request["plan_usage"]
-        return None
+        """Return each window's utilization from the latest request reporting it."""
+        windows: dict[str, dict[str, Any]] = {}
+        for request in self.requests:
+            windows |= request.get("plan_usage") or {}
+        return windows or None
 
 
 def format_stats(

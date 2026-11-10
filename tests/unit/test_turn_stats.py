@@ -149,6 +149,25 @@ def test_plan_usage_from_the_latest_request_is_shown_last():
     ]
 
 
+def test_fable_window_is_kept_when_a_later_request_omits_it():
+    fable = {"seven_day_overage_included": {"utilization": 0.12, "resets_at": 4600}}
+    turn = TurnStats(
+        "chat",
+        requests=[
+            request(plan_usage=plan_usage(0.04, 3600) | fable),
+            request(stage="post_process", plan_usage=plan_usage(0.05, 3600)),
+        ],
+    )
+
+    lines = format_stats(turn, 1, 2, 0.0, 0.0, now=1000).splitlines()
+
+    assert lines[-3:] == [
+        "5-hour · 5% · resets in 1h 0m",
+        "Weekly · 38% · resets in 2d 4h",
+        "Fable · 12% · resets in 1h 0m",
+    ]
+
+
 def test_plan_window_that_has_since_reset_drops_its_stale_utilization():
     turn = TurnStats("chat", requests=[request(plan_usage=plan_usage(0.9, -60))])
 

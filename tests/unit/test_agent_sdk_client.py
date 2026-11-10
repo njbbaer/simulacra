@@ -7,7 +7,9 @@ import pytest
 
 from src.agent_sdk_client import (
     CLI_ENV,
+    check_seeds,
     fetch_agent_sdk_completion,
+    load_seeds,
     split_messages,
     to_blocks,
     to_completion,
@@ -99,7 +101,7 @@ def test_to_entries_opens_with_date_and_chains_parents():
         {"role": "user", "content": [{"type": "text", "text": "Hi"}]},
         {"role": "assistant", "content": [{"type": "text", "text": "Hello"}]},
     ]
-    entries = cast(list[dict[str, Any]], to_entries(turns, "sid"))
+    entries = cast(list[dict[str, Any]], to_entries(turns, "sid", []))
     today = datetime.date.today().isoformat()
     assert entries[0]["attachment"] == {"type": "date", "date": today}
     assert entries[0]["parentUuid"] is None
@@ -119,7 +121,7 @@ def test_to_entries_sets_cache_breakpoint_on_last_user_block_only():
         },
         {"role": "assistant", "content": [{"type": "text", "text": "Draft"}]},
     ]
-    entries = cast(list[dict[str, Any]], to_entries(turns, "sid"))[1:]
+    entries = cast(list[dict[str, Any]], to_entries(turns, "sid", []))[1:]
     blocks = [b for e in entries for b in e["message"]["content"]]
     assert [("cache_control" in b) for b in blocks] == [
         False,
@@ -233,3 +235,21 @@ async def test_fetch_requires_an_oauth_token(monkeypatch):
     body = {"model": "agent-sdk/claude-opus-5-5", "messages": [_text("user", "Hi")]}
     with pytest.raises(RuntimeError, match="claude setup-token"):
         await fetch_agent_sdk_completion(body)
+
+
+def test_check_seeds_saves_added_attachments_and_warns_on_replaced_seeds(
+    tmp_path, monkeypatch, caplog
+):
+    monkeypatch.setattr("src.agent_sdk_client.SEEDS_PATH", str(tmp_path / "s.json"))
+    old = {"type": "environment", "snapshot": {"osVersion": "old"}}
+    new = {"type": "environment", "snapshot": {"osVersion": "new"}}
+    model = {"type": "model", "text": "Opus"}
+    written = [
+        {"type": "attachment", "attachment": new},
+        {"type": "attachment", "attachment": model},
+        {"type": "assistant"},
+    ]
+    check_seeds(cast(Any, written), "m", [old])
+    assert "environment" in caplog.text
+    assert "model" not in caplog.text
+    assert load_seeds("m") == [new, model]

@@ -13,6 +13,7 @@ from src.lab import (
     parse_tag,
     replay,
     sample_turns,
+    scene,
     take_snapshot,
     totals,
 )
@@ -191,6 +192,25 @@ async def test_snapshot_pins_character_files(
     assert texts(second)[0] == ("system", "Edited while the batch ran")
     assert snapshot_result.prompts["system"] != live_result.prompts["system"]
     assert take_snapshot([turn], pinned) == pinned
+
+
+@pytest.mark.asyncio
+async def test_scene_drafts_from_its_lines_with_the_given_character(
+    character,  # noqa: ARG001
+    mock_openrouter,
+) -> None:
+    turn = scene("characters/test", ["Hi", "Hello", "Bye"], "/experiment/scenes/s.yml")
+    pinned = take_snapshot([turn], "/experiment/snapshot")
+
+    await draft(turn, snapshot=pinned)
+
+    (request,) = mock_openrouter.get_requests()
+    assert texts(request) == [
+        ("system", "Remember: "),
+        ("user", "Hi"),
+        ("assistant", "Hello"),
+        ("user", "Bye"),
+    ]
 
 
 def test_transcript_names_each_speaker(character) -> None:  # noqa: ARG001

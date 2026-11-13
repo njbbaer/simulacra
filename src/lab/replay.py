@@ -24,10 +24,13 @@ SNAPSHOT_RECORD = "snapshot.json"
 
 @dataclass(frozen=True)
 class Turn:
-    """An assistant message in a log, replayed from the messages before it."""
+    """An assistant message in a log, replayed from the messages before it.
+
+    The character is the directory above the log's folder unless given."""
 
     log: str
     index: int
+    character: str | None = None
 
     def __post_init__(self) -> None:
         messages = _load(self.log).messages
@@ -42,6 +45,8 @@ class Turn:
 
     @property
     def character_dir(self) -> str:
+        if self.character:
+            return os.path.abspath(self.character)
         return os.path.dirname(os.path.dirname(os.path.abspath(self.log)))
 
     @property
@@ -84,6 +89,25 @@ def assistant_turns(log: str) -> list[Turn]:
     """Return a Turn for each assistant message in the log."""
     messages = _load(log).messages
     return [Turn(log, i) for i, m in enumerate(messages) if m.role == "assistant"]
+
+
+def scene(character_dir: str, lines: list[str], path: str) -> Turn:
+    """Write a conversation of lines to path and return the character's next turn.
+
+    Lines alternate between the user and the character, starting and ending
+    with the user. An existing log at path is overwritten."""
+    if len(lines) % 2 == 0:
+        raise ValueError("A scene must start and end with a user line")
+    conversation = Conversation(path)
+    conversation.reset()
+    roles = ["user", "assistant"]
+    for i, line in enumerate(lines):
+        conversation.add_message(roles[i % 2], line)
+    conversation.add_message("assistant", None)
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    conversation.save()
+    _load.cache_clear()
+    return Turn(path, len(lines), character_dir)
 
 
 @dataclass

@@ -14,6 +14,7 @@ from .replay import (
     combine,
     draft,
     replay,
+    scene,
     take_snapshot,
     totals,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "replay",
     "run_batch",
     "sample_turns",
+    "scene",
     "sections",
     "segments",
     "sentences",

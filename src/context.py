@@ -301,9 +301,12 @@ class Context:
         return {**params, "reasoning": reasoning}
 
     def candidates(self, scope: str | None = None) -> list[dict[str, Any]]:
-        """Return the `candidates` list from the `scope` section, or from the root."""
+        """Return the candidates under `scope` or the root, resolving model keys."""
         block = (self._data.get(scope) or {}) if scope else self._data
-        return block.get("candidates") or []
+        return [
+            self._model_profile(candidate) if isinstance(candidate, str) else candidate
+            for candidate in block.get("candidates") or []
+        ]
 
     @property
     def resolved_data(self) -> dict[str, Any]:
@@ -361,12 +364,15 @@ class Context:
     def _apply_model(self) -> None:
         """Layer the selected model's settings and the overrides onto the files."""
         key = self.model_key
-        if key and key not in self._models["models"]:
-            raise ValueError(f"Unknown model: {key}")
-        profile = self._models["models"].get(key) or {}
+        profile = self._model_profile(key) if key else {}
         data = merge_dicts(self._file_data, profile)
         self._unresolved_data = merge_dicts(data, self._overrides)
         self._rebuild()
+
+    def _model_profile(self, key: str) -> dict[str, Any]:
+        if key not in self._models["models"]:
+            raise ValueError(f"Unknown model: {key}")
+        return self._models["models"][key] or {}
 
     def _rebuild(self) -> None:
         """Layer runtime overrides onto the base data and resolve templates."""

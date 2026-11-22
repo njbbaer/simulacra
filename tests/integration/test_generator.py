@@ -310,6 +310,39 @@ async def test_response_trial_applies_candidate_overrides(
 
 
 @pytest.mark.asyncio
+async def test_selected_trial_drafts_with_each_named_model(
+    simulacrum: Simulacrum,
+    context_data: dict[str, Any],
+    state_data: dict[str, Any],
+    mock_response_candidates,
+    monkeypatch,
+) -> None:
+    del context_data["api_params"]
+    models = {
+        "one": {"api_params": {"model": "test/one"}},
+        "two": {"api_params": {"model": "test/two"}},
+        "trial": {"candidates": ["one", "two"]},
+    }
+    with open("models.yml", "w") as f:
+        yaml.dump({"models": models}, f)
+    with open("test.yml", "w") as f:
+        yaml.dump({**context_data, "models": "models.yml"}, f)
+    with open("test.state.yml", "w") as f:
+        yaml.dump({**state_data, "model": "trial"}, f)
+    monkeypatch.setattr("src.trials.runner.random.choice", lambda aliases: aliases[1])
+
+    response = await simulacrum.chat("Hello assistant", None, None)
+
+    first, second = (
+        json.loads(r.content) for r in mock_response_candidates.get_requests()
+    )
+    assert first["model"] == "test/one"
+    assert second["model"] == "test/two"
+    assert response == "Something else"
+    assert simulacrum.context.conversation.models == {"response": "test/two"}
+
+
+@pytest.mark.asyncio
 async def test_response_trial_logs_each_candidate_request(
     response_trial_simulacrum: Simulacrum,
     mock_response_candidates,  # noqa: ARG001
